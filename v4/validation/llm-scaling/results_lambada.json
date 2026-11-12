@@ -1,0 +1,185 @@
+{
+  "system": "Pythia LAMBADA scaling-law (re-validation with 100% real data)",
+  "method": "L(C) = A \u00b7 C^(-\u03b1) + L_inf on LAMBADA-OpenAI log-perplexity",
+  "data_provenance": "100% REAL \u2014 EleutherAI/pythia GitHub repo evals/pythia-v1/<size>/zero-shot/*_step<N>.json. All 8 sizes \u00d7 27 checkpoints each. pythia-1b sourced from pythia-1b-bf16 dir (same model, bf16 precision proxy).",
+  "per_size_fits": {
+    "pythia-1.4b": {
+      "alpha": 0.15134943446576482,
+      "A": 5655.246628574979,
+      "L_inf": 2.298107485266237e-12,
+      "alpha_se": 0.07470758943915191,
+      "A_se": 15139.709121415006,
+      "L_inf_se": 3.8534702219055728,
+      "R2": 0.8131841749771829,
+      "residual_rms": 2.5847150925569147,
+      "n_points": 26,
+      "C_range": [
+        1.7800388879056896e+16,
+        2.545455609705136e+21
+      ],
+      "name": "pythia-1.4b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA",
+      "n": 26
+    },
+    "pythia-12b": {
+      "alpha": 0.16316869867121825,
+      "A": 14077.580481305771,
+      "L_inf": 1.5251270360605558e-15,
+      "alpha_se": 0.07720950240410593,
+      "A_se": 41644.778730439655,
+      "L_inf_se": 3.924729899912134,
+      "R2": 0.8073097406151725,
+      "residual_rms": 3.057885224466956,
+      "n_points": 26,
+      "C_range": [
+        1.4905808554819584e+17,
+        2.1315306233392005e+22
+      ],
+      "name": "pythia-12b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA",
+      "n": 26
+    },
+    "pythia-160m": {
+      "alpha": 0.1275562549072361,
+      "A": 1699.1701274706866,
+      "L_inf": 9.527219495425917e-14,
+      "alpha_se": 0.06448893412824065,
+      "A_se": 3581.995518437101,
+      "L_inf_se": 4.341757920355669,
+      "R2": 0.8458224862106615,
+      "residual_rms": 2.0606196116229585,
+      "n_points": 26,
+      "C_range": [
+        2042495319932928.0,
+        2.920768307504087e+20
+      ],
+      "name": "pythia-160m",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA",
+      "n": 26
+    },
+    "pythia-1b": {
+      "alpha": 0.14845276866013388,
+      "A": 4798.798877182677,
+      "L_inf": 7.829802951607682e-16,
+      "alpha_se": 0.07200328118636334,
+      "A_se": 12232.032076821564,
+      "L_inf_se": 3.8226825729269573,
+      "R2": 0.8224315616822173,
+      "residual_rms": 2.4665606760423473,
+      "n_points": 26,
+      "C_range": [
+        1.2731159238672384e+16,
+        1.820555771130151e+21
+      ],
+      "name": "pythia-1b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA",
+      "n": 26
+    },
+    "pythia-2.8b": {
+      "alpha": 0.15429035536905222,
+      "A": 7040.422417089776,
+      "L_inf": 3.7323576589780684e-14,
+      "alpha_se": 0.0765113165931277,
+      "A_se": 19717.110835455107,
+      "L_inf_se": 3.830294768964216,
+      "R2": 0.807495495026473,
+      "residual_rms": 2.6700285021715806,
+      "n_points": 26,
+      "C_range": [
+        3.492021012529152e+16,
+        4.993590047916687e+21
+      ],
+      "name": "pythia-2.8b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA",
+      "n": 26
+    },
+    "pythia-410m": {
+      "alpha": 0.1406006026318134,
+      "A": 3141.485241634361,
+      "L_inf": 9.60830365729691e-16,
+      "alpha_se": 0.07266295126324908,
+      "A_se": 7805.203086162727,
+      "L_inf_se": 4.235023031400659,
+      "R2": 0.8183507488592983,
+      "residual_rms": 2.4491636734849545,
+      "n_points": 26,
+      "C_range": [
+        5100282253934592.0,
+        7.293403623126467e+20
+      ],
+      "name": "pythia-410m",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA",
+      "n": 26
+    },
+    "pythia-6.9b": {
+      "alpha": 0.1583967828094272,
+      "A": 10075.329124089725,
+      "L_inf": 1.0840111094644097e-13,
+      "alpha_se": 0.07534291826495605,
+      "A_se": 28567.090691567842,
+      "L_inf_se": 3.8124055777685775,
+      "R2": 0.8133220000196171,
+      "residual_rms": 2.8004561001623682,
+      "n_points": 26,
+      "C_range": [
+        8.62848278247506e+16,
+        1.2338730378939335e+22
+      ],
+      "name": "pythia-6.9b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA",
+      "n": 26
+    },
+    "pythia-70m": {
+      "alpha": 0.10818867768536194,
+      "A": 762.1679533498592,
+      "L_inf": 4.1366297137510127e-17,
+      "alpha_se": 0.05776373465570309,
+      "A_se": 1349.755735055477,
+      "L_inf_se": 4.982876190535563,
+      "R2": 0.8682945506423576,
+      "residual_rms": 1.6886618488101928,
+      "n_points": 26,
+      "C_range": [
+        886172012249088.0,
+        1.2672259775161958e+20
+      ],
+      "name": "pythia-70m",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA",
+      "n": 26
+    }
+  },
+  "universality_summary": {
+    "n_sizes": 8,
+    "alpha_mean": 0.14400044690000097,
+    "alpha_std": 0.0170251379319162,
+    "alpha_cv": 0.11822975760442647,
+    "verdict": "TIGHT_UNIVERSALITY",
+    "alphas_per_size": {
+      "pythia-1.4b": 0.15134943446576482,
+      "pythia-12b": 0.16316869867121825,
+      "pythia-160m": 0.1275562549072361,
+      "pythia-1b": 0.14845276866013388,
+      "pythia-2.8b": 0.15429035536905222,
+      "pythia-410m": 0.1406006026318134,
+      "pythia-6.9b": 0.1583967828094272,
+      "pythia-70m": 0.10818867768536194
+    }
+  },
+  "notes": "LAMBADA-OpenAI cross-entropy (log ppl) tracks Pile val loss within ~5% across the Pythia training range (Biderman 2023 Fig 5b vs Table 8). It is a real-data scaling-law signal with explicit anchor. Closes SESSION-23 outstanding #2 / SESSION-24 (b) by retiring the SYNTHETIC fallback for the 3 previously-missing sizes (160m, 1b, 6.9b)."
+}

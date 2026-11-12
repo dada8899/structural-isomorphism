@@ -1,0 +1,51 @@
+{"ticker": "VALE", "name": "Vale", "exchange": "NYSE", "industry": "Iron Ore Mining", "market_cap_usd": 55e9, "country": "BR"}
+{"ticker": "RIO", "name": "Rio Tinto", "exchange": "NYSE", "industry": "Diversified Mining", "market_cap_usd": 100e9, "country": "UK/AU"}
+{"ticker": "BHP", "name": "BHP Group", "exchange": "NYSE", "industry": "Diversified Mining", "market_cap_usd": 140e9, "country": "AU"}
+{"ticker": "ITUB", "name": "Itaú Unibanco", "exchange": "NYSE", "industry": "Latin America Banking", "market_cap_usd": 60e9, "country": "BR"}
+{"ticker": "TME", "name": "Tencent Music", "exchange": "NYSE", "industry": "Music Streaming (China)", "market_cap_usd": 15e9, "country": "CN"}
+{"ticker": "9888.HK", "name": "百度 (HKEX)", "exchange": "HKEX", "industry": "搜索 + 自动驾驶", "market_cap_usd": 35e9, "country": "CN"}
+{"ticker": "2382.HK", "name": "舜宇光学", "exchange": "HKEX", "industry": "Optical Components", "market_cap_usd": 8e9, "country": "CN"}
+{"ticker": "2020.HK", "name": "安踏体育", "exchange": "HKEX", "industry": "Sportswear (China)", "market_cap_usd": 25e9, "country": "CN"}
+{"ticker": "0020.HK", "name": "商汤科技 SenseTime", "exchange": "HKEX", "industry": "AI / Computer Vision", "market_cap_usd": 4e9, "country": "CN"}
+{"ticker": "601899.SS", "name": "紫金矿业", "exchange": "SSE", "industry": "Gold + Copper Mining", "market_cap_usd": 50e9, "country": "CN"}
+{"ticker": "000725.SZ", "name": "京东方 BOE", "exchange": "SZSE", "industry": "LCD Panels", "market_cap_usd": 25e9, "country": "CN"}
+{"ticker": "601166.SS", "name": "兴业银行", "exchange": "SSE", "industry": "Joint-stock Bank", "market_cap_usd": 50e9, "country": "CN"}
+{"ticker": "600519.SS", "name": "贵州茅台 (second)", "exchange": "SSE", "industry": "Premium Baijiu", "market_cap_usd": 250e9, "country": "CN"}
+{"ticker": "601899.SS", "name": "紫金矿业 (dup)", "exchange": "SSE", "industry": "Mining", "market_cap_usd": 50e9, "country": "CN"}
+{"ticker": "VZ", "name": "Verizon", "exchange": "NYSE", "industry": "US Telecom", "market_cap_usd": 180e9, "country": "US"}
+{"ticker": "T", "name": "AT&T", "exchange": "NYSE", "industry": "US Telecom", "market_cap_usd": 150e9, "country": "US"}
+{"ticker": "TMUS", "name": "T-Mobile US", "exchange": "NASDAQ", "industry": "US Telecom", "market_cap_usd": 230e9, "country": "US"}
+{"ticker": "CMCSA", "name": "Comcast", "exchange": "NASDAQ", "industry": "Cable + Media", "market_cap_usd": 150e9, "country": "US"}
+{"ticker": "PM", "name": "Philip Morris International", "exchange": "NYSE", "industry": "Tobacco + Next-gen", "market_cap_usd": 160e9, "country": "US"}
+{"ticker": "MO", "name": "Altria", "exchange": "NYSE", "industry": "US Tobacco", "market_cap_usd": 80e9, "country": "US"}
+{"ticker": "STZ", "name": "Constellation Brands", "exchange": "NYSE", "industry": "Beer + Spirits", "market_cap_usd": 45e9, "country": "US"}
+{"ticker": "SBUX", "name": "Starbucks", "exchange": "NASDAQ", "industry": "Coffee Chain", "market_cap_usd": 110e9, "country": "US"}
+{"ticker": "YUM", "name": "Yum! Brands", "exchange": "NYSE", "industry": "QSR (KFC/Taco Bell)", "market_cap_usd": 35e9, "country": "US"}
+{"ticker": "CMG", "name": "Chipotle", "exchange": "NYSE", "industry": "Fast Casual", "market_cap_usd": 80e9, "country": "US"}
+{"ticker": "MDLZ", "name": "Mondelez", "exchange": "NASDAQ", "industry": "Global Snacks", "market_cap_usd": 95e9, "country": "US"}
+{"ticker": "PEP", "name": "PepsiCo", "exchange": "NASDAQ", "industry": "Beverages + Snacks", "market_cap_usd": 240e9, "country": "US"}
+{"ticker": "PG", "name": "Procter & Gamble", "exchange": "NYSE", "industry": "Consumer Staples", "market_cap_usd": 400e9, "country": "US"}
+{"ticker": "UL", "name": "Unilever", "exchange": "NYSE", "industry": "Global Consumer", "market_cap_usd": 150e9, "country": "UK"}
+{"ticker": "NESN.SW", "name": "Nestle", "exchange": "SIX", "industry": "Global Packaged Food", "market_cap_usd": 290e9, "country": "CH"}
+{"ticker": "GS", "name": "Goldman Sachs", "exchange": "NYSE", "industry": "Investment Bank", "market_cap_usd": 160e9, "country": "US"}
+{"ticker": "MS", "name": "Morgan Stanley", "exchange": "NYSE", "industry": "Investment Bank + Wealth", "market_cap_usd": 170e9, "country": "US"}
+{"ticker": "BLK", "name": "BlackRock", "exchange": "NYSE", "industry": "Asset Management", "market_cap_usd": 160e9, "country": "US"}
+{"ticker": "SCHW", "name": "Charles Schwab", "exchange": "NYSE", "industry": "Retail Brokerage + Bank", "market_cap_usd": 135e9, "country": "US"}
+{"ticker": "CME", "name": "CME Group", "exchange": "NASDAQ", "industry": "Derivatives Exchange", "market_cap_usd": 85e9, "country": "US"}
+{"ticker": "ICE", "name": "Intercontinental Exchange", "exchange": "NYSE", "industry": "Exchange + Data", "market_cap_usd": 90e9, "country": "US"}
+{"ticker": "SPGI", "name": "S&P Global", "exchange": "NYSE", "industry": "Ratings + Data", "market_cap_usd": 170e9, "country": "US"}
+{"ticker": "MCO", "name": "Moody's", "exchange": "NYSE", "industry": "Credit Ratings", "market_cap_usd": 85e9, "country": "US"}
+{"ticker": "AXP", "name": "American Express", "exchange": "NYSE", "industry": "Card Network + Lender", "market_cap_usd": 195e9, "country": "US"}
+{"ticker": "NU", "name": "Nubank", "exchange": "NYSE", "industry": "Latin America Digital Bank", "market_cap_usd": 65e9, "country": "BR"}
+{"ticker": "STNE", "name": "StoneCo", "exchange": "NASDAQ", "industry": "Brazil Payments", "market_cap_usd": 5e9, "country": "BR"}
+{"ticker": "PDD.A", "name": "PDD (Pinduoduo parent)", "exchange": "NASDAQ", "industry": "E-commerce", "market_cap_usd": 180e9, "country": "CN"}
+{"ticker": "SNAP", "name": "Snap Inc", "exchange": "NYSE", "industry": "Social Media", "market_cap_usd": 18e9, "country": "US"}
+{"ticker": "PINS", "name": "Pinterest", "exchange": "NYSE", "industry": "Visual Discovery", "market_cap_usd": 22e9, "country": "US"}
+{"ticker": "LYFT", "name": "Lyft", "exchange": "NASDAQ", "industry": "Ride Sharing #2", "market_cap_usd": 6e9, "country": "US"}
+{"ticker": "MTCH", "name": "Match Group", "exchange": "NASDAQ", "industry": "Dating Apps", "market_cap_usd": 8e9, "country": "US"}
+{"ticker": "BMBL", "name": "Bumble", "exchange": "NASDAQ", "industry": "Dating Apps", "market_cap_usd": 1e9, "country": "US"}
+{"ticker": "EA", "name": "Electronic Arts", "exchange": "NASDAQ", "industry": "Gaming Publisher", "market_cap_usd": 40e9, "country": "US"}
+{"ticker": "TTWO", "name": "Take-Two Interactive", "exchange": "NASDAQ", "industry": "Gaming (GTA/NBA)", "market_cap_usd": 35e9, "country": "US"}
+{"ticker": "GME", "name": "GameStop", "exchange": "NYSE", "industry": "Game Retail / Meme", "market_cap_usd": 8e9, "country": "US"}
+{"ticker": "AMC", "name": "AMC Entertainment", "exchange": "NYSE", "industry": "Cinemas / Meme", "market_cap_usd": 2e9, "country": "US"}
+{"ticker": "CVNA", "name": "Carvana", "exchange": "NYSE", "industry": "Used Car E-commerce", "market_cap_usd": 35e9, "country": "US"}

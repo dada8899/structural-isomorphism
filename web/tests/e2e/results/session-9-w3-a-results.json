@@ -1,0 +1,187 @@
+{
+  "session": "session-9-w3-a",
+  "timestamp": "2026-05-15T00:46:09",
+  "total_records": 14,
+  "records": [
+    {
+      "flow": "flow1-search-followup",
+      "viewport": "desktop",
+      "success": true,
+      "duration_ms": 8147,
+      "asserts": {
+        "empty_visible": true,
+        "brand_text": "Structural",
+        "input_filled": true,
+        "thread_visible": true,
+        "answer_received": true,
+        "followup_answered": true
+      },
+      "error": null
+    },
+    {
+      "flow": "flow1-search-followup",
+      "viewport": "mobile",
+      "success": true,
+      "duration_ms": 3200,
+      "asserts": {
+        "empty_visible": true,
+        "brand_text": "Structural",
+        "input_filled": true,
+        "thread_visible": true,
+        "answer_received": true,
+        "followup_answered": true
+      },
+      "error": null
+    },
+    {
+      "flow": "flow2-classes-phenomenon",
+      "viewport": "desktop",
+      "success": true,
+      "duration_ms": 3510,
+      "asserts": {
+        "filter_all_active": true,
+        "card_count": 23,
+        "cards_loaded": true,
+        "after_click_url": "https://beta.structural.bytedance.city/classes?id=soc_threshold_cascade",
+        "nav_succeeded": true
+      },
+      "error": null
+    },
+    {
+      "flow": "flow2-classes-phenomenon",
+      "viewport": "mobile",
+      "success": true,
+      "duration_ms": 3675,
+      "asserts": {
+        "filter_all_active": true,
+        "card_count": 23,
+        "cards_loaded": true,
+        "after_click_url": "https://beta.structural.bytedance.city/classes?id=soc_threshold_cascade",
+        "nav_succeeded": true
+      },
+      "error": null
+    },
+    {
+      "flow": "flow3-phase-company-backtest",
+      "viewport": "desktop",
+      "success": true,
+      "duration_ms": 11575,
+      "asserts": {
+        "has_p_value": true,
+        "has_phase_brand": true,
+        "candidate_cards": 56,
+        "after_card_click_url": "https://phase.bytedance.city/",
+        "backtest_page_has_content": true,
+        "backtest_url": "https://phase.bytedance.city/backtest"
+      },
+      "error": null
+    },
+    {
+      "flow": "flow3-phase-company-backtest",
+      "viewport": "mobile",
+      "success": true,
+      "duration_ms": 7438,
+      "asserts": {
+        "has_p_value": true,
+        "has_phase_brand": true,
+        "candidate_cards": 56,
+        "after_card_click_url": "https://phase.bytedance.city/",
+        "backtest_page_has_content": true,
+        "backtest_url": "https://phase.bytedance.city/backtest"
+      },
+      "error": null
+    },
+    {
+      "flow": "flow4-newsletter",
+      "viewport": "desktop",
+      "success": true,
+      "duration_ms": 2126,
+      "asserts": {
+        "newsletter_form_visible": true,
+        "email_filled": true,
+        "status_text": "提交中…",
+        "form_responded": true
+      },
+      "error": null
+    },
+    {
+      "flow": "flow4-newsletter",
+      "viewport": "mobile",
+      "success": true,
+      "duration_ms": 1882,
+      "asserts": {
+        "newsletter_form_visible": true,
+        "email_filled": true,
+        "status_text": "提交中…",
+        "form_responded": true
+      },
+      "error": null
+    },
+    {
+      "flow": "cls-measurement",
+      "viewport": "desktop",
+      "page_slug": "beta-home",
+      "url": "https://beta.structural.bytedance.city/",
+      "cls": 0.112890625,
+      "entries_count": 1,
+      "nav_ms": 6251,
+      "error": null,
+      "success": true
+    },
+    {
+      "flow": "cls-measurement",
+      "viewport": "desktop",
+      "page_slug": "beta-discoveries",
+      "url": "https://beta.structural.bytedance.city/discoveries",
+      "cls": 0.20327848658934541,
+      "entries_count": 4,
+      "nav_ms": 5896,
+      "error": null,
+      "success": true
+    },
+    {
+      "flow": "cls-measurement",
+      "viewport": "desktop",
+      "page_slug": "phase-home",
+      "url": "https://phase.bytedance.city/",
+      "cls": 0.01771648978402095,
+      "entries_count": 2,
+      "nav_ms": 10817,
+      "error": null,
+      "success": true
+    },
+    {
+      "flow": "cls-measurement",
+      "viewport": "mobile",
+      "page_slug": "beta-home",
+      "url": "https://beta.structural.bytedance.city/",
+      "cls": 0,
+      "entries_count": 0,
+      "nav_ms": 6550,
+      "error": null,
+      "success": true
+    },
+    {
+      "flow": "cls-measurement",
+      "viewport": "mobile",
+      "page_slug": "beta-discoveries",
+      "url": "https://beta.structural.bytedance.city/discoveries",
+      "cls": 0.48546748739573237,
+      "entries_count": 2,
+      "nav_ms": 10631,
+      "error": null,
+      "success": true
+    },
+    {
+      "flow": "cls-measurement",
+      "viewport": "mobile",
+      "page_slug": "phase-home",
+      "url": "https://phase.bytedance.city/",
+      "cls": 0.0001555623987106896,
+      "entries_count": 1,
+      "nav_ms": 6959,
+      "error": null,
+      "success": true
+    }
+  ]
+}

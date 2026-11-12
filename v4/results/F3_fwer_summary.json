@@ -1,0 +1,11 @@
+{
+  "n_tests": 20,
+  "alpha": 0.05,
+  "fwer_naive": 0.6415140775914581,
+  "n_significant_raw": 14,
+  "n_significant_bonferroni": 14,
+  "n_significant_holm": 14,
+  "n_significant_bh": 14,
+  "verdict_flips_raw_to_holm": [],
+  "n_verdict_flips_raw_to_holm": 0
+}

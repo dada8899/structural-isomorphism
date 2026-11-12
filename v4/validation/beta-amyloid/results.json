@@ -1,0 +1,200 @@
+{
+  "timestamp_utc": "2026-05-24T16:10:04.030832+00:00",
+  "data_provenance": "ALLEN_BRAIN_LIVE",
+  "per_series": {
+    "ab42_pg_per_mg": {
+      "series": "ab42_pg_per_mg",
+      "n": 333,
+      "min": 0.0232125,
+      "max": 651.53005,
+      "median": 215.851025,
+      "mean": 227.97672485900904,
+      "alpha": 2.9052426486089904,
+      "alpha_se": 0.15556241084269257,
+      "xmin": 259.4840625,
+      "n_tail": 150,
+      "ks": 0.253972864330421,
+      "alpha_ci_low": 1.1361529895459817,
+      "alpha_ci_high": 2.957221215754454,
+      "R_lognormal": -7.8526228158652485,
+      "p_lognormal": 4.0742558184820676e-15,
+      "winner_vs_lognormal": "lognormal",
+      "R_exponential": -15.65109466968552,
+      "p_exponential": 3.265536985015759e-55,
+      "winner_vs_exponential": "exponential",
+      "verdict": "INCONCLUSIVE"
+    },
+    "ab40_pg_per_mg": {
+      "series": "ab40_pg_per_mg",
+      "n": 328,
+      "min": 0.09871875,
+      "max": 985.608,
+      "median": 0.7421125,
+      "mean": 21.850186491006102,
+      "alpha": 1.5230521516467352,
+      "alpha_se": 0.0698957838170361,
+      "xmin": 2.2841,
+      "n_tail": 56,
+      "ks": 0.08953716107386755,
+      "alpha_ci_low": 1.4843113418615088,
+      "alpha_ci_high": 1.9255339628696615,
+      "R_lognormal": -0.02045049783332249,
+      "p_lognormal": 0.9836840008132977,
+      "winner_vs_lognormal": "inconclusive",
+      "R_exponential": 7.226755698798789,
+      "p_exponential": 4.946687933436293e-13,
+      "winner_vs_exponential": "power_law",
+      "verdict": "INCONCLUSIVE"
+    },
+    "ihc_a_beta": {
+      "series": "ihc_a_beta",
+      "n": 377,
+      "min": 0.000161489062787587,
+      "max": 0.0878567567309428,
+      "median": 0.00863335836582819,
+      "mean": 0.015862603136052592,
+      "alpha": 1.974462322410027,
+      "alpha_se": 0.06805940080571453,
+      "xmin": 0.00742377357258094,
+      "n_tail": 205,
+      "ks": 0.10555791495518962,
+      "alpha_ci_low": 1.835053335862266,
+      "alpha_ci_high": 2.1689030538470226,
+      "R_lognormal": -3.9467887501931886,
+      "p_lognormal": 7.920638371082027e-05,
+      "winner_vs_lognormal": "lognormal",
+      "R_exponential": -2.8251704827250834,
+      "p_exponential": 0.0047255465618724355,
+      "winner_vs_exponential": "exponential",
+      "verdict": "INCONCLUSIVE"
+    },
+    "ihc_a_beta_ffpe": {
+      "series": "ihc_a_beta_ffpe",
+      "n": 354,
+      "min": 0.0016918143705871,
+      "max": 0.0692989188696844,
+      "median": 0.00756802285397369,
+      "mean": 0.010956578394328693,
+      "alpha": 2.2218834611223115,
+      "alpha_se": 0.07520172851626643,
+      "xmin": 0.0049561376573021,
+      "n_tail": 264,
+      "ks": 0.09456662179125042,
+      "alpha_ci_low": 2.0174008934119625,
+      "alpha_ci_high": 2.9314734003416434,
+      "R_lognormal": -3.665561022880385,
+      "p_lognormal": 0.00024679695187062505,
+      "winner_vs_lognormal": "lognormal",
+      "R_exponential": -2.4546691288909654,
+      "p_exponential": 0.01410143133044783,
+      "winner_vs_exponential": "exponential",
+      "verdict": "INCONCLUSIVE"
+    },
+    "ab42_over_ab40_ratio": {
+      "series": "ab42_over_ab40_ratio",
+      "n": 328,
+      "min": 0.04033887,
+      "max": 1000.0,
+      "median": 80.250505,
+      "mean": 201.09835980341464,
+      "alpha": 2.977263445821489,
+      "alpha_se": 0.2039391527471156,
+      "xmin": 311.197421,
+      "n_tail": 94,
+      "ks": 0.18493184779158878,
+      "alpha_ci_low": 1.1775559881586084,
+      "alpha_ci_high": 2.989975178763011,
+      "R_lognormal": -2.859044106672615,
+      "p_lognormal": 0.004249196991666249,
+      "winner_vs_lognormal": "lognormal",
+      "R_exponential": -3.6237425628341304,
+      "p_exponential": 0.00029037063008893754,
+      "winner_vs_exponential": "exponential",
+      "verdict": "INCONCLUSIVE"
+    }
+  },
+  "iso_within_series": {
+    "ab42_pg_per_mg": {
+      "ab40_pg_per_mg": 8.104621541157057,
+      "ihc_a_beta": 5.481655339057124,
+      "ihc_a_beta_ffpe": 3.954947878761844,
+      "ab42_over_ab40_ratio": 0.28078584031950354
+    },
+    "ab40_pg_per_mg": {
+      "ab42_pg_per_mg": 8.104621541157057,
+      "ihc_a_beta": 4.627110139307474,
+      "ihc_a_beta_ffpe": 6.806709313510351,
+      "ab42_over_ab40_ratio": 6.745440951404195
+    },
+    "ihc_a_beta": {
+      "ab42_pg_per_mg": 5.481655339057124,
+      "ab40_pg_per_mg": 4.627110139307474,
+      "ihc_a_beta_ffpe": 2.4394075731742366,
+      "ab42_over_ab40_ratio": 4.664279055740351
+    },
+    "ihc_a_beta_ffpe": {
+      "ab42_pg_per_mg": 3.954947878761844,
+      "ab40_pg_per_mg": 6.806709313510351,
+      "ihc_a_beta": 2.4394075731742366,
+      "ab42_over_ab40_ratio": 3.475207600747935
+    },
+    "ab42_over_ab40_ratio": {
+      "ab42_pg_per_mg": 0.28078584031950354,
+      "ab40_pg_per_mg": 6.745440951404195,
+      "ihc_a_beta": 4.664279055740351,
+      "ihc_a_beta_ffpe": 3.475207600747935
+    }
+  },
+  "iso_vs_literature": {
+    "ab42_pg_per_mg": {
+      "smoluchowski_dla_alpha": 1.599369348964841,
+      "cruz1997_plaque_alpha": 6.517237888449677,
+      "hartig2018_5xfad_alpha": 3.726232009746027
+    },
+    "ab40_pg_per_mg": {
+      "smoluchowski_dla_alpha": 4.611250668575662,
+      "cruz1997_plaque_alpha": 1.4503229886184092,
+      "hartig2018_5xfad_alpha": 3.4863970896454712
+    },
+    "ihc_a_beta": {
+      "smoluchowski_dla_alpha": 2.4875984881406095,
+      "cruz1997_plaque_alpha": 2.2689747877979705,
+      "hartig2018_5xfad_alpha": 0.7621360929984309
+    },
+    "ihc_a_beta_ffpe": {
+      "smoluchowski_dla_alpha": 1.3016110165357135,
+      "cruz1997_plaque_alpha": 4.171025425224069,
+      "hartig2018_5xfad_alpha": 0.7263813733309232
+    },
+    "ab42_over_ab40_ratio": {
+      "smoluchowski_dla_alpha": 1.6708465671541997,
+      "cruz1997_plaque_alpha": 5.623319518369524,
+      "hartig2018_5xfad_alpha": 3.465220749697759
+    }
+  },
+  "references": {
+    "smoluchowski_dla_alpha": {
+      "alpha": 2.5,
+      "se": 0.2,
+      "source": "Family-Vicsek 1985; Krapivsky-Redner 2010 review"
+    },
+    "cruz1997_plaque_alpha": {
+      "alpha": 1.7,
+      "se": 0.1,
+      "source": "Cruz et al. 1997 J. Neurosci. 17:7873"
+    },
+    "hartig2018_5xfad_alpha": {
+      "alpha": 2.1,
+      "se": 0.15,
+      "source": "Hartig et al. 2018 Acta Neuropathol Comm 6:131"
+    }
+  },
+  "canonical_band": [
+    2.0,
+    3.5
+  ],
+  "sanity_band": [
+    1.5,
+    4.0
+  ]
+}

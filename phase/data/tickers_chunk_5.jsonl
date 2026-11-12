@@ -1,0 +1,18 @@
+{"ticker": "ASML", "name": "ASML", "exchange": "NASDAQ", "industry": "Semiconductor Equipment (EUV)", "market_cap_usd": 320000000000.0, "country": "NL"}
+{"ticker": "MU", "name": "Micron", "exchange": "NASDAQ", "industry": "Memory Semiconductors", "market_cap_usd": 130000000000.0, "country": "US"}
+{"ticker": "ADBE", "name": "Adobe", "exchange": "NASDAQ", "industry": "Creative SaaS", "market_cap_usd": 220000000000.0, "country": "US"}
+{"ticker": "RBLX", "name": "Roblox", "exchange": "NYSE", "industry": "Gaming Platform (UGC)", "market_cap_usd": 30000000000.0, "country": "US"}
+{"ticker": "EBAY", "name": "eBay", "exchange": "NASDAQ", "industry": "C2C Marketplace", "market_cap_usd": 30000000000.0, "country": "US"}
+{"ticker": "GM", "name": "General Motors", "exchange": "NYSE", "industry": "Automaker + Cruise AV", "market_cap_usd": 55000000000.0, "country": "US"}
+{"ticker": "RELIANCE.NS", "name": "Reliance Industries", "exchange": "NSE", "industry": "Oil + Telecom + Retail", "market_cap_usd": 250000000000.0, "country": "IN"}
+{"ticker": "0941.HK", "name": "China Mobile", "exchange": "HKEX", "industry": "Telecom (China)", "market_cap_usd": 220000000000.0, "country": "CN"}
+{"ticker": "TAL", "name": "TAL Education", "exchange": "NYSE", "industry": "Education Services", "market_cap_usd": 5000000000.0, "country": "CN"}
+{"ticker": "0992.HK", "name": "Lenovo", "exchange": "HKEX", "industry": "PC + Mobile + Enterprise", "market_cap_usd": 15000000000.0, "country": "CN"}
+{"ticker": "601988.SS", "name": "中国银行", "exchange": "SSE", "industry": "Banking", "market_cap_usd": 100000000000.0, "country": "CN"}
+{"ticker": "XPEV", "name": "XPeng ADR", "exchange": "NYSE", "industry": "EV (ADR)", "market_cap_usd": 15000000000.0, "country": "CN"}
+{"ticker": "MDB", "name": "MongoDB", "exchange": "NASDAQ", "industry": "Database SaaS", "market_cap_usd": 25000000000.0, "country": "US"}
+{"ticker": "UPST", "name": "Upstart", "exchange": "NASDAQ", "industry": "AI Lending", "market_cap_usd": 4000000000.0, "country": "US"}
+{"ticker": "OPRT", "name": "Oportun", "exchange": "NASDAQ", "industry": "Consumer Lending", "market_cap_usd": 300000000.0, "country": "US"}
+{"ticker": "IREN", "name": "IREN Bitcoin Miner", "exchange": "NASDAQ", "industry": "BTC Mining + AI HPC", "market_cap_usd": 2000000000.0, "country": "AU"}
+{"ticker": "OXY", "name": "Occidental Petroleum", "exchange": "NYSE", "industry": "Oil + Carbon Capture", "market_cap_usd": 50000000000.0, "country": "US"}
+{"ticker": "ALB", "name": "Albemarle", "exchange": "NYSE", "industry": "Lithium Miner", "market_cap_usd": 15000000000.0, "country": "US"}

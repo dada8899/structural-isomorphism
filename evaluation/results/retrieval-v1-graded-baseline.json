@@ -1,0 +1,2602 @@
+{
+  "metrics": {
+    "bilingual_type_jaccard_at_5": 0.0351,
+    "by_language": {
+      "en": {
+        "cross_domain_success": 0.075,
+        "hit_at_5": 0.025,
+        "mrr_at_5": 0.025
+      },
+      "zh": {
+        "cross_domain_success": 0.6,
+        "hit_at_5": 0.575,
+        "mrr_at_5": 0.4562
+      }
+    },
+    "cross_domain_success": 0.3375,
+    "dataset_rows": 100,
+    "hit_at_5": 0.3,
+    "in_scope_rows": 80,
+    "latency_ms": {
+      "p50": 32.2,
+      "p95": 37.9
+    },
+    "mrr_at_5": 0.2406,
+    "oos_precision": 1.0,
+    "oos_reason_accuracy": 1.0,
+    "oos_recall": 1.0,
+    "out_of_scope_rows": 20,
+    "qrels": {
+      "judged_queries": 80,
+      "judgments": 400,
+      "ndcg_at_5": 0.5786,
+      "success_at_5": 0.6125
+    },
+    "request_errors": 0,
+    "strict_refusal_rate": 1.0
+  },
+  "outcomes": [
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-01-linear-response-zh",
+      "language": "zh",
+      "latency_ms": 616.3,
+      "pair_id": "in-01-linear-response",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.3333333333333333,
+      "result_types": [
+        "08",
+        "02",
+        "01",
+        "69",
+        "01"
+      ],
+      "top_ids": [
+        "5k-ee-191",
+        "5k-ee-489",
+        "5k-ee-410",
+        "cross-160",
+        "5k-ef-215"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-01-linear-response-en",
+      "language": "en",
+      "latency_ms": 52.6,
+      "pair_id": "in-01-linear-response",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "63",
+        "61",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-ee-277",
+        "5k-24-061",
+        "5k-30-061",
+        "5k-18-098",
+        "5k-ee-163"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-02-adaptation-tolerance-zh",
+      "language": "zh",
+      "latency_ms": 36.2,
+      "pair_id": "in-02-adaptation-tolerance",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "03",
+        "03",
+        "08",
+        "42",
+        "07"
+      ],
+      "top_ids": [
+        "5k-ee-103",
+        "sci-119",
+        "soc-084",
+        "5k-06-067",
+        "cross-084"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-02-adaptation-tolerance-en",
+      "language": "en",
+      "latency_ms": 42.5,
+      "pair_id": "in-02-adaptation-tolerance",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "70",
+        "70",
+        "70",
+        "70",
+        "70"
+      ],
+      "top_ids": [
+        "5k-21-050",
+        "sci-141",
+        "sci-139",
+        "5k-30-070",
+        "5k-ef-264"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-03-distance-decay-zh",
+      "language": "zh",
+      "latency_ms": 34.0,
+      "pair_id": "in-03-distance-decay",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "06",
+        "03",
+        "06",
+        "06",
+        "08"
+      ],
+      "top_ids": [
+        "soc-011",
+        "5k-09-032",
+        "5k-ee-125",
+        "5k-ef-364",
+        "5k-ef-213"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-03-distance-decay-en",
+      "language": "en",
+      "latency_ms": 36.1,
+      "pair_id": "in-03-distance-decay",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "54",
+        "61",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-09-082",
+        "5k-30-061",
+        "5k-24-061",
+        "5k-26-096",
+        "5k-ee-129"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-04-chain-reaction-zh",
+      "language": "zh",
+      "latency_ms": 35.1,
+      "pair_id": "in-04-chain-reaction",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "42",
+        "42",
+        "12",
+        "42",
+        "41"
+      ],
+      "top_ids": [
+        "5k-ef-238",
+        "cross-067",
+        "5k-ef-105",
+        "5k-ef-052",
+        "5k-ef-331"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-04-chain-reaction-en",
+      "language": "en",
+      "latency_ms": 37.9,
+      "pair_id": "in-04-chain-reaction",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "27",
+        "61",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-09-058",
+        "5k-24-061",
+        "5k-30-061",
+        "5k-18-098",
+        "5k-06-043"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-05-exponential-decay-zh",
+      "language": "zh",
+      "latency_ms": 32.3,
+      "pair_id": "in-05-exponential-decay",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.5,
+      "result_types": [
+        "05",
+        "06",
+        "76",
+        "76",
+        "69"
+      ],
+      "top_ids": [
+        "5k-ef-001",
+        "5k-ee-340",
+        "cross-010",
+        "5k-ee-350",
+        "5k-ee-179"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-05-exponential-decay-en",
+      "language": "en",
+      "latency_ms": 31.2,
+      "pair_id": "in-05-exponential-decay",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "53",
+        "65",
+        "65",
+        "65"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-20-098",
+        "5k-11-096",
+        "5k-24-065",
+        "5k-11-077"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-06-bounded-growth-zh",
+      "language": "zh",
+      "latency_ms": 39.6,
+      "pair_id": "in-06-bounded-growth",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "07",
+        "07",
+        "07",
+        "07",
+        "07"
+      ],
+      "top_ids": [
+        "cross-063",
+        "5k-ef-386",
+        "5k-ef-276",
+        "cross-030",
+        "sci-061"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-06-bounded-growth-en",
+      "language": "en",
+      "latency_ms": 32.3,
+      "pair_id": "in-06-bounded-growth",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "54",
+        "61",
+        "61",
+        "27",
+        "61"
+      ],
+      "top_ids": [
+        "5k-09-085",
+        "5k-30-061",
+        "5k-24-061",
+        "5k-09-046",
+        "5k-26-096"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-07-acceleration-zh",
+      "language": "zh",
+      "latency_ms": 31.9,
+      "pair_id": "in-07-acceleration",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "05",
+        "03",
+        "43",
+        "05",
+        "05"
+      ],
+      "top_ids": [
+        "5k-ee-092",
+        "5k-15-022",
+        "5k-ee-028",
+        "5k-ef-273",
+        "soc-083"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-07-acceleration-en",
+      "language": "en",
+      "latency_ms": 32.7,
+      "pair_id": "in-07-acceleration",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "18",
+        "61",
+        "61",
+        "62",
+        "61"
+      ],
+      "top_ids": [
+        "5k-13-060",
+        "5k-24-061",
+        "5k-18-098",
+        "5k-26-095",
+        "5k-26-097"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-08-sunk-cost-zh",
+      "language": "zh",
+      "latency_ms": 34.5,
+      "pair_id": "in-08-sunk-cost",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "09",
+        "18",
+        "67",
+        "43",
+        "08"
+      ],
+      "top_ids": [
+        "soc-053",
+        "5k-ef-130",
+        "5k-30-067",
+        "5k-14-090",
+        "5k-12-026"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-08-sunk-cost-en",
+      "language": "en",
+      "latency_ms": 32.4,
+      "pair_id": "in-08-sunk-cost",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-30-061",
+        "5k-24-061",
+        "5k-26-096",
+        "5k-18-098",
+        "5k-ee-163"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-09-restoring-force-zh",
+      "language": "zh",
+      "latency_ms": 36.8,
+      "pair_id": "in-09-restoring-force",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "19",
+        "19",
+        "19",
+        "19",
+        "19"
+      ],
+      "top_ids": [
+        "cross-029",
+        "5k-ee-006",
+        "cross-152",
+        "5k-ef-037",
+        "5k-ef-033"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-09-restoring-force-en",
+      "language": "en",
+      "latency_ms": 33.6,
+      "pair_id": "in-09-restoring-force",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "03",
+        "65",
+        "01",
+        "03",
+        "61"
+      ],
+      "top_ids": [
+        "5k-27-022",
+        "5k-11-096",
+        "5k-12-087",
+        "5k-12-052",
+        "5k-11-072"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-10-periodic-cycle-zh",
+      "language": "zh",
+      "latency_ms": 34.3,
+      "pair_id": "in-10-periodic-cycle",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "76",
+        "76",
+        "76",
+        "76",
+        "76"
+      ],
+      "top_ids": [
+        "5k-ee-385",
+        "5k-ee-030",
+        "cross-053",
+        "soc-145",
+        "5k-ef-188"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-10-periodic-cycle-en",
+      "language": "en",
+      "latency_ms": 32.8,
+      "pair_id": "in-10-periodic-cycle",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "61",
+        "61",
+        "65"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-30-061",
+        "5k-26-096",
+        "5k-18-098",
+        "5k-11-096"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-11-resonance-zh",
+      "language": "zh",
+      "latency_ms": 34.7,
+      "pair_id": "in-11-resonance",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "76",
+        "76",
+        "76",
+        "76",
+        "76"
+      ],
+      "top_ids": [
+        "5k-ee-358",
+        "5k-ee-063",
+        "cross-053",
+        "5k-30-076",
+        "sci-096"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-11-resonance-en",
+      "language": "en",
+      "latency_ms": 35.3,
+      "pair_id": "in-11-resonance",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "65",
+        "61",
+        "65",
+        "65",
+        "65"
+      ],
+      "top_ids": [
+        "5k-11-096",
+        "5k-24-061",
+        "5k-24-065",
+        "5k-11-077",
+        "5k-30-065"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-12-oscillatory-feedback-zh",
+      "language": "zh",
+      "latency_ms": 32.8,
+      "pair_id": "in-12-oscillatory-feedback",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.3333333333333333,
+      "result_types": [
+        "19",
+        "10",
+        "13",
+        "71",
+        "13"
+      ],
+      "top_ids": [
+        "soc-005",
+        "5k-ef-012",
+        "5k-ef-257",
+        "cross-077",
+        "sci-049"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-12-oscillatory-feedback-en",
+      "language": "en",
+      "latency_ms": 32.3,
+      "pair_id": "in-12-oscillatory-feedback",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "03",
+        "53",
+        "61",
+        "61",
+        "65"
+      ],
+      "top_ids": [
+        "5k-09-014",
+        "5k-09-097",
+        "5k-24-061",
+        "5k-30-061",
+        "5k-11-096"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-13-interference-zh",
+      "language": "zh",
+      "latency_ms": 31.5,
+      "pair_id": "in-13-interference",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.5,
+      "result_types": [
+        "72",
+        "14",
+        "42",
+        "43",
+        "62"
+      ],
+      "top_ids": [
+        "sci-117",
+        "sci-017",
+        "5k-20-012",
+        "5k-20-025",
+        "5k-26-088"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-13-interference-en",
+      "language": "en",
+      "latency_ms": 30.9,
+      "pair_id": "in-13-interference",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "61",
+        "61",
+        "65"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-06-036",
+        "5k-18-098",
+        "5k-30-061",
+        "5k-11-096"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-14-diffusion-zh",
+      "language": "zh",
+      "latency_ms": 32.2,
+      "pair_id": "in-14-diffusion",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "42",
+        "42",
+        "42",
+        "42",
+        "15"
+      ],
+      "top_ids": [
+        "sci-123",
+        "sci-132",
+        "5k-30-042",
+        "5k-ef-174",
+        "cross-064"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-14-diffusion-en",
+      "language": "en",
+      "latency_ms": 32.2,
+      "pair_id": "in-14-diffusion",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-18-098",
+        "5k-30-061",
+        "5k-26-075",
+        "5k-06-027"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-15-pattern-formation-zh",
+      "language": "zh",
+      "latency_ms": 32.4,
+      "pair_id": "in-15-pattern-formation",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "62",
+        "43",
+        "13",
+        "72",
+        "68"
+      ],
+      "top_ids": [
+        "5k-27-039",
+        "5k-ef-320",
+        "sci-081",
+        "5k-ef-378",
+        "5k-ee-175"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-15-pattern-formation-en",
+      "language": "en",
+      "latency_ms": 30.5,
+      "pair_id": "in-15-pattern-formation",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "65",
+        "65",
+        "65",
+        "62"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-11-096",
+        "5k-24-065",
+        "5k-11-077",
+        "5k-26-095"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-16-relative-motion-zh",
+      "language": "zh",
+      "latency_ms": 32.5,
+      "pair_id": "in-16-relative-motion",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.25,
+      "result_types": [
+        "14",
+        "76",
+        "32",
+        "17",
+        "15"
+      ],
+      "top_ids": [
+        "5k-ee-386",
+        "5k-ef-188",
+        "5k-21-096",
+        "sci-034",
+        "5k-21-079"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-16-relative-motion-en",
+      "language": "en",
+      "latency_ms": 35.9,
+      "pair_id": "in-16-relative-motion",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "35",
+        "18",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-10-093",
+        "5k-13-090",
+        "5k-24-061",
+        "5k-30-061",
+        "5k-ee-129"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-17-runaway-feedback-zh",
+      "language": "zh",
+      "latency_ms": 33.2,
+      "pair_id": "in-17-runaway-feedback",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "18",
+        "18",
+        "18",
+        "18",
+        "18"
+      ],
+      "top_ids": [
+        "sci-073",
+        "cross-115",
+        "5k-ee-158",
+        "cross-066",
+        "soc-051"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-17-runaway-feedback-en",
+      "language": "en",
+      "latency_ms": 33.7,
+      "pair_id": "in-17-runaway-feedback",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "62",
+        "61",
+        "61",
+        "62",
+        "61"
+      ],
+      "top_ids": [
+        "5k-26-095",
+        "5k-26-097",
+        "5k-21-041",
+        "kb5k03-047",
+        "5k-06-026"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-18-dynamic-equilibrium-zh",
+      "language": "zh",
+      "latency_ms": 31.6,
+      "pair_id": "in-18-dynamic-equilibrium",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "19",
+        "19",
+        "19",
+        "71",
+        "03"
+      ],
+      "top_ids": [
+        "5k-ef-096",
+        "5k-ee-466",
+        "5k-ee-438",
+        "cross-077",
+        "5k-12-067"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-18-dynamic-equilibrium-en",
+      "language": "en",
+      "latency_ms": 29.1,
+      "pair_id": "in-18-dynamic-equilibrium",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "27",
+        "65",
+        "65",
+        "54",
+        "54"
+      ],
+      "top_ids": [
+        "5k-09-060",
+        "5k-11-096",
+        "5k-11-077",
+        "5k-ef-463",
+        "5k-ee-293"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-19-negative-feedback-zh",
+      "language": "zh",
+      "latency_ms": 30.3,
+      "pair_id": "in-19-negative-feedback",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "73",
+        "66",
+        "73",
+        "08",
+        "19"
+      ],
+      "top_ids": [
+        "soc-121",
+        "5k-ef-164",
+        "5k-24-073",
+        "sci-086",
+        "soc-124"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-19-negative-feedback-en",
+      "language": "en",
+      "latency_ms": 30.8,
+      "pair_id": "in-19-negative-feedback",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "61",
+        "04",
+        "61"
+      ],
+      "top_ids": [
+        "5k-30-061",
+        "5k-26-096",
+        "5k-24-061",
+        "5k-22-045",
+        "5k-21-041"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-20-hysteresis-zh",
+      "language": "zh",
+      "latency_ms": 35.6,
+      "pair_id": "in-20-hysteresis",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.5,
+      "result_types": [
+        "25",
+        "21",
+        "21",
+        "21",
+        "21"
+      ],
+      "top_ids": [
+        "soc-055",
+        "5k-ef-038",
+        "sci-025",
+        "5k-ef-346",
+        "cross-001"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-20-hysteresis-en",
+      "language": "en",
+      "latency_ms": 31.6,
+      "pair_id": "in-20-hysteresis",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "53",
+        "61",
+        "65",
+        "58",
+        "58"
+      ],
+      "top_ids": [
+        "5k-09-079",
+        "5k-30-061",
+        "5k-11-096",
+        "cross-103",
+        "5k-ee-207"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-21-memory-zh",
+      "language": "zh",
+      "latency_ms": 31.6,
+      "pair_id": "in-21-memory",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "22",
+        "23",
+        "42",
+        "42",
+        "43"
+      ],
+      "top_ids": [
+        "sci-077",
+        "5k-13-027",
+        "5k-ee-011",
+        "5k-23-022",
+        "5k-23-007"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-21-memory-en",
+      "language": "en",
+      "latency_ms": 31.4,
+      "pair_id": "in-21-memory",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "65",
+        "65",
+        "61",
+        "65",
+        "61"
+      ],
+      "top_ids": [
+        "5k-11-096",
+        "5k-24-065",
+        "5k-30-061",
+        "5k-30-065",
+        "5k-24-061"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-22-threshold-zh",
+      "language": "zh",
+      "latency_ms": 33.0,
+      "pair_id": "in-22-threshold",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "23",
+        "25",
+        "07",
+        "23",
+        "23"
+      ],
+      "top_ids": [
+        "5k-ef-042",
+        "soc-076",
+        "cross-063",
+        "5k-06-005",
+        "5k-ef-406"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-22-threshold-en",
+      "language": "en",
+      "latency_ms": 33.3,
+      "pair_id": "in-22-threshold",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "04",
+        "03",
+        "03",
+        "08"
+      ],
+      "top_ids": [
+        "5k-21-041",
+        "5k-30-004",
+        "5k-15-004",
+        "5k-15-079",
+        "5k-27-033"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-23-nucleation-zh",
+      "language": "zh",
+      "latency_ms": 32.2,
+      "pair_id": "in-23-nucleation",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "43",
+        "07",
+        "42",
+        "07",
+        "07"
+      ],
+      "top_ids": [
+        "soc-056",
+        "cross-045",
+        "5k-13-038",
+        "soc-164",
+        "sci-075"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-23-nucleation-en",
+      "language": "en",
+      "latency_ms": 34.0,
+      "pair_id": "in-23-nucleation",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "42",
+        "58",
+        "08"
+      ],
+      "top_ids": [
+        "5k-21-041",
+        "5k-30-061",
+        "5k-ef-047",
+        "5k-21-038",
+        "5k-27-033"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-24-phase-transition-zh",
+      "language": "zh",
+      "latency_ms": 32.7,
+      "pair_id": "in-24-phase-transition",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "25",
+        "72",
+        "72",
+        "23",
+        "42"
+      ],
+      "top_ids": [
+        "soc-137",
+        "5k-ef-403",
+        "cross-043",
+        "soc-069",
+        "5k-21-022"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-24-phase-transition-en",
+      "language": "en",
+      "latency_ms": 31.8,
+      "pair_id": "in-24-phase-transition",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "65",
+        "62",
+        "65",
+        "65"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-11-096",
+        "5k-26-095",
+        "5k-11-077",
+        "5k-24-065"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-25-turbulence-zh",
+      "language": "zh",
+      "latency_ms": 33.4,
+      "pair_id": "in-25-turbulence",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "23",
+        "23",
+        "23",
+        "22",
+        "23"
+      ],
+      "top_ids": [
+        "5k-ee-412",
+        "5k-ef-042",
+        "5k-ee-305",
+        "soc-093",
+        "5k-10-001"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-25-turbulence-en",
+      "language": "en",
+      "latency_ms": 34.2,
+      "pair_id": "in-25-turbulence",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "03",
+        "18",
+        "61",
+        "65",
+        "64"
+      ],
+      "top_ids": [
+        "5k-09-014",
+        "5k-13-083",
+        "5k-24-061",
+        "5k-11-096",
+        "kb5k03-020"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-26-state-transition-zh",
+      "language": "zh",
+      "latency_ms": 31.1,
+      "pair_id": "in-26-state-transition",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "06",
+        "41",
+        "44",
+        "21",
+        "44"
+      ],
+      "top_ids": [
+        "5k-ef-364",
+        "5k-27-032",
+        "5k-14-058",
+        "5k-ef-357",
+        "5k-29-044"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-26-state-transition-en",
+      "language": "en",
+      "latency_ms": 38.4,
+      "pair_id": "in-26-state-transition",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "65",
+        "54",
+        "54",
+        "54"
+      ],
+      "top_ids": [
+        "5k-30-061",
+        "5k-11-096",
+        "5k-27-054",
+        "5k-30-054",
+        "5k-09-085"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-27-aggregation-normality-zh",
+      "language": "zh",
+      "latency_ms": 31.7,
+      "pair_id": "in-27-aggregation-normality",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "34",
+        "34",
+        "34",
+        "34",
+        "34"
+      ],
+      "top_ids": [
+        "5k-ef-391",
+        "sci-136",
+        "5k-ee-066",
+        "5k-ef-425",
+        "5k-ef-446"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-27-aggregation-normality-en",
+      "language": "en",
+      "latency_ms": 31.6,
+      "pair_id": "in-27-aggregation-normality",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-30-061",
+        "5k-ee-163",
+        "5k-18-098",
+        "5k-ee-129"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-28-conservation-transfer-zh",
+      "language": "zh",
+      "latency_ms": 30.6,
+      "pair_id": "in-28-conservation-transfer",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "37",
+        "62",
+        "37",
+        "37",
+        "37"
+      ],
+      "top_ids": [
+        "5k-ef-368",
+        "5k-26-095",
+        "5k-ef-022",
+        "5k-ef-035",
+        "5k-ef-339"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-28-conservation-transfer-en",
+      "language": "en",
+      "latency_ms": 32.8,
+      "pair_id": "in-28-conservation-transfer",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "18",
+        "61",
+        "61",
+        "61",
+        "04"
+      ],
+      "top_ids": [
+        "5k-13-090",
+        "5k-06-028",
+        "5k-30-061",
+        "5k-06-027",
+        "cross-105"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-29-small-world-zh",
+      "language": "zh",
+      "latency_ms": 32.1,
+      "pair_id": "in-29-small-world",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "40",
+        "40",
+        "40",
+        "43",
+        "43"
+      ],
+      "top_ids": [
+        "soc-042",
+        "cross-074",
+        "5k-ef-376",
+        "soc-056",
+        "soc-169"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-29-small-world-en",
+      "language": "en",
+      "latency_ms": 31.2,
+      "pair_id": "in-29-small-world",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-30-061",
+        "5k-26-096",
+        "5k-18-098",
+        "5k-06-028"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-30-preferential-attachment-zh",
+      "language": "zh",
+      "latency_ms": 34.5,
+      "pair_id": "in-30-preferential-attachment",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "75",
+        "22",
+        "22",
+        "22",
+        "18"
+      ],
+      "top_ids": [
+        "5k-ef-498",
+        "5k-27-020",
+        "5k-23-099",
+        "5k-23-080",
+        "5k-ef-373"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-30-preferential-attachment-en",
+      "language": "en",
+      "latency_ms": 34.3,
+      "pair_id": "in-30-preferential-attachment",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "04",
+        "61",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-22-025",
+        "5k-24-061",
+        "5k-30-061",
+        "5k-ee-163",
+        "cross-110"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-31-contagion-zh",
+      "language": "zh",
+      "latency_ms": 33.5,
+      "pair_id": "in-31-contagion",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "42",
+        "42",
+        "42",
+        "43",
+        "42"
+      ],
+      "top_ids": [
+        "5k-ef-047",
+        "5k-ef-316",
+        "sci-132",
+        "soc-056",
+        "5k-ef-174"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-31-contagion-en",
+      "language": "en",
+      "latency_ms": 34.4,
+      "pair_id": "in-31-contagion",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "42",
+        "42",
+        "42",
+        "42",
+        "42"
+      ],
+      "top_ids": [
+        "5k-ef-047",
+        "cross-130",
+        "5k-ee-492",
+        "5k-ef-174",
+        "sci-132"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-32-catalyst-zh",
+      "language": "zh",
+      "latency_ms": 33.4,
+      "pair_id": "in-32-catalyst",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "34",
+        "15",
+        "56",
+        "56",
+        "42"
+      ],
+      "top_ids": [
+        "5k-16-059",
+        "5k-07-071",
+        "5k-ef-068",
+        "5k-16-064",
+        "5k-23-027"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-32-catalyst-en",
+      "language": "en",
+      "latency_ms": 33.5,
+      "pair_id": "in-32-catalyst",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "65",
+        "61",
+        "62",
+        "61"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-11-096",
+        "5k-30-061",
+        "5k-26-095",
+        "5k-18-098"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-33-loss-aversion-zh",
+      "language": "zh",
+      "latency_ms": 33.4,
+      "pair_id": "in-33-loss-aversion",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "21",
+        "06",
+        "69",
+        "04",
+        "02"
+      ],
+      "top_ids": [
+        "5k-ef-114",
+        "5k-ef-091",
+        "soc-146",
+        "5k-12-056",
+        "5k-21-066"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-33-loss-aversion-en",
+      "language": "en",
+      "latency_ms": 35.9,
+      "pair_id": "in-33-loss-aversion",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "03",
+        "61",
+        "61",
+        "61",
+        "04"
+      ],
+      "top_ids": [
+        "5k-ef-419",
+        "5k-30-061",
+        "5k-26-096",
+        "5k-06-028",
+        "5k-22-045"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-34-resource-scheduling-zh",
+      "language": "zh",
+      "latency_ms": 32.6,
+      "pair_id": "in-34-resource-scheduling",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "73",
+        "27",
+        "54",
+        "52",
+        "43"
+      ],
+      "top_ids": [
+        "5k-ef-229",
+        "5k-09-053",
+        "5k-09-087",
+        "5k-26-049",
+        "5k-10-078"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-34-resource-scheduling-en",
+      "language": "en",
+      "latency_ms": 32.5,
+      "pair_id": "in-34-resource-scheduling",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "65",
+        "61",
+        "65"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-18-098",
+        "5k-11-096",
+        "5k-30-061",
+        "5k-24-065"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-35-commons-zh",
+      "language": "zh",
+      "latency_ms": 32.8,
+      "pair_id": "in-35-commons",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.5,
+      "result_types": [
+        "04",
+        "51",
+        "51",
+        "61",
+        "51"
+      ],
+      "top_ids": [
+        "soc-059",
+        "soc-013",
+        "5k-ef-082",
+        "5k-11-071",
+        "cross-021"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-35-commons-en",
+      "language": "en",
+      "latency_ms": 31.1,
+      "pair_id": "in-35-commons",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "26",
+        "61",
+        "27",
+        "61",
+        "65"
+      ],
+      "top_ids": [
+        "5k-11-055",
+        "5k-24-061",
+        "5k-09-060",
+        "5k-30-061",
+        "5k-11-096"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-36-selection-zh",
+      "language": "zh",
+      "latency_ms": 32.2,
+      "pair_id": "in-36-selection",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 1.0,
+      "result_types": [
+        "52",
+        "43",
+        "54",
+        "15",
+        "52"
+      ],
+      "top_ids": [
+        "5k-ee-131",
+        "5k-23-023",
+        "5k-30-054",
+        "5k-27-029",
+        "cross-062"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-36-selection-en",
+      "language": "en",
+      "latency_ms": 31.7,
+      "pair_id": "in-36-selection",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "54",
+        "61",
+        "65",
+        "43",
+        "62"
+      ],
+      "top_ids": [
+        "5k-27-054",
+        "5k-24-061",
+        "5k-11-096",
+        "5k-ee-366",
+        "5k-26-076"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": true,
+      "id": "in-37-adverse-selection-zh",
+      "language": "zh",
+      "latency_ms": 31.1,
+      "pair_id": "in-37-adverse-selection",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.3333333333333333,
+      "result_types": [
+        "18",
+        "64",
+        "53",
+        "18",
+        "43"
+      ],
+      "top_ids": [
+        "5k-ef-341",
+        "5k-11-095",
+        "soc-033",
+        "5k-ef-421",
+        "5k-20-018"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-37-adverse-selection-en",
+      "language": "en",
+      "latency_ms": 30.8,
+      "pair_id": "in-37-adverse-selection",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "04",
+        "03",
+        "08"
+      ],
+      "top_ids": [
+        "5k-30-061",
+        "5k-26-096",
+        "5k-ee-408",
+        "5k-ef-419",
+        "5k-28-090"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-38-divide-conquer-zh",
+      "language": "zh",
+      "latency_ms": 31.3,
+      "pair_id": "in-38-divide-conquer",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "22",
+        "43",
+        "70",
+        "02",
+        "72"
+      ],
+      "top_ids": [
+        "5k-27-083",
+        "5k-10-078",
+        "soc-102",
+        "5k-12-064",
+        "5k-ef-278"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-38-divide-conquer-en",
+      "language": "en",
+      "latency_ms": 28.4,
+      "pair_id": "in-38-divide-conquer",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "61",
+        "61",
+        "65",
+        "61"
+      ],
+      "top_ids": [
+        "5k-30-061",
+        "5k-18-098",
+        "5k-24-061",
+        "5k-11-096",
+        "5k-06-027"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-39-entropy-zh",
+      "language": "zh",
+      "latency_ms": 31.2,
+      "pair_id": "in-39-entropy",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "07",
+        "03",
+        "08",
+        "03",
+        "05"
+      ],
+      "top_ids": [
+        "cross-045",
+        "cross-038",
+        "soc-149",
+        "sci-119",
+        "soc-003"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-39-entropy-en",
+      "language": "en",
+      "latency_ms": 30.8,
+      "pair_id": "in-39-entropy",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "18",
+        "61",
+        "61",
+        "61",
+        "61"
+      ],
+      "top_ids": [
+        "5k-13-089",
+        "5k-24-061",
+        "5k-ee-129",
+        "5k-30-061",
+        "5k-ee-021"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-40-sampling-aliasing-zh",
+      "language": "zh",
+      "latency_ms": 32.0,
+      "pair_id": "in-40-sampling-aliasing",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "76",
+        "76",
+        "22",
+        "77",
+        "08"
+      ],
+      "top_ids": [
+        "5k-ef-168",
+        "5k-ee-030",
+        "5k-ee-488",
+        "5k-ee-330",
+        "5k-28-012"
+      ]
+    },
+    {
+      "cross_domain_ok": false,
+      "error": null,
+      "expected_oos": false,
+      "expected_reason": "ok",
+      "hit_at_5": false,
+      "id": "in-40-sampling-aliasing-en",
+      "language": "en",
+      "latency_ms": 33.0,
+      "pair_id": "in-40-sampling-aliasing",
+      "predicted_oos": false,
+      "predicted_reason": "ok",
+      "reciprocal_rank": 0.0,
+      "result_types": [
+        "61",
+        "65",
+        "65",
+        "61",
+        "65"
+      ],
+      "top_ids": [
+        "5k-24-061",
+        "5k-11-096",
+        "5k-24-065",
+        "5k-26-097",
+        "5k-30-065"
+      ]
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "arithmetic",
+      "hit_at_5": true,
+      "id": "oos-01-arithmetic-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-01-arithmetic",
+      "predicted_oos": true,
+      "predicted_reason": "arithmetic",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "arithmetic",
+      "hit_at_5": true,
+      "id": "oos-01-arithmetic-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-01-arithmetic",
+      "predicted_oos": true,
+      "predicted_reason": "arithmetic",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "chitchat",
+      "hit_at_5": true,
+      "id": "oos-02-greeting-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-02-greeting",
+      "predicted_oos": true,
+      "predicted_reason": "chitchat",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "chitchat",
+      "hit_at_5": true,
+      "id": "oos-02-greeting-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-02-greeting",
+      "predicted_oos": true,
+      "predicted_reason": "chitchat",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "trivia",
+      "hit_at_5": true,
+      "id": "oos-03-capital-trivia-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-03-capital-trivia",
+      "predicted_oos": true,
+      "predicted_reason": "trivia",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "trivia",
+      "hit_at_5": true,
+      "id": "oos-03-capital-trivia-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-03-capital-trivia",
+      "predicted_oos": true,
+      "predicted_reason": "trivia",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "trivia",
+      "hit_at_5": true,
+      "id": "oos-04-weather-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-04-weather",
+      "predicted_oos": true,
+      "predicted_reason": "trivia",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "trivia",
+      "hit_at_5": true,
+      "id": "oos-04-weather-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-04-weather",
+      "predicted_oos": true,
+      "predicted_reason": "trivia",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "trivia",
+      "hit_at_5": true,
+      "id": "oos-05-translation-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-05-translation",
+      "predicted_oos": true,
+      "predicted_reason": "trivia",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "trivia",
+      "hit_at_5": true,
+      "id": "oos-05-translation-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-05-translation",
+      "predicted_oos": true,
+      "predicted_reason": "trivia",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "forecasting_intent",
+      "hit_at_5": true,
+      "id": "oos-06-stock-forecast-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-06-stock-forecast",
+      "predicted_oos": true,
+      "predicted_reason": "forecasting_intent",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "forecasting_intent",
+      "hit_at_5": true,
+      "id": "oos-06-stock-forecast-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-06-stock-forecast",
+      "predicted_oos": true,
+      "predicted_reason": "forecasting_intent",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "forecasting_intent",
+      "hit_at_5": true,
+      "id": "oos-07-crypto-pick-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-07-crypto-pick",
+      "predicted_oos": true,
+      "predicted_reason": "forecasting_intent",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "forecasting_intent",
+      "hit_at_5": true,
+      "id": "oos-07-crypto-pick-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-07-crypto-pick",
+      "predicted_oos": true,
+      "predicted_reason": "forecasting_intent",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "trivia",
+      "hit_at_5": true,
+      "id": "oos-08-recipe-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-08-recipe",
+      "predicted_oos": true,
+      "predicted_reason": "trivia",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "trivia",
+      "hit_at_5": true,
+      "id": "oos-08-recipe-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-08-recipe",
+      "predicted_oos": true,
+      "predicted_reason": "trivia",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "empty",
+      "hit_at_5": true,
+      "id": "oos-09-empty-whitespace-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-09-empty-whitespace",
+      "predicted_oos": true,
+      "predicted_reason": "empty",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "empty",
+      "hit_at_5": true,
+      "id": "oos-09-empty-whitespace-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-09-empty-whitespace",
+      "predicted_oos": true,
+      "predicted_reason": "empty",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "empty",
+      "hit_at_5": true,
+      "id": "oos-10-punctuation-zh",
+      "language": "zh",
+      "latency_ms": 0.0,
+      "pair_id": "oos-10-punctuation",
+      "predicted_oos": true,
+      "predicted_reason": "empty",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    },
+    {
+      "cross_domain_ok": true,
+      "error": null,
+      "expected_oos": true,
+      "expected_reason": "empty",
+      "hit_at_5": true,
+      "id": "oos-10-punctuation-en",
+      "language": "en",
+      "latency_ms": 0.0,
+      "pair_id": "oos-10-punctuation",
+      "predicted_oos": true,
+      "predicted_reason": "empty",
+      "reciprocal_rank": 0.0,
+      "result_types": [],
+      "top_ids": []
+    }
+  ],
+  "schema_version": "retrieval-eval-v1",
+  "source": "local-production-v2-4443"
+}

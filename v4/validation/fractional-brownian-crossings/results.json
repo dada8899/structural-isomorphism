@@ -1,0 +1,204 @@
+{
+  "system": "Fractional Brownian motion / level-crossings \u2014 cross-domain test",
+  "data_provenance": "MIXED: SYNTHETIC = Davies-Harte exact fBm at H \u2208 {0.3, 0.5, 0.7, 0.9} (8 realisations each, N=4096); REAL = yfinance 1-minute price/return for SPY/QQQ/IWM/DIA/XLK over last 7 trading days; TEXTBOOK-ANCHOR SURROGATE for Nile (Davies-Harte H=0.73, 663 years, scaled to Beran 1994 Table 1.1 mean/var); TEXTBOOK-ANCHOR SURROGATE for climate temp anomaly (Davies-Harte H=0.85, 2100 months, with post-1970 trend, Hosking 1984).",
+  "predicted_class": "fractional_brownian_crossings",
+  "exponents_predicted": {
+    "H_range": [
+      0.0,
+      1.0
+    ],
+    "alpha_inter_crossing_predicted_eq": "alpha = 2 - H",
+    "pre_reg_bands": {
+      "synthetic_fbm_H03": [
+        0.2,
+        0.4
+      ],
+      "synthetic_fbm_H05": [
+        0.4,
+        0.6
+      ],
+      "synthetic_fbm_H07": [
+        0.6,
+        0.8
+      ],
+      "synthetic_fbm_H09": [
+        0.8,
+        0.99
+      ],
+      "finance_hf_log_return": [
+        0.4,
+        0.65
+      ],
+      "finance_hf_log_price": [
+        0.85,
+        1.0
+      ],
+      "hydrology_nile_annual": [
+        0.65,
+        0.85
+      ],
+      "climate_temp_anomaly": [
+        0.55,
+        0.9
+      ]
+    }
+  },
+  "pass_gate": {
+    "min_trajectory_N_per_domain": 500,
+    "max_cross_domain_H_spread": 0.15,
+    "max_estimator_disagreement": 0.1
+  },
+  "domains": [
+    "climate_temp_anomaly",
+    "finance_hf_log_price",
+    "finance_hf_log_return",
+    "hydrology_nile_annual",
+    "synthetic_fbm_H03",
+    "synthetic_fbm_H05",
+    "synthetic_fbm_H07",
+    "synthetic_fbm_H09"
+  ],
+  "summary_per_domain": {
+    "climate_temp_anomaly": {
+      "n_series": 9,
+      "n_valid_H": 9,
+      "min_trajectory_N": 600,
+      "max_trajectory_N": 2100,
+      "H_median": 0.8381012939115842,
+      "H_p25": 0.7964018335030942,
+      "H_p75": 0.8605196835093005,
+      "H_min": 0.7411094818420847,
+      "H_max": 1.0122107419416353,
+      "alpha_tail_median": 2.495109270810989,
+      "estimator_disagreement_median": 0.07225427513175942
+    },
+    "finance_hf_log_price": {
+      "n_series": 5,
+      "n_valid_H": 5,
+      "min_trajectory_N": 2729,
+      "max_trajectory_N": 2730,
+      "H_median": 1.2515473630527016,
+      "H_p25": 1.2459952134685306,
+      "H_p75": 1.255206482845817,
+      "H_min": 1.2390486353720624,
+      "H_max": 1.2805740460555086,
+      "alpha_tail_median": 1.734141604868724,
+      "estimator_disagreement_median": 0.4604475728625197
+    },
+    "finance_hf_log_return": {
+      "n_series": 5,
+      "n_valid_H": 5,
+      "min_trajectory_N": 2728,
+      "max_trajectory_N": 2729,
+      "H_median": 0.47754222683576975,
+      "H_p25": 0.4773501344905219,
+      "H_p75": 0.4909463848993164,
+      "H_min": 0.4659194785571613,
+      "H_max": 0.5001919381264345,
+      "alpha_tail_median": 4.246498930837992,
+      "estimator_disagreement_median": 0.02951443506456125
+    },
+    "hydrology_nile_annual": {
+      "n_series": 6,
+      "n_valid_H": 6,
+      "min_trajectory_N": 200,
+      "max_trajectory_N": 663,
+      "H_median": 0.7804606717660373,
+      "H_p25": 0.7069675693078633,
+      "H_p75": 0.8040635654141495,
+      "H_min": 0.5581393850004595,
+      "H_max": 0.8473255769056036,
+      "alpha_tail_median": 3.1723312616573702,
+      "estimator_disagreement_median": 0.04388423700666144
+    },
+    "synthetic_fbm_H03": {
+      "n_series": 8,
+      "n_valid_H": 8,
+      "min_trajectory_N": 4096,
+      "max_trajectory_N": 4096,
+      "H_median": 0.3439145335324795,
+      "H_p25": 0.3387031474057959,
+      "H_p75": 0.3581294804430699,
+      "H_min": 0.3363416046606337,
+      "H_max": 0.37797835663777996,
+      "alpha_tail_median": 1.8801762461698521,
+      "estimator_disagreement_median": 0.07359305653901771
+    },
+    "synthetic_fbm_H05": {
+      "n_series": 8,
+      "n_valid_H": 8,
+      "min_trajectory_N": 4096,
+      "max_trajectory_N": 4096,
+      "H_median": 0.493697247553781,
+      "H_p25": 0.48902072377811,
+      "H_p75": 0.5200846446190528,
+      "H_min": 0.47332068457684273,
+      "H_max": 0.5269649161313061,
+      "alpha_tail_median": 1.591359639004537,
+      "estimator_disagreement_median": 0.0382671600768775
+    },
+    "synthetic_fbm_H07": {
+      "n_series": 8,
+      "n_valid_H": 8,
+      "min_trajectory_N": 4096,
+      "max_trajectory_N": 4096,
+      "H_median": 0.6866241991396171,
+      "H_p25": 0.6709073904278378,
+      "H_p75": 0.7264347236460871,
+      "H_min": 0.6350805405514195,
+      "H_max": 0.749160287252633,
+      "alpha_tail_median": null,
+      "estimator_disagreement_median": 0.018657851122591607
+    },
+    "synthetic_fbm_H09": {
+      "n_series": 8,
+      "n_valid_H": 8,
+      "min_trajectory_N": 4096,
+      "max_trajectory_N": 4096,
+      "H_median": 0.8763300524412927,
+      "H_p25": 0.8537902849742353,
+      "H_p75": 0.9082996169807,
+      "H_min": 0.7256436548538192,
+      "H_max": 0.9370137961485698,
+      "alpha_tail_median": null,
+      "estimator_disagreement_median": 0.044408333113425735
+    }
+  },
+  "verdict": {
+    "verdict": "REJECT-as-mathematical-descriptor",
+    "reason": "H spread 0.361 > 0.15; estimator disagreement in ['finance_hf_log_price']",
+    "cross_domain_H_spread_real": 0.3605590670758144,
+    "H_medians_real_only": {
+      "climate_temp_anomaly": 0.8381012939115842,
+      "finance_hf_log_return": 0.47754222683576975,
+      "hydrology_nile_annual": 0.7804606717660373
+    },
+    "synthetic_calibration": {
+      "synthetic_fbm_H03": {
+        "H_true": 0.3,
+        "H_est_median": 0.3439145335324795,
+        "bias": 0.04391453353247954
+      },
+      "synthetic_fbm_H05": {
+        "H_true": 0.5,
+        "H_est_median": 0.493697247553781,
+        "bias": -0.006302752446218973
+      },
+      "synthetic_fbm_H07": {
+        "H_true": 0.7,
+        "H_est_median": 0.6866241991396171,
+        "bias": -0.013375800860382814
+      },
+      "synthetic_fbm_H09": {
+        "H_true": 0.9,
+        "H_est_median": 0.8763300524412927,
+        "bias": -0.023669947558707327
+      }
+    },
+    "insufficient_N_domains": [],
+    "estimator_disagreement_violations": [
+      "finance_hf_log_price"
+    ]
+  },
+  "wall_clock_s": 4.78694486618042
+}

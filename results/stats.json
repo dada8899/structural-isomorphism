@@ -1,0 +1,11 @@
+{
+  "training_data": {
+    "total": 1214,
+    "types": 84
+  },
+  "knowledge_base": {
+    "total": 499,
+    "domains": 87
+  },
+  "v2_discoveries": 100
+}

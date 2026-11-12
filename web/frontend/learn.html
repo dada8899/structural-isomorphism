@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="了解 Structural 的工作原理：如何把你的问题与其他领域的候选结构、方法线索、证据缺口和适用边界进行比较。">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>了解 Structural — 跨学科搜索引擎工作原理</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" data-i18n-meta="page.home.meta_title" content="Structural — 万物的形状都在重复">
+  <meta property="og:description" data-i18n-meta="page.home.meta_desc" content="输入一句话描述你的问题，约 2–3 分钟拿到一份跨学科研究报告，并检查可迁移方法的证据与边界。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" data-i18n-meta="page.home.meta_title" content="Structural — 万物的形状都在重复">
+  <meta name="twitter:description" data-i18n-meta="page.home.meta_desc" content="输入一句话描述你的问题，约 2–3 分钟拿到一份跨学科研究报告。">
+
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514c">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260514c">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20261110-cjk1">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/home.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/glossary.css?v=20260514c">
+  <link rel="stylesheet" href="/assets/css/newsletter.css?v=20260714n2">
+  <style>
+    /* Phase 子产品入口（学术版 hero 下方的 callout）
+     * W6-B (W5-E #4): tightened to reduce first-viewport density.
+     * margin-top: 16px (was 28), padding: 10px 14px (was 16/22), font: 13 (was 14). */
+    .home__cross-product {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.02));
+      border: 1px solid rgba(37, 99, 235, 0.15);
+      border-radius: 10px;
+      font-size: 13px;
+      color: #52525B;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      line-height: 1.5;
+    }
+    .home__cross-product__badge {
+      display: inline-flex;
+      padding: 2px 8px;
+      background: #2563EB;
+      color: #FFFFFF;
+      font-size: 11px;
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+    .home__cross-product a {
+      color: #2563EB;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .home__cross-product a:hover { text-decoration: underline; }
+    .home__cross-product-label { color: #696972; }
+
+    /* Featured preprint (session #3)
+     * W6-B (W5-E #4): tightened — margin-top 12 (was 18), padding 16 20 (was 22 26). */
+    .home__featured-preprint {
+      display: block; margin-top: 12px; padding: 16px 20px;
+      background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+      border: 1px solid #18181B; border-radius: 12px;
+      text-decoration: none; color: inherit;
+      transition: all 0.18s;
+    }
+    .home__featured-preprint:hover {
+      box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+    .home__featured-preprint__badge {
+      display: inline-block; padding: 3px 9px;
+      background: #18181B; color: #FFF;
+      font-size: 10px; letter-spacing: 0.5px;
+      font-family: "JetBrains Mono", monospace;
+      border-radius: 4px; margin-bottom: 10px;
+    }
+    .home__featured-preprint__title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 19px; font-weight: 600; color: #18181B;
+      line-height: 1.4; margin-bottom: 8px;
+    }
+    .home__featured-preprint__body {
+      font-size: 14px; color: #52525B; line-height: 1.65; margin-bottom: 8px;
+    }
+    .home__featured-preprint__body strong { color: #2563EB; }
+    .home__featured-preprint__meta {
+      font-size: 12px; color: #696972;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    /* W8-D: Waitlist signup CTA */
+    .home__waitlist { margin-top: 56px; }
+    .home__waitlist-card {
+      max-width: 640px; margin: 0 auto;
+      padding: 28px 28px;
+      background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+      border: 1px solid #E4E4E7; border-radius: 16px;
+    }
+    .home__waitlist-eyebrow {
+      display: inline-block;
+      font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
+      color: #696972; font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .home__waitlist-title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 22px; font-weight: 600; color: #18181B;
+      margin-bottom: 8px; line-height: 1.35;
+    }
+    .home__waitlist-body {
+      font-size: 14px; color: #52525B; line-height: 1.65;
+      margin-bottom: 14px;
+    }
+    .home__waitlist-meta {
+      display: inline-block; margin-left: 6px;
+      font-size: 12px; color: #696972;
+    }
+    .home__waitlist-form {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .home__waitlist-input {
+      flex: 1 1 220px; min-width: 0;
+      padding: 9px 12px;
+      font-size: 14px; color: #18181B;
+      border: 1px solid #D4D4D8; border-radius: 8px;
+      background: #FFFFFF;
+      transition: border-color 0.15s;
+    }
+    .home__waitlist-input:focus {
+      outline: none; border-color: #18181B;
+      box-shadow: 0 0 0 1px #18181B;
+    }
+    .home__waitlist-input:disabled { opacity: 0.6; }
+    .home__waitlist-button {
+      padding: 9px 20px;
+      font-size: 14px; font-weight: 500; color: #FFFFFF;
+      background: #18181B; border: none; border-radius: 8px;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .home__waitlist-button:hover { background: #27272A; }
+    .home__waitlist-button:disabled { cursor: not-allowed; opacity: 0.6; }
+    .home__waitlist-status {
+      font-size: 12px; margin-top: 8px; min-height: 18px;
+    }
+    .home__waitlist-status.is-ok { color: #047857; }
+    .home__waitlist-status.is-dup { color: #52525B; }
+    .home__waitlist-status.is-err { color: #B91C1C; }
+    .home__waitlist-fineprint {
+      font-size: 11px; color: #696972; margin-top: 8px;
+    }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+  </style>
+
+  <!-- Plausible analytics (W4-B G3, 2026-05-13). Loads only when DNS resolves;
+       safe to keep before Plausible self-hosted instance is live. -->
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
+</head>
+<body class="has-history-sidebar">
+
+  <header class="site-header"></header>
+
+  <main class="home">
+    <!-- Banner: back to the search engine (W2-A — Perplexity-like /index.html is the primary entry) -->
+    <div style="max-width:880px;margin:18px auto 0;padding:0 20px;">
+      <a href="/" class="home__back-link" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#52525B;text-decoration:none;padding:6px 12px;border:1px solid #E4E4E7;border-radius:999px;background:#FFFFFF;transition:all 0.15s;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>回到搜索</span>
+      </a>
+    </div>
+    <!-- First viewport: brand + value prop + inline evidence + search -->
+    <section class="home__hero">
+      <div class="home__hero-inner">
+        <div class="home__eyebrow">
+          <span class="home__eyebrow-dot"></span>
+          <span data-i18n="page.home.eyebrow">跨学科研究助手</span>
+        </div>
+        <h1 class="home__brand serif" data-i18n="page.home.brand">把你的难题，换成<em>其他学科可供检验的类比</em></h1>
+        <p class="home__tagline serif" data-i18n="page.home.tagline">看似无关的现象，可能包含值得检验的结构相似。</p>
+        <p class="home__lede" data-i18n="page.home.lede">约 2–3 分钟出一份跨学科研究报告。已收录 <strong>4,443</strong> 个跨学科现象，覆盖 <strong>87</strong> 个领域。</p>
+
+        <!-- Inline evidence: interactive card showing one isomorphism pair with mechanism.
+             Each side is clickable → fires a search; caption reveals the shared structure. -->
+        <div class="home__hero-evidence" id="hero-evidence">
+          <div class="hero-evidence__card">
+            <div class="hero-evidence__eyebrow" style="display:inline-block;font-size:11px;letter-spacing:0.6px;color:#696972;text-transform:uppercase;margin-bottom:10px;font-weight:600;" data-i18n="page.home.hero_evidence.eyebrow">演示 · 点任一边看一个真实例子</div>
+            <div class="hero-evidence__pair">
+              <button type="button" class="hero-evidence__side" id="he-a-btn" data-side="a" data-i18n-attr="aria-label:page.home.hero_evidence.a_aria" aria-label="搜索 A 侧现象">
+                <span class="hero-evidence__domain" id="he-a-domain">核物理</span>
+                <span class="hero-evidence__name" id="he-a-name">放射性衰变</span>
+                <span class="hero-evidence__desc" id="he-a-desc">不稳定的原子核自发释放粒子。释放速度只取决于当前剩余的数量——剩得越少越慢。</span>
+              </button>
+              <span class="hero-evidence__symbol" data-i18n-attr="aria-label:page.home.hero_evidence.sym_aria" aria-label="待检验的结构联系">≈?</span>
+              <button type="button" class="hero-evidence__side" id="he-b-btn" data-side="b" data-i18n-attr="aria-label:page.home.hero_evidence.b_aria" aria-label="搜索 B 侧现象">
+                <span class="hero-evidence__domain" id="he-b-domain">药理学</span>
+                <span class="hero-evidence__name" id="he-b-name">药物浓度下降</span>
+                <span class="hero-evidence__desc" id="he-b-desc">口服后血液中浓度按固定比率降低。代谢速率和当前浓度成正比——越少代谢越慢。</span>
+              </button>
+            </div>
+            <p class="hero-evidence__caption" id="he-caption" data-i18n="page.home.hero_evidence.caption_1">在明确假设下，它们可用<strong>同一类数学模型</strong>描述；机制是否一致仍需验证。</p>
+          </div>
+          <div class="hero-evidence__controls">
+            <div class="hero-evidence__dots" id="he-dots" role="tablist" data-i18n-attr="aria-label:page.home.hero_evidence.dots_aria" aria-label="切换例子"></div>
+            <button type="button" class="hero-evidence__rotate" id="he-rotate" data-i18n-attr="aria-label:page.home.hero_evidence.rotate_aria" aria-label="下一个例子">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 4v6h6M23 20v-6h-6"/>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+              <span data-i18n="page.home.hero_evidence.rotate">下一个</span>
+            </button>
+          </div>
+        </div>
+
+        <form id="search-form" class="searchbox" role="search">
+          <div class="searchbox__wrapper searchbox__wrapper--multi">
+            <textarea
+              class="searchbox__input searchbox__input--multi"
+              placeholder="" data-i18n-attr="placeholder:page.home.search.placeholder"
+              autocomplete="off"
+              spellcheck="false"
+              data-i18n-attr="aria-label:common.searchbox_aria" aria-label="输入问题"
+              rows="3"
+            ></textarea>
+            <div class="searchbox__footer">
+              <div class="searchbox__meta">
+                <div class="searchbox__hint" data-i18n="page.home.search.hint">
+                  <kbd>⌘</kbd> + <kbd>Enter</kbd> 提交
+                </div>
+                <div class="research-query-feedback" id="search-query-feedback" role="status" aria-live="polite">
+                  <span id="search-query-counter">0 / 8,000</span>
+                  <span id="search-query-error" hidden></span>
+                </div>
+              </div>
+              <button type="submit" class="searchbox__submit searchbox__submit--primary" data-i18n-attr="aria-label:common.search_submit_aria" aria-label="开始分析">
+                <span class="searchbox__submit-label" data-i18n="page.home.search.submit_label">开始分析</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14M13 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div class="home__suggestions" id="home-suggestions"></div>
+
+        <div class="home__cross-product">
+          <span class="home__cross-product__badge" data-i18n="page.home.cross_product.badge">姐妹产品</span>
+          <span class="home__cross-product-label" data-i18n="page.home.cross_product.label">想看公司？→ Phase Detector：597 个 demo ticker 的冻结研究快照</span>
+          <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" data-i18n="page.home.cross_product.link">打开 Phase Detector →</a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Below the fold: examples, daily, stats -->
+    <div id="below-hero" class="home__below">
+
+      <!-- How it works: explain the pipeline so users know what they're entering for -->
+      <section class="home__section home__section--how">
+        <header class="home__section-header">
+          <span class="home__section-label" data-i18n="page.home.how.label">工作流程</span>
+          <h2 class="home__section-title" data-i18n="page.home.how.title">你输入一个问题之后，<em>会发生什么</em></h2>
+          <p class="home__section-sub" data-i18n="page.home.how.sub">从一句话描述到一份可执行的跨学科研究报告，约需 2–3 分钟。</p>
+        </header>
+        <ol class="how-steps">
+          <li class="how-step">
+            <span class="how-step__num">01</span>
+            <h3 class="how-step__title" data-i18n="page.home.how.step1.title">读懂你的问题</h3>
+            <p class="how-step__text" data-i18n="page.home.how.step1.text">把口语化描述改写成检索问题，再从 4,443 个跨学科现象中排序 20 个待核查候选；序位不代表结构等价。</p>
+            <span class="how-step__time" data-i18n="page.home.how.step1.time">≈ 1 秒</span>
+          </li>
+          <li class="how-step">
+            <span class="how-step__num">02</span>
+            <h3 class="how-step__title" data-i18n="page.home.how.step2.title">比较待验证候选</h3>
+            <p class="how-step__text" data-i18n="page.home.how.step2.text">模型只在真实 Top-K 来源内比较候选，列出建议先核查的记录、证据缺口、竞争解释、失败条件和下一步检验；完整输出通过 schema 与来源白名单后才会展示。</p>
+            <span class="how-step__time" data-i18n="page.home.how.step2.time">≈ 8–15 秒</span>
+          </li>
+          <li class="how-step">
+            <span class="how-step__num">03</span>
+            <h3 class="how-step__title" data-i18n="page.home.how.step3.title">写一份完整的研究报告</h3>
+            <p class="how-step__text" data-i18n="page.home.how.step3.text">点首推卡 → 8 段流式生成的研究草案：候选结构、关键变量、源领域的方法线索、怎么检验在当前问题中的适用性、待验证假设和迁移风险。</p>
+            <span class="how-step__time" data-i18n="page.home.how.step3.time">≈ 2–3 分钟</span>
+          </li>
+        </ol>
+      </section>
+
+      <!-- Use cases: best practices for different roles -->
+      <section class="home__section home__section--usecases">
+        <header class="home__section-header">
+          <span class="home__section-label" data-i18n="page.home.usecases.label">适合这样用</span>
+          <h2 class="home__section-title" data-i18n="page.home.usecases.title">三种<em>典型场景</em></h2>
+          <p class="home__section-sub" data-i18n="page.home.usecases.sub">输入你正被困住的问题，系统提出候选结构和其他领域的方法线索；是否适用仍需核对变量、边界与反例。</p>
+        </header>
+        <div class="usecases-grid">
+          <article class="usecase">
+            <div class="usecase__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+                <line x1="3" y1="20" x2="21" y2="20"/>
+              </svg>
+            </div>
+            <h3 class="usecase__title" data-i18n="page.home.usecases.card1.title">学术 · 找跨域结构</h3>
+            <div class="usecase__row">
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_question">你问</span>
+              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="地震、股价跳跃、神经雪崩都曾报告重尾或幂律拟合；仅凭这些形状不能确认共同机制，下一步该检验什么？" data-i18n="page.home.usecases.card1.sample">地震、股价跳跃、神经雪崩都曾报告重尾或幂律拟合；仅凭这些形状不能确认共同机制，下一步该检验什么？ →</button>
+            </div>
+            <div class="usecase__row">
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_system">系统给</span>
+              <span class="usecase__value" data-i18n="page.home.usecases.card1.value"><strong>自组织临界（SOC）候选类</strong> · 历史结果记录比较了地震、DeFi 清算和神经雪崩的部分统计量，并同时保留 PARTIAL、NULL 与局限；配套材料是内部研究稿，不是外部复现。</span>
+            </div>
+          </article>
+
+          <article class="usecase">
+            <div class="usecase__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+              </svg>
+            </div>
+            <h3 class="usecase__title" data-i18n="page.home.usecases.card2.title">产品 · 用户流失分析</h3>
+            <div class="usecase__row">
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_question">你问</span>
+              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="我们月活用户按固定比率掉 7%，怎么看怎么干预？" data-i18n="page.home.usecases.card2.sample">我们月活用户按固定比率掉 7%，怎么看怎么干预？ →</button>
+            </div>
+            <div class="usecase__row">
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_system">系统给</span>
+              <span class="usecase__value" data-i18n="page.home.usecases.card2.value"><strong>一阶指数衰减候选</strong> · dN/dt = −λN——可把固定比例流失先与放射性衰变、药物浓度等衰减曲线作结构比较。业务流失通常还有分群、获客和季节因素，半衰期不是唯一参数；先检验拟合与反例，再决定干预。</span>
+            </div>
+          </article>
+
+          <article class="usecase">
+            <div class="usecase__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+              </svg>
+            </div>
+            <h3 class="usecase__title" data-i18n="page.home.usecases.card3.title">战略 · 不可逆恶化</h3>
+            <div class="usecase__row">
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_question">你问</span>
+              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="团队氛围一旦变差就回不去了——为什么会这样？" data-i18n="page.home.usecases.card3.sample">团队氛围一旦变差就回不去了——为什么会这样？ →</button>
+            </div>
+            <div class="usecase__row">
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_system">系统给</span>
+              <span class="usecase__value" data-i18n="page.home.usecases.card3.value"><strong>双稳态 / 磁滞候选</strong>——团队状态可先与磁化、湖泊富营养化等“前进与恢复路径不同”的现象比较。类比只提示检查阈值和记忆效应，不证明团队遵循尖点灾变或 fold 分岔；需用纵向数据排除更简单解释。</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Recent searches (local, hidden by JS when empty) -->
+      <section class="home__section home__history-section" id="home-history" hidden>
+        <header class="home__section-header">
+          <span class="home__section-label" data-i18n="page.home.history.label">你最近的问题</span>
+          <h2 class="home__section-title" data-i18n="page.home.history.title">接着上次<em>继续想</em></h2>
+        </header>
+        <div class="home__history-chips" id="home-history-chips"></div>
+      </section>
+
+      <section class="home__section">
+        <header class="home__section-header">
+          <span class="home__section-label" data-i18n="page.home.daily.label">今日发现</span>
+          <h2 class="home__section-title" data-i18n="page.home.daily.title">从知识库中查看 <em>3 组</em>跨领域候选联系</h2>
+        </header>
+        <div class="home__daily-grid" id="daily-grid"></div>
+        <div class="home__section-footer">
+          <a href="/discoveries" class="home__section-link">
+            <span data-i18n="page.home.daily.link">查看全部 39 个优先核查候选</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M13 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </section>
+
+      <!-- Favorited reports (local, hidden by JS when empty) -->
+      <section class="home__section home__favorites-section" id="home-favorites" hidden>
+        <header class="home__section-header">
+          <span class="home__section-label" data-i18n="page.home.favorites.label">收藏的报告</span>
+          <h2 class="home__section-title" data-i18n="page.home.favorites.title">你保存的<em>研究报告</em></h2>
+        </header>
+        <div class="home__favorites-list" id="home-favorites-list"></div>
+      </section>
+
+      <!-- Session #9 W2-A: beta-native newsletter signup (replaces W8-D phase
+           waitlist form, which was cross-origin to phase backend and
+           mismatched in topic — it pitched phase signals on a
+           cross-disciplinary learn page). -->
+      <section class="home__section">
+        <div id="newsletter-learn" class="newsletter">
+          <div class="newsletter-card">
+            <span class="newsletter-eyebrow">不定期研究更新</span>
+            <h2 class="newsletter-title">新增订阅暂不可用</h2>
+            <p class="newsletter-body">本版不收集订阅邮箱。研究进展和公开负结果可在站内查看。</p>
+            <p class="newsletter-fineprint">既有订阅请查看原邮件中的退订说明。</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/utils/privateNavigation.js?v=20260714n2"></script>
+  <script defer src="/assets/js/glossary.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
+  <script src="/assets/js/api.js?v=20260714n2"></script>
+  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260714n2"></script>
+  <script src="/assets/js/home.js?v=20260714n2"></script>
+  <script src="/assets/js/product-switcher.js?v=20260514c"></script>
+  <script src="/assets/js/newsletter.js?v=20261017closed1"></script>
+  <script>
+    // Session #9 W2-A: closed subscription notice at the end of learn page.
+    if (window.mountNewsletter) {
+      window.mountNewsletter("newsletter-learn", "learn-end");
+    }
+  </script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
+</body>
+</html>

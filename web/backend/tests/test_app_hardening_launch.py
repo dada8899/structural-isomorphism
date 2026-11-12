@@ -1,0 +1,369 @@
+"""Launch P1-4 / P0-3 — full-app hardening tests.
+
+Covers behaviour that only manifests on the real `main.app`:
+  * HEAD / returns 200 (was 405 — broke HEAD-based health checks).
+  * /docs /redoc /openapi.json are disabled when STRUCTURAL_ENV=prod.
+  * Security headers ride on every response (integration with main.app).
+
+We build a TestClient WITHOUT the `with` block so the lifespan (which
+loads the heavy search service) never runs — these routes don't need it.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+_BACKEND = Path(__file__).resolve().parent.parent
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
+
+
+def _fresh_main(monkeypatch, env: str, *, auth_enabled: bool = False):
+    """Isolate the post-admission route/metadata policy, not R2 readiness.
+
+    Real production import/lifespan-off admission is exercised without stubs
+    in test_runtime_admission's fresh processes. Keep these route assertions.
+    """
+    admission = None
+    if env == "prod":
+        from services import runtime_paths
+        admission = runtime_paths.require_formal_admission
+        monkeypatch.setattr(runtime_paths, "require_formal_admission", lambda app: None)
+    monkeypatch.setenv("STRUCTURAL_ENV", env)
+    # prod path requires the share-token secret env (report_store guards it).
+    monkeypatch.setenv("STRUCTURAL_SHARE_TOKEN_SECRET", "test-secret-for-suite")
+    monkeypatch.setenv("AUTH_ENABLED", "true" if auth_enabled else "false")
+    # The history getter supports this env; report getters do not. Seed only
+    # their existing lazy singleton slots with a real Store at the same private
+    # path. No handler, Store method or missing-report result is mocked.
+    import os
+    from api import history, report, report_account
+    from services.report_store import ReportStore
+
+    db_path = Path(os.environ["STRUCTURAL_HISTORY_DB"])
+    store = ReportStore(db_path)
+    monkeypatch.setattr(report, "_store", store)
+    monkeypatch.setattr(report_account, "_store", store)
+    monkeypatch.setattr(history, "_db", None)
+    if "main" in sys.modules:
+        del sys.modules["main"]
+    import main  # noqa: WPS433 — deliberate reload
+    if admission is not None:
+        # Do not retain a stub imported by value after this fixture restores
+        # the ASGI middleware's module symbol. Lifespan/health stay closed.
+        main.require_formal_admission = admission
+    return main
+
+
+@pytest.fixture(autouse=True)
+def restore_main_module_cache():
+    """Return only this test's main cache entry to its exact previous state."""
+    missing = object()
+    previous = sys.modules.get("main", missing)
+    try:
+        yield
+    finally:
+        if previous is missing:
+            sys.modules.pop("main", None)
+        else:
+            sys.modules["main"] = previous
+
+
+@pytest.fixture(autouse=True)
+def private_report_history_location(request, monkeypatch):
+    """Give route tests a synthetic private DB, independently of the model spy."""
+    if request.node.name == "test_search_service_cache_stats_shape":
+        yield
+        return
+    directory = request.getfixturevalue("tmp_path").resolve()
+    state, cache, logs = directory / "state", directory / "cache", directory / "state/logs"
+    for root in (state, cache, logs):
+        root.mkdir(mode=0o700)
+        root.chmod(0o700)
+    # One approved-root configuration boundary for both current and future
+    # formal Store implementations. It never admits the production app.
+    from services import runtime_paths
+    for name, root in (("STATE_ROOT", state), ("CACHE_ROOT", cache), ("LOG_ROOT", logs)):
+        monkeypatch.setattr(runtime_paths, name, root)
+    monkeypatch.setenv("STRUCTURAL_HISTORY_DB", str(state / "history.db"))
+    # Real Store operations close their native connections in
+    # ClosingConnection.__exit__'s finally. Monkeypatch teardown restores both
+    # singleton slots and the env after the route fixture completes.
+    yield
+
+
+@pytest.fixture
+def dev_client(monkeypatch):
+    main = _fresh_main(monkeypatch, "dev")
+    return TestClient(main.app)
+
+
+@pytest.fixture
+def prod_client(monkeypatch):
+    main = _fresh_main(monkeypatch, "prod")
+    return TestClient(main.app)
+
+
+@pytest.fixture
+def prod_auth_client(monkeypatch):
+    main = _fresh_main(monkeypatch, "prod", auth_enabled=True)
+    return TestClient(main.app)
+
+
+@pytest.fixture(autouse=True)
+def cache_stats_model_boundary(request, monkeypatch):
+    """Isolate only the LRU contract's encoder, independently of route admission.
+
+    This node proves cache behavior, not real model quality or artifact loading.
+    All other tests retain their own dependencies and receive no patches here.
+    """
+    if request.node.name != "test_search_service_cache_stats_shape":
+        yield
+        return
+
+    import builtins
+    import io
+    import os
+    import socket
+    import types
+    import numpy as np
+
+    calls = {"construct": 0, "encode": 0}
+    blocked = []
+    package = types.ModuleType("sentence_transformers")
+
+    class Encoder:
+        def encode(self, texts, **kwargs):
+            assert texts == ["phase transition"]
+            calls["encode"] += 1
+            return np.array([[1.0, 0.0, 0.0]], dtype=np.float32)
+
+    def construct(*args, **kwargs):
+        calls["construct"] += 1
+        return Encoder()
+
+    package.SentenceTransformer = construct
+    monkeypatch.setitem(sys.modules, "sentence_transformers", package)
+
+    def forbidden_socket(*args, **kwargs):
+        blocked.append("socket")
+        raise AssertionError("cache contract must not use real sockets")
+
+    # Also stop aliases of socket.socket captured before this fixture.
+    for name in ("connect", "connect_ex"):
+        monkeypatch.setattr(socket.socket, name, forbidden_socket)
+    for name in ("socket", "SocketType", "create_connection", "getaddrinfo"):
+        monkeypatch.setattr(socket, name, forbidden_socket)
+
+    def model_file(path):
+        if isinstance(path, int):
+            return False
+        value = os.fsdecode(path).replace("\\", "/").lower()
+        return ("/models/" in value or "/huggingface/" in value
+                or value.endswith((".safetensors", ".bin", ".pt", ".pth", ".ckpt"))
+                or value.rsplit("/", 1)[-1] in {
+                    "config.json", "modules.json", "tokenizer.json", "tokenizer_config.json",
+                    "sentence_bert_config.json", "config_sentence_transformers.json",
+                })
+
+    def guarded_open(original):
+        def checked(path, *args, **kwargs):
+            if model_file(path):
+                blocked.append("model-open")
+                raise AssertionError("cache contract must not read real model files")
+            return original(path, *args, **kwargs)
+        return checked
+
+    monkeypatch.setattr(builtins, "open", guarded_open(builtins.open))
+    monkeypatch.setattr(io, "open", guarded_open(io.open))
+    monkeypatch.setattr(os, "open", guarded_open(os.open))
+    yield
+    assert blocked == []
+    assert calls == {"construct": 1, "encode": 1}
+
+
+# --------- P1-4: HEAD / --------- #
+
+
+def test_head_root_returns_200(dev_client):
+    """HEAD / must be 200 — health checkers / CDNs probe with HEAD."""
+    head = dev_client.head("/")
+    get = dev_client.get("/")
+    assert head.status_code == 200
+    assert head.content == b""
+    assert head.headers["content-type"] == get.headers["content-type"]
+    assert head.headers["content-length"] == get.headers["content-length"]
+
+
+def test_get_root_still_works(dev_client):
+    r = dev_client.get("/")
+    assert r.status_code == 200
+
+
+# --------- P1-4: docs gating by env --------- #
+
+
+def test_docs_open_in_dev(dev_client):
+    assert dev_client.get("/openapi.json").status_code == 200
+    assert dev_client.get("/docs").status_code == 200
+
+
+def test_docs_disabled_in_prod(prod_client):
+    """In prod the API surface map must not be publicly browsable."""
+    assert prod_client.get("/openapi.json").status_code == 404
+    assert prod_client.get("/docs").status_code == 404
+    assert prod_client.get("/redoc").status_code == 404
+
+
+def test_unfinished_surfaces_fail_closed_in_prod(prod_client, monkeypatch):
+    auth = prod_client.post("/api/auth/request-link", json={"email": "a@example.com"})
+    assert auth.status_code == 503
+    assert auth.json()["error"] == "account_features_not_available"
+
+    from unittest.mock import AsyncMock
+    phase_route = next(route for route in prod_client.app.routes
+                       if getattr(route, "path", None) == "/phase/api/redteam"
+                       and "POST" in getattr(route, "methods", set()))
+    handler = AsyncMock(wraps=phase_route.dependant.call)
+    prepare = AsyncMock(side_effect=AssertionError("retired generation preparation"))
+    monkeypatch.setattr(phase_route.dependant, "call", handler)
+    monkeypatch.setattr(sys.modules["main"], "_phase_urlopen_json", prepare)
+    legacy_api = prod_client.post("/phase/api/redteam", json={})
+    assert legacy_api.status_code == 503
+    assert legacy_api.headers["content-type"].startswith("application/problem+json")
+    assert legacy_api.json()["code"] == "FEATURE_UNAVAILABLE"
+    assert legacy_api.json()["retryable"] is False
+    assert legacy_api.json()["canonical"] == "/research"
+    assert "event: meta" not in legacy_api.text and "event: done" not in legacy_api.text
+    handler.assert_not_called()
+    prepare.assert_not_called()
+
+    legacy_page = prod_client.get("/phase", follow_redirects=False)
+    assert legacy_page.status_code == 308
+    assert legacy_page.headers["location"] == "https://phase.bytedance.city"
+
+    connections = prod_client.get("/connections", follow_redirects=False)
+    assert connections.status_code == 308
+    assert connections.headers["location"] == "/reports"
+
+    connections_api = prod_client.get("/api/connections/fingerprints")
+    assert connections_api.status_code == 410
+    assert connections_api.json()["error"] == "connections_not_available"
+
+
+def test_connections_remain_retired_when_accounts_are_enabled(prod_auth_client):
+    page = prod_auth_client.get("/connections", follow_redirects=False)
+    assert page.status_code == 308
+    assert page.headers["location"] == "/reports"
+
+    api = prod_auth_client.get("/api/connections/fingerprints")
+    assert api.status_code == 410
+    assert api.json()["error"] == "connections_not_available"
+
+
+def test_beta_auth_entry_is_native_to_primary_product(dev_client):
+    response = dev_client.get("/auth/login", follow_redirects=False)
+    assert response.status_code == 200
+    assert "发送登录链接" in response.text
+    assert "phase.bytedance.city/auth/login" not in response.text
+
+
+# --------- P0-3: security headers on the real app --------- #
+
+
+def test_security_headers_on_main_app(dev_client):
+    r = dev_client.get("/api/health")
+    assert r.headers.get("X-Frame-Options") == "DENY"
+    assert r.headers.get("X-Content-Type-Options") == "nosniff"
+    assert "Content-Security-Policy" in r.headers
+    assert "Strict-Transport-Security" in r.headers
+
+
+def test_security_headers_on_html_page(dev_client):
+    """Headers ride on static HTML responses too, not just /api/*."""
+    r = dev_client.get("/")
+    assert r.headers.get("X-Content-Type-Options") == "nosniff"
+    assert "Content-Security-Policy" in r.headers
+
+
+# --------- P1-5: unmatched /api 404 uses RFC 7807 --------- #
+
+
+def test_unmatched_api_route_returns_problem_json(dev_client):
+    """An unknown /api/* path must answer with the RFC 7807 envelope,
+    not the ad-hoc `{"detail": "not found"}` that bypassed errors.py."""
+    r = dev_client.get("/api/report/r_deadbeef00000000")
+    assert r.status_code == 404
+    assert r.headers["content-type"].startswith("application/problem+json")
+    body = r.json()
+    # Canonical RFC 7807 members.
+    assert body["status"] == 404
+    assert body["type"].endswith("/not_found")
+    assert "title" in body and "detail" in body
+
+
+def test_unmatched_html_route_still_serves_404_page(dev_client):
+    """Non-/api unknown routes keep the full HTML 404 template."""
+    r = dev_client.get("/definitely-not-a-page")
+    assert r.status_code == 404
+    assert "text/html" in r.headers["content-type"]
+
+
+# --------- P2-3: /api/version never forks a git subprocess --------- #
+
+
+def test_version_no_subprocess_when_sha_present(dev_client, monkeypatch):
+    """With STRUCTURAL_GIT_SHA set, /api/version must not shell out."""
+    import subprocess as _sp
+
+    def _boom(*a, **k):  # any subprocess call = test failure
+        raise AssertionError("/api/version forked a subprocess")
+
+    monkeypatch.setattr(_sp, "check_output", _boom)
+    monkeypatch.setenv("STRUCTURAL_GIT_SHA", "f" * 40)
+    r = dev_client.get("/api/version")
+    assert r.status_code == 200
+    assert r.json()["git_sha"] == "f" * 40
+
+
+def test_version_prod_missing_sha_returns_unknown(monkeypatch):
+    """In prod a missing SHA yields 'unknown' — never a git fork."""
+    import subprocess as _sp
+
+    monkeypatch.setattr(
+        _sp, "check_output",
+        lambda *a, **k: (_ for _ in ()).throw(
+            AssertionError("prod /api/version forked git")
+        ),
+    )
+    monkeypatch.delenv("STRUCTURAL_GIT_SHA", raising=False)
+    main = _fresh_main(monkeypatch, "prod")
+    client = TestClient(main.app)
+    r = client.get("/api/version")
+    assert r.status_code == 200
+    assert r.json()["git_sha"] == "unknown"
+
+
+# --------- P2: query-embedding cache hit-rate observability --------- #
+
+
+def test_search_service_cache_stats_shape():
+    """SearchService.cache_stats() reports LRU hits / misses / hit_rate."""
+    from services.search_service import SearchService
+
+    svc = SearchService(data_dir=None)  # no KB — we only exercise the cache
+    stats = svc.cache_stats()
+    assert set(stats) == {"hits", "misses", "hit_rate", "size", "maxsize"}
+    assert stats["maxsize"] == 1024
+    assert stats["hit_rate"] == 0.0  # nothing encoded yet
+
+    # Encode the same query twice → exactly one cache hit.
+    svc.encode_query("phase transition")
+    svc.encode_query("phase transition")
+    stats2 = svc.cache_stats()
+    assert stats2["hits"] == 1
+    assert stats2["misses"] == 1
+    assert stats2["hit_rate"] == 0.5

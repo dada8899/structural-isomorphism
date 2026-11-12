@@ -1,0 +1,45 @@
+{
+  "fetched_at_utc": "2026-05-24T12:28:35.828249+00:00",
+  "countries": {
+    "united_states": {
+      "n": 100,
+      "source": "US Census Bureau 2020 decennial census via Wikipedia",
+      "year": 2020,
+      "url": "https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
+      "top_population": 8804190,
+      "bottom_population": 226610
+    },
+    "china": {
+      "n": 100,
+      "source": "China 2020 census via Wikipedia",
+      "year": 2020,
+      "url": "https://en.wikipedia.org/wiki/List_of_cities_in_China_by_population",
+      "top_population": 21909814,
+      "bottom_population": 1230599
+    },
+    "india": {
+      "n": 100,
+      "source": "India 2011 census via Wikipedia",
+      "year": 2011,
+      "url": "https://en.wikipedia.org/wiki/List_of_cities_in_India_by_population",
+      "top_population": 12442373,
+      "bottom_population": 448317
+    },
+    "germany": {
+      "n": 80,
+      "source": "Destatis 2021 estimate via Wikipedia",
+      "year": 2021,
+      "url": "https://en.wikipedia.org/wiki/List_of_cities_in_Germany_by_population",
+      "top_population": 3677472,
+      "bottom_population": 100319
+    },
+    "brazil": {
+      "n": 100,
+      "source": "IBGE 2022 census via Wikipedia",
+      "year": 2022,
+      "url": "https://en.wikipedia.org/wiki/List_of_largest_cities_in_Brazil",
+      "top_population": 11451245,
+      "bottom_population": 273640
+    }
+  }
+}

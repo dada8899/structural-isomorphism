@@ -1,0 +1,387 @@
+/* A2 Whitespace Map — research whitespace heatmap + leads list.
+   克制、留白、白底，对标 Apple / Notion / Linear。 */
+
+.ws-page {
+  min-height: calc(100vh - var(--header-height, 64px));
+  background: var(--bg-primary);
+  padding: var(--space-8) var(--space-5) var(--space-10);
+
+  /* Heatmap state colors — the only two non-token hues on the page.
+     "filled" uses the design-system success green; "lead" needs a
+     distinct amber the token set has no equivalent for, so it lives
+     here as a single authoritative local var. */
+  --ws-filled: var(--success);
+  --ws-filled-soft: rgba(5, 150, 105, 0.1);
+  --ws-lead: var(--warning);
+  --ws-lead-soft: var(--warning-subtle);
+  --ws-lead-ring: rgba(217, 119, 6, 0.16);
+}
+
+.ws-container {
+  max-width: var(--max-content, 960px);
+  margin: 0 auto;
+}
+
+/* [hidden] must beat the flex/grid display values set below. */
+.ws-page [hidden] { display: none !important; }
+
+/* --- Intro --- */
+.ws-crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-5);
+}
+.ws-crumb a { color: var(--text-tertiary); text-decoration: none; }
+.ws-crumb a:hover { color: var(--text-primary); }
+.ws-crumb__sep { color: var(--border-strong); }
+
+.ws-intro__title {
+  font-family: var(--font-serif, var(--font-sans));
+  font-size: var(--fs-32);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3);
+  letter-spacing: var(--ls-tight);
+}
+.ws-intro__lede {
+  font-size: var(--fs-16);
+  line-height: var(--lh-relaxed, 1.7);
+  color: var(--text-secondary);
+  max-width: 62ch;
+  margin: 0 0 var(--space-5);
+}
+.ws-intro__lede strong { color: var(--text-primary); font-weight: var(--fw-semibold); }
+
+.ws-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+.ws-legend__item { display: flex; align-items: center; gap: var(--space-2); }
+.ws-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-sm, 4px);
+  display: inline-block;
+  border: 1px solid var(--border-default);
+}
+.ws-swatch--filled { background: var(--ws-filled); border-color: var(--ws-filled); }
+.ws-swatch--lead { background: var(--ws-lead); border-color: var(--ws-lead); }
+.ws-swatch--empty { background: var(--bg-subtle); }
+
+.ws-stats {
+  margin-top: var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+}
+.ws-stats b { color: var(--text-primary); font-weight: var(--fw-semibold); }
+
+/* --- Loading / error --- */
+.ws-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) 0;
+  color: var(--text-tertiary);
+  font-size: var(--fs-14);
+}
+.ws-loading__spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid var(--border-default);
+  border-top-color: var(--text-tertiary);
+  border-radius: var(--radius-full, 50%);
+  animation: ws-spin 0.8s linear infinite;
+}
+@keyframes ws-spin { to { transform: rotate(360deg); } }
+
+.ws-error {
+  text-align: center;
+  padding: var(--space-9) var(--space-4);
+}
+.ws-error__icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  color: var(--text-tertiary);
+  font-size: var(--fs-22);
+  font-weight: var(--fw-bold);
+}
+.ws-error__title {
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+}
+.ws-error__msg {
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed);
+  color: var(--text-secondary);
+  margin: 0 auto var(--space-4);
+  max-width: 44ch;
+}
+.ws-error__retry {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-5);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ws-error__retry:hover { background: var(--bg-subtle); }
+
+/* leads empty state — richer than a bare line */
+.ws-leads-empty {
+  text-align: center;
+  padding: var(--space-7) var(--space-5);
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-xl);
+  color: var(--text-tertiary);
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed);
+}
+
+/* --- Sections --- */
+.ws-section { margin-top: var(--space-9); }
+.ws-section__head { margin-bottom: var(--space-5); }
+.ws-section__title {
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+}
+.ws-section__hint {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  line-height: var(--lh-relaxed, 1.7);
+  margin: 0;
+  max-width: 64ch;
+}
+
+/* --- Matrix heatmap --- */
+.ws-matrix {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 10px);
+  background: var(--bg-primary);
+}
+.ws-matrix__row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ws-matrix__row:last-child { border-bottom: none; }
+.ws-matrix__label {
+  flex: 0 0 200px;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+}
+.ws-matrix__cells {
+  display: flex;
+  gap: 3px;
+  padding: var(--space-2) var(--space-3);
+  flex-wrap: nowrap;
+}
+.ws-cell {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-default);
+  background: var(--bg-subtle);
+  cursor: default;
+  transition: transform var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+.ws-cell--filled { background: var(--ws-filled); border-color: var(--ws-filled); }
+.ws-cell--lead {
+  background: var(--ws-lead);
+  border-color: var(--ws-lead);
+  cursor: pointer;
+}
+.ws-cell--lead:hover,
+.ws-cell--lead:focus-visible {
+  transform: scale(1.18);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.ws-cell--empty { background: var(--bg-subtle); }
+
+/* --- Filters --- */
+.ws-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.ws-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+}
+.ws-filter select {
+  font-size: var(--fs-14);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-width: 200px;
+}
+.ws-filter select:focus-visible {
+  outline: none;
+  border-color: var(--border-focus, var(--brand-accent));
+  box-shadow: var(--shadow-focus);
+}
+
+/* --- Buttons --- */
+.ws-btn {
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+.ws-btn--ghost {
+  background: transparent;
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+.ws-btn--ghost:hover { background: var(--bg-secondary); }
+.ws-btn--primary {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+.ws-btn--primary:hover { background: var(--accent-hover); }
+
+/* --- Leads list --- */
+.ws-leads {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ws-lead {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 10px);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-primary);
+  transition: border-color var(--dur-fast, 120ms) var(--ease-out, ease),
+              box-shadow var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+.ws-lead:hover {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-sm);
+}
+.ws-lead--highlight {
+  border-color: var(--ws-lead);
+  box-shadow: 0 0 0 3px var(--ws-lead-ring);
+}
+.ws-lead__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+.ws-lead__tag {
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full, 999px);
+  background: var(--accent-subtle, var(--bg-secondary));
+  color: var(--text-secondary);
+}
+.ws-lead__tag--class { background: var(--ws-filled-soft); color: var(--ws-filled); }
+.ws-lead__tag--domain { background: var(--ws-lead-soft); color: var(--warning); }
+.ws-lead__score {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+}
+/* LLM plausibility badge — only rendered when the LLM layer ran. */
+.ws-lead__plausible {
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full, 999px);
+}
+.ws-lead__plausible--yes {
+  background: var(--ws-filled-soft);
+  color: var(--ws-filled);
+}
+.ws-lead__plausible--maybe {
+  background: var(--ws-lead-soft);
+  color: var(--warning);
+}
+/* The concrete research question — the headline of the lead card. */
+.ws-lead__question {
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug, 1.45);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+}
+.ws-lead__claim {
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed, 1.65);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-3);
+}
+.ws-lead__claim em {
+  font-style: normal;
+  font-weight: var(--fw-semibold);
+}
+/* LLM rationale gets a subtle left rule to mark it as a model judgment. */
+.ws-lead__claim--llm {
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--accent-subtle);
+  color: var(--text-secondary);
+}
+.ws-lead__anchor {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--space-3);
+}
+.ws-lead__anchor b { color: var(--text-secondary); font-weight: var(--fw-medium); }
+.ws-lead__actions { display: flex; }
+
+/* --- Responsive --- */
+@media (max-width: 640px) {
+  .ws-page { padding: var(--space-6) var(--space-4) var(--space-9); }
+  .ws-intro__title { font-size: var(--fs-24); }
+  .ws-matrix__label { flex-basis: 132px; font-size: var(--fs-12); }
+  .ws-filter select { min-width: 0; width: 100%; }
+  .ws-filter { flex: 1 1 100%; }
+}

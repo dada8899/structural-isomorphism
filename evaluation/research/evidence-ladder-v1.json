@@ -1,0 +1,14 @@
+{
+  "schema_version": "evidence-ladder-v1",
+  "levels": [
+    {"id":"candidate","rank":1,"label_zh":"候选","label_en":"Candidate","requires":[]},
+    {"id":"source_backed","rank":2,"label_zh":"有来源","label_en":"Source-backed","requires":["source","license","provenance_class","source_review"]},
+    {"id":"analysis_recorded","rank":3,"label_zh":"有分析记录","label_en":"Analysis recorded","requires":["evidence_artifact","artifact_sha256","method"]},
+    {"id":"falsification_tested","rank":4,"label_zh":"已按失败条件检验","label_en":"Falsification tested","requires":["preregistered_rule","verdict","counter_evidence"]},
+    {"id":"externally_reviewed","rank":5,"label_zh":"外部复核","label_en":"Externally reviewed","requires":["review_record","reviewer_independence","resolved_disputes"]},
+    {"id":"replicated","rank":6,"label_zh":"独立复现","label_en":"Replicated","requires":["replication_artifact","independent_team","replication_sha256"]}
+  ],
+  "allowed_verdicts": ["PASS", "FAIL", "REJECT", "NULL", "PARTIAL", "INCONCLUSIVE"],
+  "prohibited_generic_labels": ["verified", "已验证", "confirmed", "已确认"],
+  "rule": "Use the highest level whose requirements are auditable; never infer missing evidence. Verdict and evidence level are independent."
+}

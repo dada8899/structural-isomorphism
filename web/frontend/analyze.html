@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#FAFAF9">
+  <meta name="description" content="跨学科研究草案——比较其他领域的方法线索、证据缺口与适用边界，并给出可检验的下一步。">
+  <title data-i18n="page.analyze.meta_title">研究报告 — Structural</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <!-- Open Graph / social share metadata -->
+  <meta property="og:title" content="研究报告 — Structural">
+  <meta property="og:description" content="跨领域研究草案 · 检验候选对应、反证与边界">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="研究报告 — Structural">
+  <meta name="twitter:description" content="跨领域研究草案 · 检验候选对应、反证与边界">
+
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20261110-cjk1">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/evidence-envelope.css?v=20260713n1">
+  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/analyze-actions.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/decision-brief.css?v=20260712a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/glossary.css?v=20260514e">
+
+  <!-- No analytics on private research or report-capability surfaces. -->
+</head>
+<body class="has-history-sidebar is-warmink">
+  <header class="site-header"></header>
+
+  <main class="analyze-page">
+    <div class="analyze-container">
+      <nav class="analyze-crumb">
+        <a href="/" data-i18n="page.analyze.crumb_home">首页</a>
+        <span class="analyze-crumb__sep">/</span>
+        <span data-i18n="page.analyze.crumb_current">研究报告</span>
+        <div class="analyze-actions">
+          <button type="button" class="analyze-action-btn analyze-action-btn--brief" id="analyze-brief-btn" data-i18n-attr="aria-label:page.analyze.btn_brief_aria" aria-label="复制为简报">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+              <line x1="9" y1="11" x2="15" y2="11"/>
+            </svg>
+            <span data-i18n="page.analyze.btn_brief">复制为简报</span>
+          </button>
+          <button type="button" class="analyze-action-btn analyze-action-btn--share" id="analyze-share-btn" data-i18n-attr="aria-label:page.analyze.btn_share_aria" aria-label="分享这份报告">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="18" cy="5" r="3"/>
+              <circle cx="6" cy="12" r="3"/>
+              <circle cx="18" cy="19" r="3"/>
+              <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
+            </svg>
+            <span data-i18n="page.analyze.btn_share">分享</span>
+          </button>
+          <button type="button" class="analyze-action-btn analyze-action-btn--fav" id="analyze-fav-btn" data-i18n-attr="aria-label:page.analyze.btn_fav_aria" aria-label="收藏这份报告" aria-pressed="false">
+            <span class="analyze-action-btn__star" id="analyze-fav-icon">☆</span>
+            <span id="analyze-fav-label" data-i18n="page.analyze.btn_fav">收藏</span>
+          </button>
+        </div>
+      </nav>
+
+      <section id="analyze-report-stage" class="analyze-report-stage"
+               aria-busy="true" data-state="loading">
+        <div id="analyze-header" class="analyze-header"></div>
+
+        <div id="analyze-loading" class="analyze-loading" role="status" aria-live="polite">
+          <div class="analyze-loading__dots">
+            <span class="analyze-loading__dot"></span>
+            <span class="analyze-loading__dot"></span>
+            <span class="analyze-loading__dot"></span>
+          </div>
+          <h2 class="analyze-loading__title" data-i18n="page.analyze.loading_title">正在生成研究报告</h2>
+          <p class="analyze-loading__hint">正在生成跨学科研究草案，并整理其他领域的方法线索、证据缺口与适用边界。</p>
+          <div class="analyze-loading__timer-row">
+            <span class="elapsed-timer" id="analyze-loading-timer">已等待 0s</span>
+            <span class="analyze-loading__typical">约需 2–3 分钟 · 完成证据与来源校验后一次呈现</span>
+          </div>
+        </div>
+      </section>
+      <nav id="analyze-progress" class="analyze-progress"></nav>
+
+      <!-- M1.4 (session #16): persisted-share bar. Hidden until the
+           backend emits the `persisted` SSE event. Renders the share
+           URL + copy button + per-report 👍/👎 feedback. -->
+      <div id="analyze-share-bar" class="analyze-share-bar" hidden>
+        <div class="analyze-share-bar__row">
+          <span class="analyze-share-bar__icon" aria-hidden="true">🔗</span>
+          <input
+            type="text"
+            id="analyze-share-url"
+            class="analyze-share-bar__url"
+            readonly
+            aria-label="Share URL"
+          />
+          <button type="button" id="analyze-share-copy"
+                  class="analyze-share-bar__btn"
+                  data-i18n="page.analyze.share_copy">复制</button>
+          <button type="button" id="analyze-share-open"
+                  class="analyze-share-bar__btn"
+                  data-i18n="page.analyze.share_open">打开</button>
+        </div>
+        <div class="analyze-share-bar__feedback">
+          <span data-i18n="page.analyze.feedback_overall">这份报告对你有用吗？</span>
+          <button type="button" class="analyze-vote analyze-vote--up"
+                  data-section="" data-vote="1" aria-label="useful">👍 <span class="analyze-vote__count" id="analyze-vote-up-count">0</span></button>
+          <button type="button" class="analyze-vote analyze-vote--down"
+                  data-section="" data-vote="-1" aria-label="not useful">👎 <span class="analyze-vote__count" id="analyze-vote-down-count">0</span></button>
+        </div>
+        <div id="analyze-share-bar__partial" class="analyze-share-bar__partial" hidden
+             data-i18n="page.analyze.share_partial">⚠ 报告未完整生成 —— 分享前请确认。</div>
+      </div>
+
+      <div id="analyze-tldr" class="analyze-tldr" hidden></div>
+      <div id="decision-brief-root"></div>
+      <div id="analyze-sections"></div>
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script defer src="/assets/js/glossary.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
+  <script src="/assets/js/api.js?v=20260714n2"></script>
+  <script src="/assets/js/evidence-envelope.js?v=20260714n2"></script>
+  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260714n2"></script>
+  <script src="/assets/js/analyze.js?v=20260714n2"></script>
+  <script src="/assets/js/product-switcher.js?v=20260514e"></script>
+  <script src="/assets/js/analytics-consent.js?v=20260714n2"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
+</body>
+</html>

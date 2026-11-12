@@ -1,0 +1,74 @@
+{
+  "phase_slug": "soc-neural",
+  "bin_factors": [
+    1,
+    2,
+    4,
+    8,
+    16
+  ],
+  "results": [
+    {
+      "bin": 1,
+      "bin_seconds": 0.004,
+      "alpha": 2.9838134765624993,
+      "xmin": 7.0,
+      "n_tail": 62042,
+      "p_ks": null,
+      "vs_lognormal_R": -30.523979582785618,
+      "vs_exponential_R": -0.9425817062298072,
+      "n_total": 301092
+    },
+    {
+      "bin": 2,
+      "bin_seconds": 0.008,
+      "alpha": 2.9984242338443994,
+      "xmin": 49.0,
+      "n_tail": 6211,
+      "p_ks": null,
+      "vs_lognormal_R": -6.415076484408934,
+      "vs_exponential_R": 5.420692996627953,
+      "n_total": 78097
+    },
+    {
+      "bin": 4,
+      "bin_seconds": 0.016,
+      "alpha": 2.7593693656920593,
+      "xmin": 404.0,
+      "n_tail": 1000,
+      "p_ks": null,
+      "vs_lognormal_R": -5.504661107623059,
+      "vs_exponential_R": -3.0920549270524407,
+      "n_total": 8446
+    },
+    {
+      "bin": 8,
+      "bin_seconds": 0.032,
+      "alpha": 2.624678807252292,
+      "xmin": 2843.0,
+      "n_tail": 221,
+      "p_ks": null,
+      "vs_lognormal_R": -4.738026920295954,
+      "vs_exponential_R": -6.2191884255877365,
+      "n_total": 413
+    },
+    {
+      "bin": 16,
+      "bin_seconds": 0.064,
+      "alpha": 2.169365320652616,
+      "xmin": 3375.0,
+      "n_tail": 155,
+      "p_ks": null,
+      "vs_lognormal_R": -4.007430759469431,
+      "vs_exponential_R": -5.911065875276595,
+      "n_total": 157
+    }
+  ],
+  "source": "precomputed bf_<n>_fit.json from analyze_avalanches.py",
+  "scaling_dependence": "drift",
+  "note": "alpha spread 30.63% across 5 bin factors (mean alpha=2.707); finite-size or bin-dependence effect",
+  "description": "Phase 4 mouse cortex avalanches (Beggs-Plenz). Precomputed fits at bin factors 1/2/4/8/16 of base bin (4 ms).",
+  "aggregate": "count",
+  "base_bin_seconds": 0.004,
+  "n_events_loaded": 388205
+}

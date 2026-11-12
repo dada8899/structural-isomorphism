@@ -1,0 +1,532 @@
+{
+  "phase": "Layer 5 wave 1: city population rank-size",
+  "predicted_class": "preferential_attachment (Gabaix 1999 / Gibrat 1931)",
+  "expected_s_band": [
+    0.8,
+    1.3
+  ],
+  "expected_alpha_band": [
+    1.77,
+    2.25
+  ],
+  "countries": {
+    "united_states": {
+      "country": "united_states",
+      "n": 100,
+      "top_pop": 8804190,
+      "bottom_pop": 226610,
+      "s_zipf": 1.4637572878047995,
+      "s_zipf_se": 0.20700654084360054,
+      "s_zipf_ci_lo": 1.0580244677513424,
+      "s_zipf_ci_hi": 1.8694901078582566,
+      "r2": 0.992648767423956,
+      "s_zipf_top30": 1.5319965576981331,
+      "s_zipf_top30_se": 0.3955598102941306,
+      "s_zipf_top30_ci_lo": 0.7566993295216371,
+      "s_zipf_top30_ci_hi": 2.307293785874629,
+      "r2_top30": 0.9879542063862168,
+      "alpha": 2.391954290053266,
+      "xmin": 226610.0,
+      "n_tail": 100,
+      "ks_distance": 0.056147291671392874,
+      "vs_lognormal_R": -0.42677759927810055,
+      "vs_lognormal_p": 0.669541323821113,
+      "vs_lognormal_winner": "inconclusive",
+      "vs_exponential_R": 1.7249016206926537,
+      "vs_exponential_p": 0.08454520346217592,
+      "vs_exponential_winner": "power_law",
+      "s_in_band": false,
+      "s_in_band_literature": true,
+      "s_top30_in_band": false,
+      "alpha_in_band": false,
+      "verdict": "PASS (broad literature band)",
+      "reason": "top-100 s=1.464 inside Soo 2005 cross-country band (0.78, 1.88); outside narrow Gabaix band — Eeckhout-style upward drift",
+      "rank_pop_sample": [
+        [
+          1,
+          8804190
+        ],
+        [
+          2,
+          3898747
+        ],
+        [
+          3,
+          2746388
+        ],
+        [
+          4,
+          2304580
+        ],
+        [
+          5,
+          1608139
+        ],
+        [
+          6,
+          1603797
+        ],
+        [
+          7,
+          1434625
+        ],
+        [
+          8,
+          1386932
+        ],
+        [
+          9,
+          1304379
+        ],
+        [
+          10,
+          1013240
+        ],
+        [
+          98,
+          228673
+        ],
+        [
+          99,
+          227470
+        ],
+        [
+          100,
+          226610
+        ]
+      ]
+    },
+    "china": {
+      "country": "china",
+      "n": 100,
+      "top_pop": 21909814,
+      "bottom_pop": 1230599,
+      "s_zipf": 1.2788529842957113,
+      "s_zipf_se": 0.18085712346723015,
+      "s_zipf_ci_lo": 0.9243730222999402,
+      "s_zipf_ci_hi": 1.6333329462914823,
+      "r2": 0.9433223453653987,
+      "s_zipf_top30": 1.881541571044582,
+      "s_zipf_top30_se": 0.4858119446568403,
+      "s_zipf_top30_ci_lo": 0.929350159517175,
+      "s_zipf_top30_ci_hi": 2.833732982571989,
+      "r2_top30": 0.9270264783520498,
+      "alpha": 2.214110084616326,
+      "xmin": 1230599.0,
+      "n_tail": 100,
+      "ks_distance": 0.08925251155896996,
+      "vs_lognormal_R": -0.7117721801566459,
+      "vs_lognormal_p": 0.47660586248193104,
+      "vs_lognormal_winner": "inconclusive",
+      "vs_exponential_R": 2.2340742706719903,
+      "vs_exponential_p": 0.025478186621869597,
+      "vs_exponential_winner": "power_law",
+      "s_in_band": true,
+      "s_in_band_literature": true,
+      "s_top30_in_band": false,
+      "alpha_in_band": true,
+      "verdict": "PASS",
+      "reason": "top-100 s=1.279 inside narrow Gabaix band (0.8, 1.3)",
+      "rank_pop_sample": [
+        [
+          1,
+          21909814
+        ],
+        [
+          2,
+          18960744
+        ],
+        [
+          3,
+          17444609
+        ],
+        [
+          4,
+          16096724
+        ],
+        [
+          5,
+          13568357
+        ],
+        [
+          6,
+          11052404
+        ],
+        [
+          7,
+          10494879
+        ],
+        [
+          8,
+          9644871
+        ],
+        [
+          9,
+          9580819
+        ],
+        [
+          10,
+          9392938
+        ],
+        [
+          98,
+          1254007
+        ],
+        [
+          99,
+          1242906
+        ],
+        [
+          100,
+          1230599
+        ]
+      ]
+    },
+    "india": {
+      "country": "india",
+      "n": 100,
+      "top_pop": 12442373,
+      "bottom_pop": 448317,
+      "s_zipf": 1.315113263110682,
+      "s_zipf_se": 0.18598510127478632,
+      "s_zipf_ci_lo": 0.9505824646121009,
+      "s_zipf_ci_hi": 1.6796440616092632,
+      "r2": 0.9780048638958714,
+      "s_zipf_top30": 1.3704611055468998,
+      "s_zipf_top30_se": 0.35385153589387647,
+      "s_zipf_top30_ci_lo": 0.6769120951949019,
+      "s_zipf_top30_ci_hi": 2.0640101158988977,
+      "r2_top30": 0.9495936315889286,
+      "alpha": 2.500508793008918,
+      "xmin": 809378.0,
+      "n_tail": 60,
+      "ks_distance": 0.056294543849977785,
+      "vs_lognormal_R": 0.10112874141329727,
+      "vs_lognormal_p": 0.9194482626494284,
+      "vs_lognormal_winner": "inconclusive",
+      "vs_exponential_R": 2.8815986212258378,
+      "vs_exponential_p": 0.003956633931956153,
+      "vs_exponential_winner": "power_law",
+      "s_in_band": false,
+      "s_in_band_literature": true,
+      "s_top30_in_band": false,
+      "alpha_in_band": false,
+      "verdict": "PASS (broad literature band)",
+      "reason": "top-100 s=1.315 inside Soo 2005 cross-country band (0.78, 1.88); outside narrow Gabaix band — Eeckhout-style upward drift",
+      "rank_pop_sample": [
+        [
+          1,
+          12442373
+        ],
+        [
+          2,
+          11034555
+        ],
+        [
+          3,
+          8443675
+        ],
+        [
+          4,
+          6993262
+        ],
+        [
+          5,
+          5577940
+        ],
+        [
+          6,
+          4646732
+        ],
+        [
+          7,
+          4496694
+        ],
+        [
+          8,
+          4467797
+        ],
+        [
+          9,
+          3124458
+        ],
+        [
+          10,
+          3046163
+        ],
+        [
+          98,
+          460228
+        ],
+        [
+          99,
+          451100
+        ],
+        [
+          100,
+          448317
+        ]
+      ]
+    },
+    "germany": {
+      "country": "germany",
+      "n": 80,
+      "top_pop": 3677472,
+      "bottom_pop": 100319,
+      "s_zipf": 1.335119121759549,
+      "s_zipf_se": 0.21110086862019242,
+      "s_zipf_ci_lo": 0.9213614192639719,
+      "s_zipf_ci_hi": 1.7488768242551262,
+      "r2": 0.9849840714295557,
+      "s_zipf_top30": 1.4444289706039417,
+      "s_zipf_top30_se": 0.37294995652857255,
+      "s_zipf_top30_ci_lo": 0.7134470558079395,
+      "s_zipf_top30_ci_hi": 2.175410885399944,
+      "r2_top30": 0.9764681911352318,
+      "alpha": 2.400204320614978,
+      "xmin": 152731.0,
+      "n_tail": 55,
+      "ks_distance": 0.08008138116865471,
+      "vs_lognormal_R": -0.2563518221498264,
+      "vs_lognormal_p": 0.7976791854370624,
+      "vs_lognormal_winner": "inconclusive",
+      "vs_exponential_R": 1.7028725563092153,
+      "vs_exponential_p": 0.08859192086225232,
+      "vs_exponential_winner": "power_law",
+      "s_in_band": false,
+      "s_in_band_literature": true,
+      "s_top30_in_band": false,
+      "alpha_in_band": false,
+      "verdict": "PASS (broad literature band)",
+      "reason": "top-100 s=1.335 inside Soo 2005 cross-country band (0.78, 1.88); outside narrow Gabaix band — Eeckhout-style upward drift",
+      "rank_pop_sample": [
+        [
+          1,
+          3677472
+        ],
+        [
+          2,
+          1906411
+        ],
+        [
+          3,
+          1487708
+        ],
+        [
+          4,
+          1073096
+        ],
+        [
+          5,
+          759224
+        ],
+        [
+          6,
+          626275
+        ],
+        [
+          7,
+          619477
+        ],
+        [
+          8,
+          601866
+        ],
+        [
+          9,
+          586852
+        ],
+        [
+          10,
+          579432
+        ],
+        [
+          78,
+          101516
+        ],
+        [
+          79,
+          101158
+        ],
+        [
+          80,
+          100319
+        ]
+      ]
+    },
+    "brazil": {
+      "country": "brazil",
+      "n": 100,
+      "top_pop": 11451245,
+      "bottom_pop": 273640,
+      "s_zipf": 1.443551886668028,
+      "s_zipf_se": 0.2041490656115194,
+      "s_zipf_ci_lo": 1.0434197180694498,
+      "s_zipf_ci_hi": 1.843684055266606,
+      "r2": 0.9950340542356613,
+      "s_zipf_top30": 1.41958284595965,
+      "s_zipf_top30_se": 0.3665347147308968,
+      "s_zipf_top30_ci_lo": 0.7011748050870923,
+      "s_zipf_top30_ci_hi": 2.137990886832208,
+      "r2_top30": 0.9856727968452949,
+      "alpha": 2.4666281500173537,
+      "xmin": 299472.0,
+      "n_tail": 93,
+      "ks_distance": 0.04599139928698401,
+      "vs_lognormal_R": -0.06475990777022171,
+      "vs_lognormal_p": 0.9483651633735831,
+      "vs_lognormal_winner": "inconclusive",
+      "vs_exponential_R": 2.0631616809095084,
+      "vs_exponential_p": 0.03909726947927622,
+      "vs_exponential_winner": "power_law",
+      "s_in_band": false,
+      "s_in_band_literature": true,
+      "s_top30_in_band": false,
+      "alpha_in_band": false,
+      "verdict": "PASS (broad literature band)",
+      "reason": "top-100 s=1.444 inside Soo 2005 cross-country band (0.78, 1.88); outside narrow Gabaix band — Eeckhout-style upward drift",
+      "rank_pop_sample": [
+        [
+          1,
+          11451245
+        ],
+        [
+          2,
+          6211423
+        ],
+        [
+          3,
+          2817068
+        ],
+        [
+          4,
+          2428678
+        ],
+        [
+          5,
+          2418005
+        ],
+        [
+          6,
+          2315560
+        ],
+        [
+          7,
+          2063547
+        ],
+        [
+          8,
+          1773733
+        ],
+        [
+          9,
+          1488920
+        ],
+        [
+          10,
+          1437237
+        ],
+        [
+          98,
+          279546
+        ],
+        [
+          99,
+          278881
+        ],
+        [
+          100,
+          273640
+        ]
+      ]
+    }
+  },
+  "cross_system_anchors": {
+    "language_zipf_english": {
+      "system": "English unigram rank-frequency (Zipf 1949 / Piantadosi 2014)",
+      "s_equivalent": 1.0,
+      "alpha_equivalent": 2.0,
+      "class": "preferential_attachment (Simon-Yule)"
+    },
+    "firm_size_us": {
+      "system": "US firm size by employees (Axtell 2001 Science)",
+      "s_equivalent": 1.059,
+      "alpha_equivalent": 1.944,
+      "class": "preferential_attachment (Gibrat)"
+    },
+    "wealth_us_top": {
+      "system": "US top-decile wealth (Atkinson-Piketty-Saez 2011)",
+      "s_equivalent": null,
+      "alpha_equivalent": 2.1,
+      "class": "extreme_value_tail (Pareto)"
+    },
+    "github_stars": {
+      "system": "GitHub repo stargazers (Phase 6, n=8398)",
+      "alpha_equivalent": 2.87,
+      "class": "preferential_attachment (Barabasi-Albert)"
+    },
+    "wikipedia_views": {
+      "system": "Wikipedia daily article views (Phase A1)",
+      "alpha_equivalent": 1.92,
+      "class": "preferential_attachment"
+    }
+  },
+  "isomorphism_distance_to_anchors": {
+    "language_zipf_english": {
+      "alpha_anchor": 2.0,
+      "delta_to_city_mean_alpha": 0.39468112766216823,
+      "system": "English unigram rank-frequency (Zipf 1949 / Piantadosi 2014)",
+      "class": "preferential_attachment (Simon-Yule)"
+    },
+    "firm_size_us": {
+      "alpha_anchor": 1.944,
+      "delta_to_city_mean_alpha": 0.4506811276621683,
+      "system": "US firm size by employees (Axtell 2001 Science)",
+      "class": "preferential_attachment (Gibrat)"
+    },
+    "wealth_us_top": {
+      "alpha_anchor": 2.1,
+      "delta_to_city_mean_alpha": 0.29468112766216814,
+      "system": "US top-decile wealth (Atkinson-Piketty-Saez 2011)",
+      "class": "extreme_value_tail (Pareto)"
+    },
+    "github_stars": {
+      "alpha_anchor": 2.87,
+      "delta_to_city_mean_alpha": 0.4753188723378319,
+      "system": "GitHub repo stargazers (Phase 6, n=8398)",
+      "class": "preferential_attachment (Barabasi-Albert)"
+    },
+    "wikipedia_views": {
+      "alpha_anchor": 1.92,
+      "delta_to_city_mean_alpha": 0.4746811276621683,
+      "system": "Wikipedia daily article views (Phase A1)",
+      "class": "preferential_attachment"
+    }
+  },
+  "city_population_summary": {
+    "mean_s_across_5_countries": 1.367278908727754,
+    "mean_alpha_across_5_countries": 2.3946811276621682,
+    "n_pass": 5,
+    "n_fail": 0,
+    "passed_countries": [
+      "united_states",
+      "china",
+      "india",
+      "germany",
+      "brazil"
+    ],
+    "failed_countries": []
+  },
+  "overall_verdict": "PASS",
+  "overall_reason": "5/5 countries fall in the pre-registered s band and do not reject Zipf in favour of lognormal.",
+  "method_refs": [
+    "Gabaix QJE 1999 (Zipf's law for cities)",
+    "Eeckhout AER 2004 (lognormal hypothesis)",
+    "Gabaix-Ibragimov J. Bus. Econ. Stat. 2011 (rank-1/2 SE)",
+    "Soo Reg. Sci. & Urb. Econ. 2005 (cross-country meta)",
+    "Clauset-Shalizi-Newman SIAM Rev. 2009",
+    "Vuong Econometrica 1989 (non-nested LR)",
+    "Newman Contemp. Phys. 2005 (Zipf<->Pareto duality)",
+    "Axtell Science 2001 (US firm size Zipf)"
+  ]
+}

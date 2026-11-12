@@ -1,0 +1,100 @@
+{"rank": 4001, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "反射原理是具体组合技巧，与代用指标校准的贝叶斯反推无共同机制", "reject_reason": "两者都涉及概率但底层数学结构不同，仅属领域近邻"}
+{"rank": 4002, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及分步骤组装/补偿机制，表层相似", "reject_reason": "Saga 是事务回滚，内含肽是蛋白重组，机制逻辑不对齐"}
+{"rank": 4003, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "一个是激波几何一个是插值权重", "reject_reason": "只是都含距离衰减，结构同构性弱"}
+{"rank": 4004, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "集体振荡与主客体识别都涉及匹配/共振", "reject_reason": "BEC 的量子多体振荡与超分子几何识别不同构"}
+{"rank": 4005, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及信号级联与局部-全局放大", "reject_reason": "一个是生化信号通路一个是机械力发育反馈，结构不严格对应"}
+{"rank": 4006, "verdict": "accept", "value_type": "math_structure", "potential": 4, "reason": "帕斯卡定律与 Miner 损伤累积都呈现严格线性叠加结构：标量沿独立维度线性累积守恒", "reject_reason": ""}
+{"rank": 4007, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是高维数据降维/展示", "reject_reason": "混淆矩阵是分类评估，UMAP 是表型降维，两者数据用途不同构"}
+{"rank": 4008, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "混合精度与光面爆破都追求精细控制", "reject_reason": "仅概念性相似，结构无对应"}
+{"rank": 4009, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "渗透压原理与腌制脱水是同一物理机制的不同尺度应用——半透膜浓度差驱动水迁移", "reject_reason": ""}
+{"rank": 4010, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "两个领域毫无关联", "reject_reason": "信息偏倚与量子算法无结构共通"}
+{"rank": 4011, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "都是谱学工具", "reject_reason": "费米接触与飞秒 XRD 是两种完全不同的测量方法"}
+{"rank": 4012, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "严格顺序依赖与特权态切换代价", "reject_reason": "鞭毛组装顺序与内核态切换无结构同构"}
+{"rank": 4013, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是双因素整合", "reject_reason": "文化身份与肌肥大双刺激属于比喻式相似，结构不对齐"}
+{"rank": 4014, "verdict": "accept", "value_type": "pattern", "potential": 4, "reason": "社区模块化检测与轨迹聚类识别功能区同构：都是从交互/流动数据中通过密度对比还原隐含分组结构", "reject_reason": ""}
+{"rank": 4015, "verdict": "accept", "value_type": "feedback", "potential": 4, "reason": "财政主导反噬货币政策与代理人战争反向绑架共享同一结构：原本的主导方因路径依赖被边缘方反向约束", "reject_reason": ""}
+{"rank": 4016, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无共通", "reject_reason": "量子优化与词频演化无结构关联"}
+{"rank": 4017, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是界面交换/对流", "reject_reason": "潜流带是水文双向交换，热岛是对流输运，结构不严格同构"}
+{"rank": 4018, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "啁啾镜频段补偿与三层频段配器", "reject_reason": "都涉及频段但一个是相位补偿一个是响度平衡，机制不同"}
+{"rank": 4019, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及负反馈闭环", "reject_reason": "陶瓷热震与干旱自激反馈对象不同构"}
+{"rank": 4020, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是组合产生多样性", "reject_reason": "遗传重组与可变剪接是同一生物主题的不同层次，不算跨域同构"}
+{"rank": 4021, "verdict": "accept", "value_type": "feedback", "potential": 4, "reason": "核糖开关的分子自感应纠错与 Hippo 通路密度负反馈是同一闭环结构在不同尺度展开：产物/群体状态反向关闭自身生成", "reject_reason": ""}
+{"rank": 4022, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "太空垃圾凯斯勒综合征与营养级联崩溃共享临界密度后连锁扩散结构：单点触发沿网络级联", "reject_reason": ""}
+{"rank": 4023, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是从大数据中追踪演化轨迹", "reject_reason": "绅士化与和声演化在方法上相似但结构对象不同构"}
+{"rank": 4024, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及记忆与握手", "reject_reason": "CRISPR 免疫记忆与 TLS 0-RTT 机制上是比喻相似，结构不严格同构"}
+{"rank": 4025, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无共通", "reject_reason": "AMOC 减速与色彩同时对比无结构关联"}
+{"rank": 4026, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "都涉及梯度驱动双向运输", "reject_reason": "RanGTP 熵梯度与河口盐楔都含梯度结构但驱动机理差异大"}
+{"rank": 4027, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "都是从历史记录提取信号", "reject_reason": "古地震与议会辩论语料分析无结构同构"}
+{"rank": 4028, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及机械+心理双路径", "reject_reason": "光化学立体选择与选举机械/心理效应仅表述相似"}
+{"rank": 4029, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及与预期/期望的偏离", "reject_reason": "多巴胺预测误差与 Lévy 飞行无统一数学结构"}
+{"rank": 4030, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无结构关联", "reject_reason": "SEIR 与原子干涉重力仪无共通"}
+{"rank": 4031, "verdict": "accept", "value_type": "pattern", "potential": 4, "reason": "城市热岛空间梯度与模态水下潜扩散共享结构：核心热源/冷源持续补充维持稳定梯度，并沿等势面远距离传输", "reject_reason": ""}
+{"rank": 4032, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是理论下界工具", "reject_reason": "量子误差缓解与通信复杂度秩下界无同构"}
+{"rank": 4033, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及界面/输运", "reject_reason": "金属-载体相互作用与沿岸上升流仅概念相似"}
+{"rank": 4034, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "TLB 地址翻译加速与 KV 缓存都是将昂贵的重复计算结果缓存以避免每次重算，性能提升和容量约束结构完全同构", "reject_reason": ""}
+{"rank": 4035, "verdict": "accept", "value_type": "math_structure", "potential": 5, "reason": "Langmuir-Hinshelwood 竞争吸附与垄断竞争产品多样化共享同一非单调优化结构：变量过大反而挤占资源使目标函数先升后降，最优点在内部平衡", "reject_reason": ""}
+{"rank": 4036, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及线性加权", "reject_reason": "方差互换复制与期望效用是不同域的数学对象"}
+{"rank": 4037, "verdict": "accept", "value_type": "math_structure", "potential": 4, "reason": "傅里叶级数分解与模型合并任务向量算术共享线性空间基分解思想：复杂对象可分解为基础分量的线性组合", "reject_reason": ""}
+{"rank": 4038, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及线性关系/守恒", "reject_reason": "克拉珀龙方程与心理旋转线性关系无结构同构"}
+{"rank": 4039, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无关联", "reject_reason": "QAOA 与同位素示踪无结构同构"}
+{"rank": 4040, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及路径差/回滞", "reject_reason": "原子干涉与循环伏安滞后机理不同"}
+{"rank": 4041, "verdict": "accept", "value_type": "pattern", "potential": 3, "reason": "睡眠周期与潮汐都是稳定周期性振荡，但睡眠复杂度高且非严格外部驱动", "reject_reason": ""}
+{"rank": 4042, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及标记/识别以简化解析", "reject_reason": "IPv6 流标签与碱基编辑器无结构同构"}
+{"rank": 4043, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无关联", "reject_reason": "晶圆位错与腭化无共通"}
+{"rank": 4044, "verdict": "accept", "value_type": "pattern", "potential": 4, "reason": "营养盐螺旋下移与埃克曼螺旋共享空间螺旋式传输结构：物质/动量在被吸收-释放循环中沿方向漂移并衰减", "reject_reason": ""}
+{"rank": 4045, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及阈值/尺寸筛选", "reject_reason": "Lawson 判据与分子筛形状选择机理不同"}
+{"rank": 4046, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及多路径干涉优化", "reject_reason": "相干控制与神经架构搜索差异过大"}
+{"rank": 4047, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是公理化基础框架", "reject_reason": "规范对称与测度论属于不同数学结构"}
+{"rank": 4048, "verdict": "accept", "value_type": "pattern", "potential": 4, "reason": "亲属同心圆延伸与创业投资层级共享嵌套/分级结构：核心向外递减的义务/服务半径", "reject_reason": ""}
+{"rank": 4049, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及多目标优化", "reject_reason": "电化学合成氨与光面爆破无结构对应"}
+{"rank": 4050, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及市场操纵/竞争", "reject_reason": "PIP2 信号域与跨市场操纵比喻性相似"}
+{"rank": 4051, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及隐含偏差被暴露", "reject_reason": "家庭剥削与 LLM 偏差主题相近但不构成结构同构"}
+{"rank": 4052, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都从地层/遗迹重建历史", "reject_reason": "蛇绿岩与古地震是同一地质学范式的相近应用"}
+{"rank": 4053, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无关联", "reject_reason": "月尘静电与僵苗无共通"}
+{"rank": 4054, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及幂律变形", "reject_reason": "Gamma 凸性与弹性厚度幂律无结构同构"}
+{"rank": 4055, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无关联", "reject_reason": "引力波啁啾与费米接触项都是谱学但无结构对应"}
+{"rank": 4056, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无关联", "reject_reason": "药物食物影响与反应釜结焦无共通"}
+{"rank": 4057, "verdict": "accept", "value_type": "feedback", "potential": 4, "reason": "奶牛热应激能量负平衡与 Allee 效应都表现为外部压力通过自身行为反馈放大：热应激下减食加剧产奶下降；Allee 下密度低导致人均增长率进一步下降", "reject_reason": ""}
+{"rank": 4058, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无关联", "reject_reason": "接地均压与配器平衡无结构同构"}
+{"rank": 4059, "verdict": "accept", "value_type": "feedback", "potential": 4, "reason": "果蔬呼吸跃变期的乙烯自催化与费率螺旋共享经典正反馈结构：小扰动触发自身加速放大至相变/崩溃", "reject_reason": ""}
+{"rank": 4060, "verdict": "accept", "value_type": "math_structure", "potential": 4, "reason": "焊缝 S-N 幂律与复合材料混合律都是双对数/线性参数化的材料性能叠加模型，具有严格线性比例结构", "reject_reason": ""}
+{"rank": 4061, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是公理化刻画", "reject_reason": "p 进完备化与 Nash 解无结构同构"}
+{"rank": 4062, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "Doob 分解与 Cramér 大偏差都是概率理论核心结构定理", "reject_reason": "属同一学科内部，跨域价值不高"}
+{"rank": 4063, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及阻尼/临界破坏", "reject_reason": "光力学冷却与有效应力渗透破坏机理差异大"}
+{"rank": 4064, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无关联", "reject_reason": "量子点尺寸与离心铸造无共通"}
+{"rank": 4065, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "信号肽引导分泌与回飞镖跨国倡议都表现为内部无法直达目标时通过外部路径绕回：借助识别标签激活外部系统再投递", "reject_reason": ""}
+{"rank": 4066, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及分裂/极化", "reject_reason": "费米接触分裂与信道极化机制完全不同"}
+{"rank": 4067, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "电镀临界核与 Allee 临界都有阈值以下无法成活的概念", "reject_reason": "临界尺寸主题相近但细节结构不完全同构"}
+{"rank": 4068, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "都是共振腔/共振截面", "reject_reason": "亥姆霍兹超透射与核反应共振都是共振峰但物理机制差异大"}
+{"rank": 4069, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是重叠模式识别", "reject_reason": "基因拼接与动作捕捉无结构同构"}
+{"rank": 4070, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及各向异性速率差", "reject_reason": "等离子体弛豫与硅刻蚀机理不同"}
+{"rank": 4071, "verdict": "accept", "value_type": "pattern", "potential": 4, "reason": "cgroups v2 资源层级与抗震三水准共享分层嵌套的约束/目标结构：树形父子约束与递进水准设防", "reject_reason": ""}
+{"rank": 4072, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及偏倚检测", "reject_reason": "发表偏倚与社交机器人舆论污染属类似方法论但结构不严格同构"}
+{"rank": 4073, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及负/未显部分也有意义", "reject_reason": "框架效应与留白是比喻相似，结构差异大"}
+{"rank": 4074, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是界面效应外溢", "reject_reason": "光污染与活塞风无统一结构"}
+{"rank": 4075, "verdict": "accept", "value_type": "pattern", "potential": 4, "reason": "生态系统锁定多层依赖与馈线自动化分段都是层次化模块结构通过互联增强整体稳定性/粘性", "reject_reason": ""}
+{"rank": 4076, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及对角化/下界", "reject_reason": "混淆矩阵与通信复杂度属完全不同范畴"}
+{"rank": 4077, "verdict": "accept", "value_type": "feedback", "potential": 4, "reason": "受体脱敏下调与飞机短周期模态都表现出对扰动的快速衰减/适应响应，在持续刺激下系统向新平衡点迁移", "reject_reason": ""}
+{"rank": 4078, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "都是通过物理可观测量反推内部状态", "reject_reason": "原位 EPR 与侧信道攻击方法论相似但不严格同构"}
+{"rank": 4079, "verdict": "accept", "value_type": "feedback", "potential": 4, "reason": "突触修剪活动依赖竞争与回声室效应共享正反馈强化连接结构：强连接越强弱连接越弱", "reject_reason": ""}
+{"rank": 4080, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "都是局部扰动遥相关", "reject_reason": "高原热源与内波破碎传输机制不同"}
+{"rank": 4081, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "社会网络级联失效与微塑料食物链传递都是关键节点的失控通过连接关系沿图结构级联积累到高层", "reject_reason": ""}
+{"rank": 4082, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是竞争抢占资源", "reject_reason": "总线仲裁与光催化空穴俘获机理不同"}
+{"rank": 4083, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "品牌衰减与 Orowan 绕粒子机制都含距离/间距关系", "reject_reason": "衰减律不同，结构不严格同构"}
+{"rank": 4084, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是从观测序列反推祖先结构", "reject_reason": "字节码反编译与手稿系谱方法论相似但结构不严格同构"}
+{"rank": 4085, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "都涉及错误检测/纠正", "reject_reason": "同源重组搜索与表面码是两类完全不同的纠错结构"}
+{"rank": 4086, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无关联", "reject_reason": "金属点蚀与夜间急流无共通"}
+{"rank": 4087, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "λ噬菌体双稳态开关与微电网孤岛检测都是有限状态机式切换：监测外界条件在两个稳定状态间离散跳变", "reject_reason": ""}
+{"rank": 4088, "verdict": "accept", "value_type": "pattern", "potential": 3, "reason": "幽灵岛屿与灭绝债务实质相同概念，属同一生态学范畴", "reject_reason": "主题接近不是跨域同构"}
+{"rank": 4089, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都是免疫级联", "reject_reason": "炎症小体与 BiTE 主题同属免疫学不是跨域同构"}
+{"rank": 4090, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "CRISPR 间隔获取与文件系统日志都是将入侵/操作意图先记入专用记录区以供事后重放/免疫", "reject_reason": ""}
+{"rank": 4091, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及失衡风险", "reject_reason": "反应釜结焦与低钠血症无结构同构"}
+{"rank": 4092, "verdict": "reject", "value_type": "N/A", "potential": 2, "reason": "都涉及信息不对称", "reject_reason": "社会排斥神经疼痛与 VPIN 订单流毒性无结构同构"}
+{"rank": 4093, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "鞭毛组装的阶段性转换与零拷贝 sendfile 都是通过专用通道/通路避免中间缓冲消耗，底层是阶段转换+直接内部传输", "reject_reason": ""}
+{"rank": 4094, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "荒漠图灵斑纹（长程抑制+短程激活）与铜氧化物电荷条纹-超导竞争序都是反应-扩散式自发对称破缺产生周期性空间结构的范式", "reject_reason": ""}
+{"rank": 4095, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "都是信息量不变/递减结构", "reject_reason": "伊藤等距与数据处理不等式不严格对应"}
+{"rank": 4096, "verdict": "reject", "value_type": "N/A", "potential": 1, "reason": "无关联", "reject_reason": "腭化与营养级联无共通"}
+{"rank": 4097, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "都是门控/双阈值识别", "reject_reason": "丘脑皮层门控与 NK 细胞识别属同领域"}
+{"rank": 4098, "verdict": "accept", "value_type": "math_structure", "potential": 5, "reason": "RNA 聚合酶相分离超级激活与临界质量集体行动共享阈值非线性跃迁结构：浓度/人数跨越阈值后局部预期翻转产生指数式突发激活", "reject_reason": ""}
+{"rank": 4099, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "都是电场/等离激元信号增强", "reject_reason": "斯塔克效应与 SERS 机理不同"}
+{"rank": 4100, "verdict": "reject", "value_type": "N/A", "potential": 3, "reason": "都涉及非均匀沉降/失衡", "reject_reason": "非均匀成核与氮沉降化学计量失衡无结构同构"}

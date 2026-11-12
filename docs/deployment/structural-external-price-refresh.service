@@ -1,0 +1,21 @@
+[Unit]
+Description=Refresh fixed official external-answer price observation
+[Service]
+Type=oneshot
+User=root
+Group=976
+Environment=OPENSSL_CONF=/dev/null
+UMask=0077
+LimitCORE=0
+PrivateDevices=yes
+CapabilityBoundingSet=
+ProtectProc=ptraceable
+ProcSubset=pid
+ExecStart=/APPROVED/A4/bin/python -I -S -B /APPROVED/RELEASE/scripts/maintain-external-live-materials.py --price
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/structural
+InaccessiblePaths=-/run/credentials/structural-web.service -/run/credentials/structural-external-startup-material.service -/etc/credstore.encrypted -/var/lib/structural-isomorphism
+TimeoutStartSec=30

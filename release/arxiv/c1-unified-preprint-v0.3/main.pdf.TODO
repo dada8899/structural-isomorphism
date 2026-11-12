@@ -1,0 +1,17 @@
+PDF not generated locally — LaTeX is not installed on this machine.
+
+To compile locally before arXiv submission:
+
+    brew install --cask mactex-no-gui   ***REMOVED*** or basictex for a smaller footprint
+    ***REMOVED*** then:
+    cd release/arxiv/c1-unified-preprint-v0.3/
+    pdflatex main.tex
+    pdflatex main.tex                    ***REMOVED*** second pass for cross-refs
+
+The references in main.tex are inlined (no \cite{}/\bibliography{} yet),
+so a bibtex pass is NOT required at this stage. references.bib is
+shipped alongside for future use if you decide to switch to bibtex.
+
+Alternatively, upload main.tex + references.bib directly to arXiv and
+let arXiv's TeXLive compile it server-side — this is the most reliable
+path and is what arXiv expects.

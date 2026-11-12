@@ -1,0 +1,131 @@
+{
+  "version": "0.1-1000ticker",
+  "mode": "walk_forward",
+  "snapshot_anchor": "2026-05-15",
+  "period_months": 1,
+  "n_snapshots": 59,
+  "n_near_critical": 65,
+  "n_other": 434,
+  "mean_return_nc": 0.013764675066615332,
+  "mean_return_other": 0.012196954428758743,
+  "std_nc": 0.06804836330879185,
+  "std_other": 0.04553862151449824,
+  "sharpe_nc": 0.7007109475026565,
+  "sharpe_other": 0.9278166121689266,
+  "t_stat": 0.5726848900844931,
+  "p_value": 0.5690715675952458,
+  "groups": {
+    "near_critical": {
+      "n": 59,
+      "mean": 0.013764675066615332,
+      "std": 0.06804836330879185,
+      "sharpe": 0.7007109475026565
+    },
+    "other": {
+      "n": 59,
+      "mean": 0.012196954428758743,
+      "std": 0.04553862151449824,
+      "sharpe": 0.9278166121689266
+    }
+  },
+  "ttest_welch": {
+    "t": 0.5726848900844931,
+    "p": 0.5690715675952458
+  },
+  "synthetic": false,
+  "prices_meta": {
+    "version": "0.1-1000ticker",
+    "yfinance_tickers": 927,
+    "stooq_tickers": 0,
+    "synthetic_tickers": 0,
+    "missing_tickers": 74,
+    "synthetic": false,
+    "all_synthetic": false,
+    "start": "2020-12-01",
+    "end": "2025-12-01",
+    "period": "5y",
+    "interval": "1d",
+    "n_total_tickers": 1001,
+    "n_universe_covered": 927,
+    "generated_at": "2026-05-14T19:42:39.064135+00:00"
+  },
+  "v01_extensions": {
+    "engine": "walk_forward_1000ticker",
+    "universe_composition": {
+      "sp500": 500,
+      "russell_supplement": 501,
+      "total_input": 1001,
+      "covered": 927,
+      "coverage_pct": 92.6
+    },
+    "benchmark_ew": {
+      "n_months": 59,
+      "mean_monthly": 0.0116517008226736,
+      "std_monthly": 0.052218091992996304,
+      "sharpe_annualised": 0.7729634327569671,
+      "max_drawdown": -0.23430914734769914,
+      "hit_rate": 0.559322033898305,
+      "cumulative_return": 0.8302617730352542
+    },
+    "near_critical_llm": {
+      "n_months": 59,
+      "mean_monthly": 0.013764675066615332,
+      "std_monthly": 0.06804836330879185,
+      "sharpe_annualised": 0.7007109475026565,
+      "sortino_annualised": 0.7628976264016032,
+      "max_drawdown": -0.2952164386503062,
+      "hit_rate": 0.559322033898305,
+      "cumulative_return": 0.958049422269869,
+      "sharpe_lift_vs_bench": -0.0722524852543106,
+      "mean_diff_monthly_vs_bench": 0.00211297424394173,
+      "t_stat_vs_bench": 0.5726848900844931,
+      "p_value_vs_bench": 0.5690715675952458
+    },
+    "other_llm": {
+      "n_months": 59,
+      "mean_monthly": 0.012196954428758743,
+      "std_monthly": 0.04553862151449824,
+      "sharpe_annualised": 0.9278166121689266,
+      "sortino_annualised": 0.999054740607954,
+      "max_drawdown": -0.20314378616615777,
+      "hit_rate": 0.6101694915254238,
+      "cumulative_return": 0.9253818641719294,
+      "sharpe_lift_vs_bench": 0.15485317941195953,
+      "mean_diff_monthly_vs_bench": 0.000545253606085143,
+      "t_stat_vs_bench": 0.25320770343780563,
+      "p_value_vs_bench": 0.8010030642916167
+    },
+    "near_critical_heuristic": {
+      "n_months": 59,
+      "mean_monthly": 0.017264190725828302,
+      "std_monthly": 0.12096665129828753,
+      "sharpe_annualised": 0.49439172148294963,
+      "sortino_annualised": 0.5811495796465029,
+      "max_drawdown": -0.5620894238103259,
+      "hit_rate": 0.5423728813559322,
+      "cumulative_return": 0.8241958050499509,
+      "sharpe_lift_vs_bench": -0.2785717112740175,
+      "mean_diff_monthly_vs_bench": 0.0056124899031547,
+      "t_stat_vs_bench": 0.49691751801263384,
+      "p_value_vs_bench": 0.621125604111892
+    },
+    "stable_heuristic": {
+      "n_months": 59,
+      "mean_monthly": 0.009695167010100914,
+      "std_monthly": 0.03662119889205868,
+      "sharpe_annualised": 0.9170929602199284,
+      "sortino_annualised": 1.1320050151908316,
+      "max_drawdown": -0.10590638318921418,
+      "hit_rate": 0.5423728813559322,
+      "cumulative_return": 0.6998172708982562,
+      "sharpe_lift_vs_bench": 0.14412952746296126,
+      "mean_diff_monthly_vs_bench": -0.001956533812572686,
+      "t_stat_vs_bench": -0.41105817667109185,
+      "p_value_vs_bench": 0.6825447370741207
+    },
+    "sharpe_lift": -0.0722524852543106,
+    "verdict": "null_result_pivot_to_research_narrative"
+  },
+  "last_updated": "2026-05-14T19:46:22.711618+00:00",
+  "generated_at": "2026-05-14T19:42:39.064135+00:00"
+}

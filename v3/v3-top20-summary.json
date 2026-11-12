@@ -1,0 +1,13 @@
+{
+  "total": 20,
+  "avg_judge_score": 2.25,
+  "score_dist": {
+    "1": 7,
+    "2": 6,
+    "3": 3,
+    "4": 3,
+    "5": 1
+  },
+  "strict_iso_count": 1,
+  "paper_worthy_count": 4
+}

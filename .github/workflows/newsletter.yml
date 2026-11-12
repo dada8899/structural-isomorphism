@@ -1,0 +1,146 @@
+name: Weekly Newsletter
+
+# W9-C: every Sunday 23:00 UTC, generate the current ISO week's digest and
+# open a PR for human review. Real send is gated on PR merge — this workflow
+# never sends to actual subscribers.
+
+on:
+  schedule:
+    # Sunday 23:00 UTC = Monday 07:00 China = Sunday 16:00 PT
+    - cron: "0 23 * * 0"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "ISO week label (e.g. 2026-W19). Leave blank to use current week."
+        required: false
+        type: string
+      spotlight:
+        description: "Force methodology spotlight slug (e.g. soc-universality-class)."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install minimal dependencies
+        # generate-newsletter.py uses stdlib only; no pip install needed.
+        # Confirm version + a few stdlib modules are accessible.
+        run: |
+          python --version
+          python -c "import urllib.request, xml.etree.ElementTree, json"
+
+      - name: Compute ISO week
+        id: week
+        env:
+          WEEK_INPUT: ${{ inputs.week }}
+        run: |
+          set -euo pipefail
+          if [ -n "$WEEK_INPUT" ]; then
+            if [[ ! "$WEEK_INPUT" =~ ^[0-9]{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$ ]]; then
+              echo "ERROR: week must match YYYY-W01..W53"
+              exit 1
+            fi
+            WEEK="$WEEK_INPUT"
+          else
+            # ISO week in Bash via `date -u +%G-W%V`
+            WEEK="$(date -u +%G-W%V)"
+          fi
+          echo "Computed week: $WEEK"
+          # Extract numeric week for the filename
+          WEEKNUM="${WEEK#*-W}"
+          printf 'week=%s\n' "$WEEK" >> "$GITHUB_OUTPUT"
+          printf 'weeknum=%s\n' "$WEEKNUM" >> "$GITHUB_OUTPUT"
+
+      - name: Generate newsletter
+        env:
+          # CI uses --skip-network so the generator doesn't hit arXiv / GitHub
+          # API during workflow run (avoids rate-limits + flakiness). Real
+          # data sources are wired but disabled until W10 when we add a
+          # secrets-injected real run.
+          PYTHONUNBUFFERED: "1"
+          WEEK: ${{ steps.week.outputs.week }}
+          WEEKNUM: ${{ steps.week.outputs.weeknum }}
+          SPOTLIGHT_INPUT: ${{ inputs.spotlight }}
+        run: |
+          set -euo pipefail
+          mkdir -p docs/community/newsletters
+          OUT="docs/community/newsletters/issue-${WEEKNUM}.md"
+
+          GENERATOR_ARGS=(--week "$WEEK" --skip-network)
+          if [ -n "$SPOTLIGHT_INPUT" ]; then
+            if [[ ! "$SPOTLIGHT_INPUT" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+              echo "ERROR: spotlight must be a canonical lowercase slug"
+              exit 1
+            fi
+            SPOTLIGHT_SLUG="$SPOTLIGHT_INPUT" python - <<'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          from newsletter_data_sources import all_spotlight_slugs
+
+          slug = os.environ["SPOTLIGHT_SLUG"]
+          if slug not in set(all_spotlight_slugs()):
+              raise SystemExit("ERROR: spotlight is not in the published allowlist")
+          PY
+            GENERATOR_ARGS+=(--spotlight "$SPOTLIGHT_INPUT")
+          fi
+
+          GENERATOR_ARGS+=(--out "$OUT" --verbose)
+          python scripts/generate-newsletter.py "${GENERATOR_ARGS[@]}"
+          printf 'out=%s\n' "$OUT" >> "$GITHUB_OUTPUT"
+
+          # Sanity: file is non-empty
+          test -s "$OUT" || (echo "ERROR: generator produced empty file" && exit 1)
+          wc -l "$OUT"
+
+      - name: Run tests
+        run: |
+          pip install pytest
+          pytest tests/test_generate_newsletter.py -v
+
+      - name: Create review PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEEK: ${{ steps.week.outputs.week }}
+          WEEKNUM: ${{ steps.week.outputs.weeknum }}
+        run: |
+          set -euo pipefail
+          BRANCH="newsletter/issue-${WEEKNUM}-$(date -u +%s)"
+          OUT="docs/community/newsletters/issue-${WEEKNUM}.md"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add "$OUT"
+
+          # If nothing changed (re-run on same week without spotlight override),
+          # exit gracefully instead of failing.
+          if git diff --cached --quiet; then
+            echo "No changes — skipping PR creation."
+            exit 0
+          fi
+
+          git commit -m "newsletter: issue ${WEEKNUM} (auto-generated)"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --title "newsletter: issue ${WEEKNUM} for human review" \
+            --body "Auto-generated draft for week ${WEEK}. Review the markdown, edit if needed, then merge. **Do not send to subscribers until merged.** Real send is a separate manual step (Buttondown API, see scripts/newsletter/send_weekly.py)." \
+            --label "newsletter" \
+            --label "auto-generated"

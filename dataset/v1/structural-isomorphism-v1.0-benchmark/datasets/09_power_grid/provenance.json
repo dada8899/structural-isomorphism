@@ -1,0 +1,18 @@
+{
+  "source_used": "literature_meta_review",
+  "n_events": 123,
+  "fetch_date": "2026-05-13",
+  "references": [
+    "Carreras BA, Newman DE, Dobson I (2016) IEEE T-PS 31(6):4406-4414",
+    "Hines P, Apt J, Talukdar S (2009) Energy Policy 37(12):5249-5259",
+    "US-Canada Power System Outage Task Force (2004) Final Report on Aug 14 2003 Blackout",
+    "FERC/NERC post-event reports (various)",
+    "NERC DAWG database 1984-2006 (533+ events; aggregate stats only public)"
+  ],
+  "fallback_chain": [
+    "1. EIA v2 API (no event-level disturbance route as of 2026-05)",
+    "2. DOE OE-417 annual summaries (interactive session required)",
+    "3. Hardcoded literature roster (used)"
+  ],
+  "fill_rule": "Hines 2009: 300 customers/MW (US 2006 DOE/EIA average)"
+}

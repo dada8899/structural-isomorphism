@@ -1,0 +1,142 @@
+{
+  "base": "https://phase.bytedance.city",
+  "started_at": "2026-05-15T06:06:21",
+  "steps": [
+    {
+      "url": "https://phase.bytedance.city/",
+      "lcp_ms": 1032,
+      "lcp_within_budget": true,
+      "tour_skipped": true,
+      "ok": true,
+      "name": "01-landing",
+      "ts": "06:06:28"
+    },
+    {
+      "url": "https://phase.bytedance.city/companies",
+      "lcp_ms": 224,
+      "lcp_within_budget": true,
+      "companies_loaded": true,
+      "company_link_count": 109,
+      "ok": true,
+      "name": "02-companies",
+      "ts": "06:06:34"
+    },
+    {
+      "url": "https://phase.bytedance.city/company/BABA",
+      "first_href": "/company/BABA",
+      "lcp_ms": 224,
+      "lcp_within_budget": true,
+      "detail_ok": true,
+      "ticker": "BABA",
+      "universality_class": null,
+      "ok": true,
+      "name": "03-company-detail",
+      "ts": "06:06:41"
+    },
+    {
+      "url": "https://phase.bytedance.city/universality",
+      "lcp_ms": 212,
+      "lcp_within_budget": true,
+      "detail_ok": false,
+      "ok": true,
+      "name": "04-universality",
+      "ts": "06:06:58"
+    },
+    {
+      "url": "https://phase.bytedance.city/compare?tickers=BABA,TSLA,NVDA,META,GOOGL",
+      "lcp_ms": 216,
+      "lcp_within_budget": true,
+      "column_count": 5,
+      "tickers_requested": [
+        "BABA",
+        "TSLA",
+        "NVDA",
+        "META",
+        "GOOGL"
+      ],
+      "ok": true,
+      "name": "05-compare",
+      "ts": "06:07:04"
+    },
+    {
+      "url": "https://phase.bytedance.city/zh",
+      "lcp_ms": 220,
+      "lcp_within_budget": true,
+      "zh_hero_visible": true,
+      "ok": true,
+      "name": "06a-zh-landing",
+      "ts": "06:07:12"
+    },
+    {
+      "url": "https://phase.bytedance.city/",
+      "switched": true,
+      "ok": true,
+      "name": "06b-en-back",
+      "ts": "06:07:12"
+    },
+    {
+      "url": "https://phase.bytedance.city/",
+      "cmdk_opened": true,
+      "navigated_to": "https://phase.bytedance.city/",
+      "ok": true,
+      "name": "07-cmdk-search",
+      "ts": "06:07:12"
+    },
+    {
+      "url_after": "https://phase.bytedance.city/checkout/mock?tier=pro&interval=month",
+      "lcp_ms": 212,
+      "lcp_within_budget": true,
+      "pricing_loaded": true,
+      "pro_cta_clicked": true,
+      "ok": true,
+      "name": "08-pricing",
+      "ts": "06:07:19"
+    },
+    {
+      "url": "https://phase.bytedance.city/thank-you?tier=pro",
+      "thank_you_reached": true,
+      "ok": true,
+      "name": "09-10-checkout-thankyou",
+      "ts": "06:07:34"
+    },
+    {
+      "url": "https://phase.bytedance.city/newsletter",
+      "lcp_ms": 256,
+      "lcp_within_budget": true,
+      "issue_clicked": false,
+      "ok": true,
+      "name": "11-newsletter",
+      "ts": "06:07:41"
+    },
+    {
+      "dark_applied": false,
+      "light_applied": false,
+      "ok": true,
+      "name": "12-13-theme-toggle",
+      "ts": "06:07:46"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "drawer_open": true,
+      "has_lang": true,
+      "has_theme": false,
+      "has_search": true,
+      "has_tour_restart": true,
+      "ok": true,
+      "name": "14-mobile-drawer",
+      "ts": "06:07:47"
+    },
+    {
+      "critical_violations": 0,
+      "console_error_count": 0,
+      "console_errors": [],
+      "ok": true,
+      "name": "15-final-a11y",
+      "ts": "06:07:47"
+    }
+  ],
+  "finished_at": "2026-05-15T06:07:47"
+}

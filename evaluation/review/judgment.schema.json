@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "English human retrieval judgment v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "task_id", "query_id", "doc_id", "bundle_fingerprint", "reviewer_id", "relevance", "same_domain", "evidence_present", "reject_reason", "confidence", "note"],
+  "properties": {
+    "schema_version": {"const": "english-human-judgment-v1"},
+    "task_id": {"type": "string", "pattern": "^ert_[0-9a-f]{24}$"},
+    "query_id": {"type": "string", "minLength": 1},
+    "doc_id": {"type": "string", "minLength": 1},
+    "bundle_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "reviewer_id": {"type": "string", "minLength": 1, "maxLength": 80},
+    "relevance": {"type": "integer", "minimum": 0, "maximum": 3},
+    "same_domain": {"type": "boolean"},
+    "evidence_present": {"type": "boolean"},
+    "reject_reason": {"enum": ["none", "not_relevant", "same_domain_only", "weak_evidence", "wrong_mechanism", "insufficient_information", "other"]},
+    "confidence": {"enum": ["low", "medium", "high"]},
+    "note": {"type": "string", "maxLength": 1000}
+  }
+}

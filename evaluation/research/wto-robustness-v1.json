@@ -1,0 +1,256 @@
+{
+  "cluster_bootstrap": {
+    "fraction_abs_k_above_20": 0.042821158690176324,
+    "fraction_k_below_zero": 0.9788413098236776,
+    "k_ci95": [
+      -94.23146385176285,
+      -0.10689728029538666
+    ],
+    "k_median": -3.1431733887653133,
+    "method": "policy-cluster-bootstrap",
+    "n_policy_clusters": 17,
+    "n_rows": 23,
+    "policy_clusters": {
+      "canada-dairy": [
+        "103",
+        "113"
+      ],
+      "ds-108": [
+        "108"
+      ],
+      "ds-160": [
+        "160"
+      ],
+      "ds-18": [
+        "18"
+      ],
+      "ds-222": [
+        "222"
+      ],
+      "ds-245": [
+        "245"
+      ],
+      "ds-267": [
+        "267"
+      ],
+      "ds-268": [
+        "268"
+      ],
+      "ds-27": [
+        "27"
+      ],
+      "ds-285": [
+        "285"
+      ],
+      "ds-291": [
+        "291"
+      ],
+      "ds-294": [
+        "294"
+      ],
+      "ds-46": [
+        "46"
+      ],
+      "ec-hormones": [
+        "26",
+        "48"
+      ],
+      "us-1916-act": [
+        "136",
+        "162"
+      ],
+      "us-byrd-amendment": [
+        "217",
+        "234"
+      ],
+      "us-softwood-lumber": [
+        "257",
+        "264",
+        "277"
+      ]
+    },
+    "requested_samples": 2000,
+    "seed": 20260712,
+    "separation_warning": true,
+    "valid_samples": 1985
+  },
+  "dataset_sha256": "2934eac1115fdbe20353f1a7342f24ef26248a7ec87cb57d0e0f8c942a8b3897",
+  "leave_one_cluster_out": {
+    "all_converged": true,
+    "all_k_below_zero": true,
+    "fits": [
+      {
+        "converged": true,
+        "k": -2.696629533942028,
+        "n_rows": 21,
+        "omitted_cluster": "canada-dairy",
+        "omitted_ds": [
+          "103",
+          "113"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.237429851029554,
+        "n_rows": 22,
+        "omitted_cluster": "ds-108",
+        "omitted_ds": [
+          "108"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.829279310203172,
+        "n_rows": 22,
+        "omitted_cluster": "ds-160",
+        "omitted_ds": [
+          "160"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.821588923454304,
+        "n_rows": 22,
+        "omitted_cluster": "ds-18",
+        "omitted_ds": [
+          "18"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.8907750452973784,
+        "n_rows": 22,
+        "omitted_cluster": "ds-222",
+        "omitted_ds": [
+          "222"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.8141591223443196,
+        "n_rows": 22,
+        "omitted_cluster": "ds-245",
+        "omitted_ds": [
+          "245"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -3.313871680390946,
+        "n_rows": 22,
+        "omitted_cluster": "ds-267",
+        "omitted_ds": [
+          "267"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.814159278901437,
+        "n_rows": 22,
+        "omitted_cluster": "ds-268",
+        "omitted_ds": [
+          "268"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -3.2476042097007656,
+        "n_rows": 22,
+        "omitted_cluster": "ds-27",
+        "omitted_ds": [
+          "27"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -3.055197247039823,
+        "n_rows": 22,
+        "omitted_cluster": "ds-285",
+        "omitted_ds": [
+          "285"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.814159990956454,
+        "n_rows": 22,
+        "omitted_cluster": "ds-291",
+        "omitted_ds": [
+          "291"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.814159990956454,
+        "n_rows": 22,
+        "omitted_cluster": "ds-294",
+        "omitted_ds": [
+          "294"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -3.2476042097007656,
+        "n_rows": 22,
+        "omitted_cluster": "ds-46",
+        "omitted_ds": [
+          "46"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.4498799797114366,
+        "n_rows": 21,
+        "omitted_cluster": "ec-hormones",
+        "omitted_ds": [
+          "26",
+          "48"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.743066118207102,
+        "n_rows": 21,
+        "omitted_cluster": "us-1916-act",
+        "omitted_ds": [
+          "136",
+          "162"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -5.037310619778511,
+        "n_rows": 21,
+        "omitted_cluster": "us-byrd-amendment",
+        "omitted_ds": [
+          "217",
+          "234"
+        ]
+      },
+      {
+        "converged": true,
+        "k": -2.569383839308429,
+        "n_rows": 20,
+        "omitted_cluster": "us-softwood-lumber",
+        "omitted_ds": [
+          "257",
+          "264",
+          "277"
+        ]
+      }
+    ],
+    "k_range": [
+      -5.037310619778511,
+      -2.237429851029554
+    ],
+    "method": "leave-one-policy-cluster-out",
+    "n_policy_clusters": 17
+  },
+  "row_fit": {
+    "converged": true,
+    "k": -2.916721676236477,
+    "n": 23
+  },
+  "schema_version": "wto-robustness-v1",
+  "scope": "sensitivity analysis; not independent outcome recoding or causal identification"
+}

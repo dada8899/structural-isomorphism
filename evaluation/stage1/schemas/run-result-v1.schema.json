@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structural-isomorphism.local/schemas/stage1/run-result-v1.schema.json",
+  "title": "Stage 1 blinded arm result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "task_id", "arm_id", "output_artifact", "budget_usage", "terminal_status", "fatal_events", "vfu"],
+  "properties": {
+    "schema_version": {"const": "stage1.run-result.v1"},
+    "run_id": {"type": "string", "pattern": "^run_[a-z0-9_-]{4,96}$"},
+    "task_id": {"type": "string", "pattern": "^st1_[a-z0-9_-]{3,64}$"},
+    "arm_id": {"type": "string", "minLength": 3},
+    "output_artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["locator", "sha256"],
+      "properties": {"locator": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+    },
+    "budget_usage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["model_input_tokens", "model_output_tokens", "wall_seconds", "expert_active_minutes", "compute_cost_usd"],
+      "properties": {
+        "model_input_tokens": {"type": "integer", "minimum": 0},
+        "model_output_tokens": {"type": "integer", "minimum": 0},
+        "wall_seconds": {"type": "number", "minimum": 0},
+        "expert_active_minutes": {"type": "number", "minimum": 0},
+        "compute_cost_usd": {"type": "number", "minimum": 0}
+      }
+    },
+    "terminal_status": {"enum": ["completed", "abstained", "error", "budget_exceeded"]},
+    "fatal_events": {"type": "array", "items": {"enum": ["fabricated_citation", "leakage", "fatal_factual_error", "causal_overreach", "protocol_deviation"]}, "uniqueItems": true},
+    "vfu": {
+      "type": "object", "additionalProperties": false,
+      "required": ["falsifiable", "outcome_supported", "no_fatal_error", "novel_at_t0", "verified_useful_discovery"],
+      "properties": {
+        "falsifiable": {"type": "boolean"},
+        "outcome_supported": {"type": "boolean"},
+        "no_fatal_error": {"type": "boolean"},
+        "novel_at_t0": {"type": "boolean"},
+        "verified_useful_discovery": {"type": "boolean"}
+      }
+    }
+  }
+}

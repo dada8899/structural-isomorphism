@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "artifact_id": "structural-v2-kb4443-20260711",
+  "created_at": "2026-07-11",
+  "kb": {
+    "filename": "kb-expanded.jsonl",
+    "row_count": 4443,
+    "unique_id_count": 4443,
+    "sha256": "299a0fd62dcf400d5d5ccbb8b853cc21cd73daf99ee9f6bc163ac1f5293cab99"
+  },
+  "embeddings": {
+    "filename": "kb_v2_embeddings.npy",
+    "shape": [4443, 768],
+    "dtype": "float32",
+    "sha256": "dafec1482b37dd7069d7430bbfe29aba1804d60a9d81bec21eff349daa6f4f27"
+  },
+  "model": {
+    "id": "structural-v2",
+    "required_files": {
+      "config.json": "77f1fdeb1c48770a812d3b96ce9b7bb132058c0a9c39d73d40e1e45c7ecd5a66",
+      "model.safetensors": "0a6fe009282f228b3de1bc6731f87a6c19326c8029ba9efed715e7a832322c49",
+      "modules.json": "e4068aab8a95663636c4c28044a95eafdb6492387397ec8283d8f8b31078d645",
+      "tokenizer.json": "18b520bc42999e4d6ef7f1f6a0b286c5c3c767f0f97733e0cd3a614b8c4742be"
+    }
+  },
+  "generation": {
+    "kb_source": "data/kb-expanded.jsonl",
+    "embeddings_source": "web/data/kb_v2_embeddings.npy.bak-session22",
+    "command": "python web/scripts/precompute_embeddings.py"
+  }
+}

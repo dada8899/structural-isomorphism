@@ -1,0 +1,178 @@
+{
+  "schema_version": "1.1",
+  "validation": "llm-scaling",
+  "date": "2026-05-25",
+  "module": "soc_pipeline.learning_curve.fit_learning_curve",
+  "fits": {
+    "pythia-160m": {
+      "name": "pythia-160m",
+      "alpha": 0.09491123668506439,
+      "A": 20.302672308468377,
+      "L_inf": 1.9997748782727316,
+      "alpha_se": 0.027831001332805794,
+      "A_se": 18.56015952229605,
+      "L_inf_se": 0.09493091339478493,
+      "R2": 0.9919017104544915,
+      "residual_rms": 0.006603765633629648,
+      "n_points": 14,
+      "C_range": [
+        2.042495319932928e+17,
+        2.920768307504087e+20
+      ],
+      "provenance": "SYNTHETIC"
+    },
+    "pythia-1b": {
+      "name": "pythia-1b",
+      "alpha": 0.1164138516168699,
+      "A": 57.479051188333344,
+      "L_inf": 1.7156686383256694,
+      "alpha_se": 0.012103627205849518,
+      "A_se": 25.415577581826934,
+      "L_inf_se": 0.030285988615067743,
+      "R2": 0.9984551681757796,
+      "residual_rms": 0.003178003482844858,
+      "n_points": 14,
+      "C_range": [
+        1.2731159238672384e+18,
+        1.820555771130151e+21
+      ],
+      "provenance": "SYNTHETIC"
+    },
+    "pythia-2.8b": {
+      "name": "pythia-2.8b",
+      "alpha": 0.3997251780827386,
+      "A": 58192088.63408348,
+      "L_inf": 1.6191495019681046,
+      "alpha_se": 0.030469045664428634,
+      "A_se": 3.3302191407245536e-11,
+      "L_inf_se": 0.19312528846393764,
+      "R2": 0.012798498840694617,
+      "residual_rms": 0.018819179837272305,
+      "n_points": 40,
+      "C_range": [
+        4.329827130384415e+21,
+        4.99322811626496e+21
+      ],
+      "provenance": "REAL_TAIL_NARROW"
+    },
+    "pythia-410m": {
+      "name": "pythia-410m",
+      "alpha": 0.5756581702263754,
+      "A": 73542460547.09859,
+      "L_inf": 2.000683275446591,
+      "alpha_se": 0.00045653758701175244,
+      "A_se": 1.3119018374141526e-15,
+      "L_inf_se": 0.007727211037699935,
+      "R2": 0.9856092546946604,
+      "residual_rms": 0.026017025884489946,
+      "n_points": 40,
+      "C_range": [
+        1.0510919846572032e+19,
+        7.292365011457228e+20
+      ],
+      "provenance": "REAL_FULL"
+    },
+    "pythia-6.9b": {
+      "name": "pythia-6.9b",
+      "alpha": 0.13478955721790142,
+      "A": 190.72013266486695,
+      "L_inf": 1.4568159214533298,
+      "alpha_se": 0.011957053618590573,
+      "A_se": 90.1673248364203,
+      "L_inf_se": 0.028893529222030638,
+      "R2": 0.9984934364251618,
+      "residual_rms": 0.004069424503333516,
+      "n_points": 14,
+      "C_range": [
+        8.628482782475059e+18,
+        1.2338730378939335e+22
+      ],
+      "provenance": "SYNTHETIC"
+    },
+    "pythia-70m": {
+      "name": "pythia-70m",
+      "alpha": 0.3118824258240901,
+      "A": 1111006.0583597268,
+      "L_inf": 1.7122222333271149,
+      "alpha_se": 0.028317990161795915,
+      "A_se": 1198918.0521471628,
+      "L_inf_se": 0.22103249226345453,
+      "R2": 0.9732497073266807,
+      "residual_rms": 0.2566114308396444,
+      "n_points": 35,
+      "C_range": [
+        5.4052574773248e+16,
+        1.2666999371164877e+20
+      ],
+      "provenance": "REAL_FULL"
+    },
+    "kaplan2020-gpt": {
+      "name": "kaplan2020-gpt",
+      "alpha": 0.04952204052547624,
+      "A": 24.934341044489134,
+      "L_inf": 5.68521388178467e-12,
+      "alpha_se": 0.006723111478464163,
+      "A_se": 11.291120617308845,
+      "L_inf_se": 0.04333230625431358,
+      "R2": 0.9980408023598203,
+      "residual_rms": 0.003543518149342089,
+      "n_points": 12,
+      "C_range": [
+        8.64e+34,
+        8.64e+41
+      ],
+      "provenance": "LITERATURE_ANCHORED (Kaplan 2020 eq. 1.5)"
+    },
+    "hoffmann2022-chinchilla": {
+      "name": "hoffmann2022-chinchilla",
+      "alpha": 0.1612640654200074,
+      "A": 1468.3454318844435,
+      "L_inf": 1.7114282342001939,
+      "alpha_se": 0.0055167476306706206,
+      "A_se": 327.57732925894373,
+      "L_inf_se": 0.02252513891124572,
+      "R2": 0.9988311046889644,
+      "residual_rms": 0.017649188628267674,
+      "n_points": 14,
+      "C_range": [
+        1e+18,
+        1e+25
+      ],
+      "provenance": "LITERATURE_ANCHORED (Hoffmann 2022 Table 4 Approach 3)"
+    }
+  },
+  "summary": {
+    "data_kind": "real",
+    "pythia_csv": "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv",
+    "pythia_n_sizes": 6,
+    "provenance_per_model": {
+      "pythia-160m": "SYNTHETIC",
+      "pythia-1b": "SYNTHETIC",
+      "pythia-2.8b": "REAL_TAIL_NARROW",
+      "pythia-410m": "REAL_FULL",
+      "pythia-6.9b": "SYNTHETIC",
+      "pythia-70m": "REAL_FULL"
+    },
+    "alpha_all_sizes": {
+      "n": 6,
+      "mean": 0.2722300699421733,
+      "std": 0.19209710098156724,
+      "cv": 0.7056424774176203
+    },
+    "alpha_real_wide_only": {
+      "n": 2,
+      "mean": 0.44377029802523277,
+      "std": 0.18651761757938548,
+      "cv": 0.42030216625444383
+    },
+    "universality_verdict_all": "BROAD_SPREAD",
+    "universality_verdict_real_wide": "BROAD_SPREAD",
+    "benchmark": {
+      "chinchilla_alpha_compute": 0.155,
+      "chinchilla_alpha_N": 0.34,
+      "chinchilla_alpha_D": 0.28,
+      "kaplan_alpha_C": 0.05,
+      "stevens_psychophysics_alpha": 0.5
+    }
+  }
+}

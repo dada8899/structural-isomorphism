@@ -1,0 +1,100 @@
+{"rank": 2801, "verdict": 2, "value_type": "none", "potential": 2, "reason": "稀疏自编码器特征分解与古气候-文明兴衰关联都涉及高维信号到语义的映射，但结构差异大", "reject_reason": "no actionable insight：两者除了都是统计相关分析外无实质同构，时序因果vs特征分解方向不同"}
+{"rank": 2802, "verdict": 2, "value_type": "method_transfer", "potential": 2, "reason": "都是将空间活动映射到GIS做空间分析，现实空间vs想象空间", "reject_reason": "trivially obvious：两者同属GIS空间分析的应用，差异只在对象"}
+{"rank": 2803, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "费马小定理与高斯整数两平方和本来就是数论内部的标准关联，并非跨域", "reject_reason": "known metaphor：同属数论，教科书级关联"}
+{"rank": 2804, "verdict": 2, "value_type": "none", "potential": 2, "reason": "二次互反律与鞅停止定理都关于某种不变量，但机制毫无共性", "reject_reason": "no actionable insight：表面相似实际无同构"}
+{"rank": 2805, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "分区键热分区与鲁棒控制保守性都涉及均匀性vs性能的折衷", "reject_reason": "no actionable insight：折衷关系过于抽象普遍，不能产生新洞察"}
+{"rank": 2806, "verdict": 2, "value_type": "none", "potential": 2, "reason": "Lévy刻画与Fano不等式都是界定性定理，但来自不同领域结构", "reject_reason": "no actionable insight：都是理论下界/刻画但无具体同构"}
+{"rank": 2807, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "仪式的言语行为表演vs街头官僚裁量都揭示'规则在执行瞬间被创造而非被执行'", "reject_reason": ""}
+{"rank": 2808, "verdict": 3, "value_type": "method_transfer", "potential": 3, "reason": "差分密码分析与GWAS分层校正都通过控制共变结构分离真实信号", "reject_reason": "no actionable insight：控制混杂的思路常见"}
+{"rank": 2809, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "流动性挖矿稀释动力学与诱发性出行需求都是'供给扩张自我抵消'的正反馈逆转模型", "reject_reason": ""}
+{"rank": 2810, "verdict": 2, "value_type": "none", "potential": 2, "reason": "谣言传播与情绪传染都是社会传染", "reject_reason": "trivially obvious：都是扩散过程，结构重合度过高但也没什么新意"}
+{"rank": 2811, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "磁通蠕动与控制器粘连都是静阻力克服后缓慢脱离的阶梯响应", "reject_reason": "no actionable insight：物理层面已知的钉扎/stiction类比"}
+{"rank": 2812, "verdict": 2, "value_type": "none", "potential": 2, "reason": "光晶格Mott绝缘体与QAOA都是量子系统", "reject_reason": "known metaphor：都在量子物理大伞下"}
+{"rank": 2813, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "UPR三支路并行决策与肠菌远程免疫调控都是分布式协同免疫/应激通路", "reject_reason": "no actionable insight：通路共调常见"}
+{"rank": 2814, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "轨道转移最省燃料路径与爬电距离都是'沿最优路径行进'的几何约束", "reject_reason": "no actionable insight：两种最优路径本质不同（能量vs电阻）"}
+{"rank": 2815, "verdict": 2, "value_type": "none", "potential": 2, "reason": "PPI网络富集与VPIN都是统计显著性检验", "reject_reason": "no actionable insight：过于宽泛的统计共性"}
+{"rank": 2816, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "压缩机喘振与复合材料残余应力都是失稳/内应力问题", "reject_reason": "no actionable insight：工程失效类型差异过大"}
+{"rank": 2817, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "毒品政策反效（执法倒逼产品效力）与加密FOMO都是'抑制/激励反向放大'的非预期后果", "reject_reason": ""}
+{"rank": 2818, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "房价泡沫杠杆与DeFi清算瀑布都是抵押品-价格正反馈", "reject_reason": "known metaphor：抵押品螺旋是金融学的标准同构"}
+{"rank": 2819, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "北极放大效应与PM2.5辐合带都涉及局地非线性聚集", "reject_reason": "no actionable insight：积聚机制不同（反馈vs辐合）"}
+{"rank": 2820, "verdict": 3, "value_type": "method_transfer", "potential": 3, "reason": "啁啾镜逐层色散补偿与mRNA多环节增强都是'多点叠加优化输出'", "reject_reason": "no actionable insight：模块化工程修饰是通用策略"}
+{"rank": 2821, "verdict": 2, "value_type": "none", "potential": 2, "reason": "BDNF可塑性与Th17屏障都是生物通路", "reject_reason": "no actionable insight：同为免疫神经通路但结构不同"}
+{"rank": 2822, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "河口盐淡水混合与PM2.5辐合都是两方相对强度决定混合形态", "reject_reason": "no actionable insight：地球系统常见的对流扩散平衡"}
+{"rank": 2823, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "线粒体自噬相变聚集与ADCC桥接杀伤都涉及局部密度触发效应", "reject_reason": "no actionable insight：激活阈值机制差异大"}
+{"rank": 2824, "verdict": 5, "value_type": "mechanism", "potential": 5, "reason": "激光成丝自聚焦与乡村人口空洞化收缩螺旋都是'局部不均匀→反馈放大→分裂/断裂'的不稳定性动力学，临界功率/临界人口概念直接对应", "reject_reason": ""}
+{"rank": 2825, "verdict": 2, "value_type": "none", "potential": 2, "reason": "遗憾最小化与ChIP-seq泊松峰检都是统计推断", "reject_reason": "no actionable insight：无结构同构"}
+{"rank": 2826, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "渗透压脱水与低空急流水汽输送都是平流+扩散", "reject_reason": "known metaphor：经典传质方程共性"}
+{"rank": 2827, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "适应性景观爬山悖论与选举制度机械/心理效应都是'局部最优锁定+随机扰动跳出'的双峰博弈", "reject_reason": ""}
+{"rank": 2828, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "柠檬市场与知情交易者都是逆向选择", "reject_reason": "known metaphor：两者本来就是逆向选择的不同场景，教科书标配"}
+{"rank": 2829, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "PRR区隔化分布与肿瘤新生抗原个性化都涉及特异性识别", "reject_reason": "no actionable insight：同为免疫识别但机制不同"}
+{"rank": 2830, "verdict": 2, "value_type": "none", "potential": 2, "reason": "咝音腭化与混凝土碳化都有'向内扩散'", "reject_reason": "no actionable insight：表面类比，机制完全不同"}
+{"rank": 2831, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "钝化膜滞后与算法稳定币死亡螺旋都是'保护膜破裂→瞬间失稳→不可逆活化'的阈值滞后环", "reject_reason": ""}
+{"rank": 2832, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "记忆增强网络与CRISPR-转座子定向插入都是'可寻址写入外部存储'", "reject_reason": "no actionable insight：类比虽巧妙但'寻址写入'太抽象"}
+{"rank": 2833, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "激光驰豫振荡与大气边界层日变化都是耦合变量振荡", "reject_reason": "no actionable insight：周期驱动vs内禀振荡不同"}
+{"rank": 2834, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "注意力信道容量与骨密度力学阈值响应都是'阈值以下输入被丢弃，阈值以上才产生适应'", "reject_reason": ""}
+{"rank": 2835, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "交通流相变拥堵与财政悬崖阈值都是'光滑连续→跳跃突变'的一阶相变，迟滞特征相似", "reject_reason": ""}
+{"rank": 2836, "verdict": 2, "value_type": "none", "potential": 2, "reason": "庇古税线性对应与齿轮传动守恒都是守恒关系", "reject_reason": "no actionable insight：简单对应无实质同构"}
+{"rank": 2837, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "P值曲线与Copula都是刻画不确定性", "reject_reason": "no actionable insight：统计分布描述太宽泛"}
+{"rank": 2838, "verdict": 4, "value_type": "method_transfer", "potential": 4, "reason": "量子误差缓解外推与任务向量算术都'在参数/结果空间做线性组合修正'——无需重新运行/训练", "reject_reason": ""}
+{"rank": 2839, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "朗道阻尼与湍流能量谱都是能量耗散级联", "reject_reason": "known metaphor：经典流体/等离子体内部关联"}
+{"rank": 2840, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "湍流能量谱与渗流阈值幂律都是临界自相似标度，共用尺度不变性框架", "reject_reason": ""}
+{"rank": 2841, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "磁重联能量级联释放与Ca²⁺诱导Ca²⁺释放都是'微扰→正反馈级联→全或无爆发'的可激发介质", "reject_reason": ""}
+{"rank": 2842, "verdict": 2, "value_type": "none", "potential": 2, "reason": "激光自聚焦与青藏高原热源都涉及局地加热", "reject_reason": "no actionable insight：尺度与机制差异巨大"}
+{"rank": 2843, "verdict": 2, "value_type": "none", "potential": 2, "reason": "钢桥疲劳细节分类与土壤剖面层序都是分层分类", "reject_reason": "trivially obvious：分类学表面相似"}
+{"rank": 2844, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "母源bicoid梯度建立与差分密码分析都是'利用空间/差分模式逐步推导全局信息'——前体节数由浓度梯度决定，密钥由差分分布推断", "reject_reason": ""}
+{"rank": 2845, "verdict": 2, "value_type": "none", "potential": 2, "reason": "数据增强不变性与英式拍卖收益等价都涉及某种等价/不变性", "reject_reason": "no actionable insight：对称性同名不同义"}
+{"rank": 2846, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "S型克隆选择与AChR受体涌现聚集都是'初始密度超过阈值→正反馈指数扩增→形成功能模块'", "reject_reason": ""}
+{"rank": 2847, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "海陆风与保险承保周期都是由差值/利润驱动的规律性相位振荡，每周期参与者方向反转", "reject_reason": ""}
+{"rank": 2848, "verdict": 2, "value_type": "none", "potential": 2, "reason": "治理评分线性相关与Hall-Petch幂律都是变量间单调关系", "reject_reason": "trivially obvious：单调关系太泛"}
+{"rank": 2849, "verdict": 2, "value_type": "none", "potential": 2, "reason": "激光电子衍射与历史文学GIS都涉及'空间分布映射'", "reject_reason": "no actionable insight：无实质同构"}
+{"rank": 2850, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "SCTP多流消除队头阻塞与正交分子系统消除宿主串扰都是'隔离通道避免相互阻塞'的模块化架构", "reject_reason": ""}
+{"rank": 2851, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "ARPES与ctDNA片段化都是通过细节分布提取隐藏结构", "reject_reason": "no actionable insight：测量方法共性过泛"}
+{"rank": 2852, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "光热协同超加和性与风暴潮叠加都是'多因子同向时超过线性和'的非线性超加效应", "reject_reason": ""}
+{"rank": 2853, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "城市蔓延形态指标与古文字计算识别都是'多指标组合量化直觉描述'", "reject_reason": "no actionable insight：量化方法论相似但无结构同构"}
+{"rank": 2854, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "闭环辨识偏差与原子钟黑体辐射移都是'被控/被扰动环境引入系统偏差'", "reject_reason": "no actionable insight：误差补偿话题过泛"}
+{"rank": 2855, "verdict": 3, "value_type": "method_transfer", "potential": 3, "reason": "工具变量自然实验与HRD评分基因组瘢痕都是'用间接可观测代理推断未测量因素'", "reject_reason": "no actionable insight：代理变量普遍思路"}
+{"rank": 2856, "verdict": 2, "value_type": "none", "potential": 2, "reason": "激光电子衍射与地铁站周边客流都谈空间分布", "reject_reason": "no actionable insight：研究对象差异过大"}
+{"rank": 2857, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "Transformer注意力矩阵与PWM调制都是线性基函数合成", "reject_reason": "no actionable insight：'线性叠加合成'过于普遍"}
+{"rank": 2858, "verdict": 2, "value_type": "none", "potential": 2, "reason": "稳定币死亡螺旋与高超声速气体离解都是临界相变", "reject_reason": "no actionable insight：都是非线性突变但物理机制无关"}
+{"rank": 2859, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "纠缠面积律与心理旋转都有'以低维度/面积描述复杂状态'", "reject_reason": "no actionable insight：过于抽象的跨域类比"}
+{"rank": 2860, "verdict": 2, "value_type": "none", "potential": 2, "reason": "斯塔克效应偶极矩与光晶格Hubbard都是原子物理测量", "reject_reason": "known metaphor：同属原子分子物理"}
+{"rank": 2861, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "支架式教学与电力系统频率调节都是'分层逐步撤除的临时辅助达到自主稳定'（比例+积分两层）", "reject_reason": ""}
+{"rank": 2862, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "保证金螺旋与锋面次级环流都是反馈增强", "reject_reason": "no actionable insight：非线性反馈过泛"}
+{"rank": 2863, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "G蛋白βγ并行分流与星形胶质三突触单元都是'单一激活事件通过多旁路输出到不同效应器'的模块化分叉", "reject_reason": ""}
+{"rank": 2864, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "气穴侵蚀与地铁活塞风都是'高速移动→局部低压→流体填充/溃灭'的伯努利动力学", "reject_reason": ""}
+{"rank": 2865, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "交响乐傅里叶叠加与中国剩余定理都是分解重组", "reject_reason": "known metaphor：CRT作为直积分解是标准类比"}
+{"rank": 2866, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "电渗析离子梯度与保单逆向选择菜单都存在'浓度/风险梯度与反向场相遇→最优工作点/分离均衡'", "reject_reason": ""}
+{"rank": 2867, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "KH界面卷起与晶界滑移蠕变都是剪切驱动失稳", "reject_reason": "no actionable insight：力学失稳共性过泛"}
+{"rank": 2868, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "晶圆位错延伸与气溶胶间接效应都是'扰动沿因果链级联'", "reject_reason": "no actionable insight：级联传递过于通用"}
+{"rank": 2869, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "病例对照差异性回忆偏倚与操作风险重尾分布都是'可用样本被选择性截断→尾部被系统性低估/高估'的测量偏差", "reject_reason": ""}
+{"rank": 2870, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "活性金属分散度帕累托与自然垄断成本递减都是'少数高效单元承担绝大多数输出'的80/20结构", "reject_reason": ""}
+{"rank": 2871, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "银行挤兑与保育诱致冲突都是'自我实现的成功预言反身性破坏'——预期/成功本身引发后果逆转", "reject_reason": ""}
+{"rank": 2872, "verdict": 2, "value_type": "none", "potential": 2, "reason": "Little定律与收益等价定理都在宽松假设下成立", "reject_reason": "no actionable insight：无实质同构"}
+{"rank": 2873, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "量子纠错阈值与极小极大定理都是'个体容错率/混合策略低于阈值时，系统整体存在保证下界'", "reject_reason": ""}
+{"rank": 2874, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "HGT抗性传播与ParABS扩散棘轮都是细菌机制", "reject_reason": "no actionable insight：同为细菌生物学但机制不同"}
+{"rank": 2875, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "Akt-S6K负反馈与前扣带冲突监测都是'反馈传感器慢性激活导致系统性衰减vs警报动员'——都揭示'急性适应在慢性下异化'", "reject_reason": ""}
+{"rank": 2876, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "BEC声子色散与声学逆散射都是物理波动", "reject_reason": "known metaphor：同属波动物理"}
+{"rank": 2877, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "Jahn-Teller畸变与声学双负超材料都是集体协同导致性质反转", "reject_reason": "no actionable insight：多自由度协作共性太泛"}
+{"rank": 2878, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "漂移波不稳定性与AMOC减速都是'梯度驱动反馈→非线性失稳→输运模式改变'", "reject_reason": ""}
+{"rank": 2879, "verdict": 5, "value_type": "mechanism", "potential": 5, "reason": "投资组合有效前沿与跨声速面积律都是'在多个截面/维度约束下寻找帕累托最优分布形状'——阻力/风险最小化对应相同的凸优化几何", "reject_reason": ""}
+{"rank": 2880, "verdict": 3, "value_type": "method_transfer", "potential": 3, "reason": "莫比乌斯反演与RoPE位置编码都涉及可逆变换处理位置信息", "reject_reason": "no actionable insight：反演变换共性过泛"}
+{"rank": 2881, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "Merkle树差异定位与量子噪声谱重构都是'通过分层/滤波器测量反向定位差异源'——不传全量、逐层下钻", "reject_reason": ""}
+{"rank": 2882, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "GTPase开关循环与EIT量子存储都是'主动控制→状态切换→信号/信息保存'", "reject_reason": "no actionable insight：开关机制差异大"}
+{"rank": 2883, "verdict": 3, "value_type": "method_transfer", "potential": 3, "reason": "倾向评分与量子误差缓解都是'无法直接剔除的干扰用统计后处理补偿'", "reject_reason": "no actionable insight：方法论层次相近但细节不同"}
+{"rank": 2884, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "企业层级树与馈线分段都是树状模块化", "reject_reason": "trivially obvious：层级树过于常见"}
+{"rank": 2885, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "硅晶面各向异性刻蚀与社会排斥神经痛都是'选择性敏感性'", "reject_reason": "no actionable insight：除'差异响应'无真同构"}
+{"rank": 2886, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "COF激子梯度传输与磁通量子比特都涉及定向输运", "reject_reason": "no actionable insight：机制完全不同"}
+{"rank": 2887, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "分裂作格与多头注意力专业化都是'同一结构内多个并行子系统各司其职'的功能分区", "reject_reason": ""}
+{"rank": 2888, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "QKD与LZ通用压缩都利用信息论界限", "reject_reason": "known metaphor：都在信息论框架下"}
+{"rank": 2889, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "量子自旋霍尔边缘态与核孔RanGTP梯度都是'梯度驱动的方向性输运'", "reject_reason": "no actionable insight：物理vs生物梯度太远"}
+{"rank": 2890, "verdict": 2, "value_type": "none", "potential": 2, "reason": "核孔运输与PM2.5辐合带都涉及梯度输运", "reject_reason": "no actionable insight：尺度与本质完全不同"}
+{"rank": 2891, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "版本控制分支合并与心理账户分割都是'分支并行+合并时冲突局部解决'的树状模块化决策", "reject_reason": ""}
+{"rank": 2892, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "张力环弯键与西向强化都是'对称破缺带来不对称活性'", "reject_reason": "no actionable insight：对称破缺太宽泛"}
+{"rank": 2893, "verdict": 2, "value_type": "none", "potential": 2, "reason": "p进数完备化与Lévy刻画都是数学完备性定理", "reject_reason": "no actionable insight：数学刻画类型无关"}
+{"rank": 2894, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "系统辨识激励不充分与调查缺失值补全都是'观测空间不完整→外推不可靠→需要扰动/先验弥补'", "reject_reason": ""}
+{"rank": 2895, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "自旋塞贝克与ParABS扩散棘轮都是梯度驱动流动", "reject_reason": "no actionable insight：过泛"}
+{"rank": 2896, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "网格蛋白囊泡曲率不动点与端粒酶永生化阈值都是'累积到临界点后不可逆完成/突破'的全或无开关", "reject_reason": ""}
+{"rank": 2897, "verdict": 3, "value_type": "method_transfer", "potential": 3, "reason": "量子噪声谱重构与宏转录组功能注释都是'从复合信号反推组分'", "reject_reason": "no actionable insight：反卷积太普遍"}
+{"rank": 2898, "verdict": 2, "value_type": "none", "potential": 2, "reason": "格点QCD与量子误差缓解都涉及连续极限/外推", "reject_reason": "no actionable insight：都在量子计算外推框架下但结构差异"}
+{"rank": 2899, "verdict": 3, "value_type": "mechanism", "potential": 3, "reason": "手性药物对映体与厄尔尼诺多样性都是'同一类别内亚型驱动差异结果'", "reject_reason": "no actionable insight：亚型分化共性过泛"}
+{"rank": 2900, "verdict": 4, "value_type": "mechanism", "potential": 4, "reason": "桩基负摩阻与塔板雾沫夹带都是'次级流/沉降方向超过主体速度→倒拖/返混→系统效率下降'", "reject_reason": ""}

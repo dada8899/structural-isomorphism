@@ -1,0 +1,52 @@
+/* ============================================================
+ * web/shared/tokens.css — single source of truth for the 5 brand
+ * tokens that BOTH the Structural site (web/frontend) AND the
+ * Phase Detector Next.js app (web/phase-detector) read.
+ *
+ * Goal: when we tweak the accent blue or the paper background, we
+ * change it in ONE place and both sites pick it up.
+ *
+ * Layout convention:
+ *   web/shared/tokens.css            (canonical, this file)
+ *   web/frontend/assets/css/shared-tokens.css       (mirror, kept in sync)
+ *   web/phase-detector/app/shared-tokens.css        (mirror, kept in sync)
+ *
+ * The mirrors exist because each site's bundler / static server can only
+ * see files inside its own root. They are byte-identical to this file
+ * — keep them in sync via `web/shared/sync-tokens.sh` after editing here.
+ *
+ * The 5 brand tokens (the spec's "5-var central palette") are:
+ *   --brand-ink     primary text
+ *   --brand-paper   primary background
+ *   --brand-accent  brand blue (links, focus, highlight)
+ *   --brand-line    subtle separator / hairline border
+ *   --brand-muted   tertiary text (secondary callouts, captions)
+ *
+ * Existing per-site tokens (--text-primary, --bg-primary, etc.) are
+ * mapped to these 5 in each site's own design-system.css / globals.css
+ * so the rest of the codebase doesn't have to change in one swoop.
+ * ============================================================ */
+
+:root {
+  /* ----- The 5 brand tokens ----- */
+  --brand-ink:     #18181B;   /* primary text — was --text-primary */
+  --brand-paper:   #F5F5F4;   /* primary background — was --bg-primary */
+  --brand-accent:  #2563EB;   /* brand blue — was --accent */
+  --brand-line:    #E4E4E7;   /* hairline border — was --border-subtle */
+  --brand-muted:   #71717A;   /* tertiary text — was --text-tertiary */
+
+  /* ----- Extended palette (shared across both sites) -----
+   * These derive from the 5 above + a couple of standard semantic colors.
+   * Keep these here too so both sites get the same palette without
+   * having to maintain it in two places. */
+  --brand-paper-card:   #FFFFFF;                        /* card / elevated surface */
+  --brand-paper-soft:   #F4F4F5;                        /* subtle background tint */
+  --brand-ink-soft:     #52525B;                        /* secondary text */
+  --brand-accent-hover: #1D4ED8;                        /* accent hover state */
+  --brand-accent-soft:  rgba(37, 99, 235, 0.08);        /* accent tinted bg */
+  --brand-accent-ring:  rgba(37, 99, 235, 0.12);        /* focus ring */
+  --brand-line-strong:  #D4D4D8;                        /* stronger separator */
+  --brand-success:      #059669;
+  --brand-warning:      #D97706;
+  --brand-danger:       #DC2626;
+}

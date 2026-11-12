@@ -1,0 +1,150 @@
+{
+  "bundle_fingerprint": "2934eac1115fdbe20353f1a7342f24ef26248a7ec87cb57d0e0f8c942a8b3897",
+  "instructions": {
+    "independence": "Do not inspect the existing coded CSV or another coder's export.",
+    "sources": "Use Horn-Mavroidis source fields and WTO official case summaries; cite exact locator(s).",
+    "unknowns": "Use null rather than inferring an outcome or score from another coded case."
+  },
+  "schema_version": "wto-independent-coding-bundle-v1",
+  "task_count": 23,
+  "tasks": [
+    {
+      "ds_no": "27",
+      "task_id": "wto_b1bc1aeadbe0990b342b",
+      "title": "EC – Bananas III",
+      "year_req": "1999"
+    },
+    {
+      "ds_no": "294",
+      "task_id": "wto_929b50ecd0af1d4d7421",
+      "title": "US – Zeroing (EC)",
+      "year_req": "2010"
+    },
+    {
+      "ds_no": "234",
+      "task_id": "wto_96e9f0d5a15b05f6c717",
+      "title": "US – Byrd Amendment",
+      "year_req": "2004"
+    },
+    {
+      "ds_no": "277",
+      "task_id": "wto_ff6a04296878e3256a49",
+      "title": "US – Softwood Lumber VI",
+      "year_req": "2005"
+    },
+    {
+      "ds_no": "291",
+      "task_id": "wto_fe75effd374818101dfc",
+      "title": "EC – Biotech",
+      "year_req": "2008"
+    },
+    {
+      "ds_no": "160",
+      "task_id": "wto_6aee2a0c6962a07459c8",
+      "title": "US – Section 110(5) Copyright",
+      "year_req": "2001"
+    },
+    {
+      "ds_no": "18",
+      "task_id": "wto_30be4d9d2409aa850367",
+      "title": "Australia – Salmon",
+      "year_req": "1999"
+    },
+    {
+      "ds_no": "285",
+      "task_id": "wto_5f96d58717d1298b1b1b",
+      "title": "US – Gambling Services",
+      "year_req": "2007"
+    },
+    {
+      "ds_no": "136",
+      "task_id": "wto_9c05393522702d31f226",
+      "title": "US – 1916 Act (EC)",
+      "year_req": "2004"
+    },
+    {
+      "ds_no": "103",
+      "task_id": "wto_0936cf8172cbafb67481",
+      "title": "Canada – Dairy",
+      "year_req": "2000"
+    },
+    {
+      "ds_no": "113",
+      "task_id": "wto_a9ab5b59d42c94d606f1",
+      "title": "Canada – Dairy",
+      "year_req": "2000"
+    },
+    {
+      "ds_no": "48",
+      "task_id": "wto_5dab5f25f0399fecad9c",
+      "title": "EC – Hormones (Canada)",
+      "year_req": "1999"
+    },
+    {
+      "ds_no": "26",
+      "task_id": "wto_e9d439d6fd407c417c2f",
+      "title": "EC – Hormones (US)",
+      "year_req": "1999"
+    },
+    {
+      "ds_no": "264",
+      "task_id": "wto_73f6acf722230dd03ffc",
+      "title": "US – Softwood Lumber V",
+      "year_req": "2005"
+    },
+    {
+      "ds_no": "267",
+      "task_id": "wto_692846fc3a627ed9eb28",
+      "title": "US – Upland Cotton",
+      "year_req": "2005"
+    },
+    {
+      "ds_no": "257",
+      "task_id": "wto_c9f968fab75e7d7d12e8",
+      "title": "US – Softwood Lumber IV",
+      "year_req": "2005"
+    },
+    {
+      "ds_no": "46",
+      "task_id": "wto_ac909d2d89e6b07e3c1a",
+      "title": "Brazil – Aircraft",
+      "year_req": "2000"
+    },
+    {
+      "ds_no": "217",
+      "task_id": "wto_1d293d6f3e7ac6455956",
+      "title": "US – Byrd Amendment",
+      "year_req": "2004"
+    },
+    {
+      "ds_no": "222",
+      "task_id": "wto_7b4407eb63ac539ed0cb",
+      "title": "Canada – Aircraft Credits",
+      "year_req": "2003"
+    },
+    {
+      "ds_no": "108",
+      "task_id": "wto_601ff056b6dc3a79f478",
+      "title": "US – FSC",
+      "year_req": "2002"
+    },
+    {
+      "ds_no": "268",
+      "task_id": "wto_ac5bdabc9f38972740c4",
+      "title": "US – Oil Country Tubular Goods",
+      "year_req": "2007"
+    },
+    {
+      "ds_no": "245",
+      "task_id": "wto_c0ac7b82e2a67b940eb9",
+      "title": "Japan – Apples",
+      "year_req": "2004"
+    },
+    {
+      "ds_no": "162",
+      "task_id": "wto_2f84f62f4a8123a4a105",
+      "title": "US – 1916 Act (Japan)",
+      "year_req": "2004"
+    }
+  ]
+}

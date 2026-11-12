@@ -1,0 +1,89 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "soc-pipeline"
+version = "0.1.0"
+description = "Cross-domain self-organized criticality validation (Clauset 2009 + bootstrap + null controls + Vuong LR + universal collapse)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Structural Isomorphism Project", email = "soc@bytedance.city" },
+]
+keywords = [
+    "self-organized-criticality",
+    "power-law",
+    "heavy-tailed",
+    "clauset",
+    "gutenberg-richter",
+    "omori",
+    "complex-systems",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "powerlaw>=1.5",
+]
+
+[project.optional-dependencies]
+vis = ["matplotlib>=3.7"]
+notebooks = ["jupyter", "matplotlib>=3.7", "nbconvert"]
+dev = [
+    "pytest>=7",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "build",
+]
+
+[project.urls]
+Homepage = "https://github.com/dada8899/structural-isomorphism"
+Repository = "https://github.com/dada8899/structural-isomorphism"
+Issues = "https://github.com/dada8899/structural-isomorphism/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/soc_pipeline"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/soc_pipeline",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+    "tests",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "sanity: deterministic primitive tests (~10s budget)",
+    "slow: longer-running real-data tests",
+]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

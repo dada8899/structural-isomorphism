@@ -1,0 +1,96 @@
+class_id: percolation_connectivity
+status: emerging
+display_name: Percolation critical tipping point
+display_name_zh: 渗流连通性临界相变
+hub_phenomenon: Network/lattice occupancy crosses critical probability p_c → giant connected cluster spans system; second-order
+  phase transition with characteristic exponents
+shared_equation: 'Order parameter (giant component fraction): P_∞(p) ∝ (p - p_c)^β.
+
+  Correlation length: ξ ∝ |p - p_c|^{-ν}.
+
+  Cluster size distribution at p_c: P(s) ∝ s^{-τ_perc}.
+
+  Critical probability p_c for bond percolation on infinite network: depends on lattice/topology.
+
+  Granovetter threshold: actor acts iff fraction-of-active-neighbors > θ_i.
+
+  '
+key_invariants:
+- Order parameter scales as P_∞ ∝ (p - p_c)^β
+- 'Correlation length diverges: ξ ∝ |p - p_c|^{-ν}'
+- Second-order (continuous) phase transition — no hysteresis
+- Cluster size distribution power-law at criticality
+- Universal exponents (β, ν, γ) depend only on lattice dimension
+positive_examples:
+- phenomenon: Social identity transmission (社会认同传播)
+  evidence: 'Hub. Layer 4 prediction: β ∈ [0.30, 0.45] (between Granovetter and 2D Ising), ν ∈ [0.90, 1.10], p_c (neighbor
+    activation threshold) ∈ [0.15, 0.30] on Reddit political community data.'
+  verified_at: candidate
+- phenomenon: Active fund liquidity externality (流动性外部性)
+  evidence: Critical density of indexed funds triggers liquidity-cliff transition. Phase transition signature in trading-volume
+    vs index-share data.
+  verified_at: candidate
+- phenomenon: Competitive entry critical scale defense threshold (临界规模防御门槛)
+  evidence: Network effect threshold for defensive market position. Below critical share, entrants can disrupt; above, incumbent
+    locks in.
+  verified_at: candidate
+- phenomenon: Porous media fluid flow / oil reservoir connectivity
+  evidence: Bond percolation on rock pore network; oil recovery efficiency tied to p_c.
+  verified_at: candidate
+- phenomenon: Epidemic threshold p_c on contact network
+  evidence: R_0 = 1 corresponds to percolation transition on transmission network.
+  verified_at: candidate
+negative_examples:
+- phenomenon: Earthquake fault network
+  reason: Surface similarity (network of faults, stress propagation) but the dynamics are threshold-cascade-driven, not equilibrium
+    occupancy. Belongs to soc_threshold_cascade.
+- phenomenon: DeFi liquidation cascade
+  reason: Liquidation network shows cascade dynamics (Motter-Lai), not equilibrium percolation. The order parameter is cascade
+    size, not giant-component fraction. Belongs to motter_lai_network_cascade.
+- phenomenon: Random graph G(N, p) without process
+  reason: Static percolation IS this class — but only when there's a dynamic process (epidemic, opinion spread, fluid flow)
+    on top, not just topology. Bare random graph is the model not the phenomenon.
+- phenomenon: Crystal lattice ordering
+  reason: Ising-like ordering with continuous symmetry; equilibrium_critical_ising class. Different universality class with
+    different exponents.
+- phenomenon: Explosive percolation (Achlioptas process)
+  reason: "Superficially resembles standard percolation but the transition is first-order (abrupt jump) rather than second-order, due to a competitive edge‑selection rule that suppresses the formation of a giant component."
+- phenomenon: Critical conductivity in random resistor networks
+  reason: "Involves transport on the infinite cluster rather than mere connectivity; the conductivity exponent t differs from the connectivity exponent β, placing it in a distinct transport universality class."
+- phenomenon: Diluted Ising model at the percolation threshold
+  reason: "Though the magnetic transition occurs at the geometric percolation point, the thermal critical behavior belongs to the random Ising universality class, not to pure percolation."
+- phenomenon: "Sandpile self‑organized criticality (e.g., Oslo model)"
+  reason: "Produces fractal, connected avalanche clusters with power‑law distributions, but the mechanism is a driven dissipative steady state, not a static occupation probability crossing a threshold."
+- phenomenon: Cluster‑cluster diffusion‑limited aggregation
+  reason: "Generates fractal connected structures, but no critical probability exists; it is a non‑equilibrium growth process, not a second‑order connectivity phase transition."
+edge_cases:
+- phenomenon: Forest fire spread
+  debate: Drossel-Schwabl 1992 forest fire IS percolation-like at the right tree-density limit (p_c). But the slow-driving
+    dynamics produce SOC. Same system has both percolation (static) and SOC (driven) descriptions. Class boundary.
+- phenomenon: Network robustness to random failure vs targeted attack
+  debate: Both reduce to percolation problems with different occupancy patterns. Scale-free networks have p_c → 0 under attack
+    (Cohen et al. 2000). Strong overlap with scale_free_percolation_class.
+- phenomenon: Directed percolation
+  debate: "Possesses a connectivity transition and is often called a percolation process, but the directional bias leads to different critical exponents and symmetry; it is regarded as a distinct non‑equilibrium universality class, yet it is sometimes lumped under ‘percolation’."
+- phenomenon: "Bootstrap percolation (k=2, d=2)"
+  debate: "Shows a continuous transition with a spanning cluster, but the additional activation rule (needing k occupied neighbours) changes the universality class, possibly with logarithmic corrections; whether it truly belongs to ordinary percolation remains debated."
+- phenomenon: Jamming percolation (random sequential adsorption with connectivity)
+  debate: "The connectivity transition at the jamming limit involves both excluded‑volume constraints and percolation, yielding exponents that may interpolate between random percolation and RSA; ambiguous assignment."
+- phenomenon: Chemical gelation (Flory–Stockmayer vs percolation)
+  debate: "Classical mean‑field theory predicts gelation exponents different from 3D percolation; real gelation in good solvents may cross over to percolation universality, but loop formation and excluded volume make the boundary fuzzy."
+- phenomenon: Epidemic spread on adaptive (co‑evolving) networks
+  debate: "On static networks the final outbreak maps exactly to bond percolation, but with dynamic links the process may shift into the directed percolation class or exhibit new critical behaviour, making its classification ambiguous."
+references:
+- Broadbent, Hammersley 1957 Proc. Camb. Phil. Soc. 53, 629 (original percolation)
+- Stauffer, Aharony 1994 Introduction to Percolation Theory
+- Granovetter 1978 Am. J. Sociol. 83, 1420 (threshold models)
+- Watts, Strogatz 1998 Nature 393, 440 (small-world)
+- Cohen, Erez, ben-Avraham, Havlin 2000 Phys. Rev. Lett. 85, 4626 (resilience to attack)
+b3_status: SPLIT_B3
+b3_verdict: CONTESTED(B1=KEEP,B3=SPLIT)
+b3_consensus: SPLIT
+b3_avg_confidence: 0.89
+b3_action_taken: 'split into 2 children: percolation_connectivity__geometric_lattice, percolation_connectivity__mean_field_network'
+superseded_by_split:
+- percolation_connectivity__geometric_lattice
+- percolation_connectivity__mean_field_network

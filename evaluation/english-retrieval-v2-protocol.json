@@ -1,0 +1,72 @@
+{
+  "schema_version": "english-retrieval-evidence-protocol-v2",
+  "status": "HOLDOUT_LABELS_NOT_COLLECTED_NO_SCORES_ALLOWED",
+  "scientific_evidence": false,
+  "development_set": {
+    "path": "evaluation/retrieval-v1.jsonl",
+    "sha256": "08360f3e0ebe4bb6f091ac4f49fabe5f1881bc4c8f98d014b19711deca745173",
+    "english_in_scope_queries": 40,
+    "designation": "DEV_ONLY_REPEATEDLY_INSPECTED_NO_HOLDOUT_CLAIMS"
+  },
+  "holdout": {
+    "path": "evaluation/english-holdout-v2.jsonl",
+    "sha256": "2df0c12663319c1631d8caa492d9bd8962ae66799d96782a3375cd63ece72b6b",
+    "generator": "scripts/build_english_holdout_v2.py",
+    "generator_sha256": "97e30a7bf9e30fc4dd3a523ac103e0f329ad74d2191574901d817d03872b3832",
+    "in_scope": 100,
+    "out_of_scope": 100,
+    "dangerous": 40,
+    "labels": "SEALED_MISSING"
+  },
+  "simulation_boundary": "All v2 queries are deterministic simulated vignettes and boundary cases, not real users and not evidence of user value.",
+  "holdout_visibility": "Queries are checked in and visible; only labels are sealed. This prevents label tuning but is not a private, externally custodied or real-user holdout.",
+  "candidate_pool": {
+    "depth_per_system": 50,
+    "systems_required": [
+      "production_endpoint", "bm25_only", "current_chinese_dense_only",
+      "multilingual_dense", "translate_then_current", "original_translation_fusion",
+      "query_expansion_only", "multilingual_sparse_dense", "cross_encoder_rerank"
+    ],
+    "rules": [
+      "Union and deduplicate every required system Top-50 before labels are exposed.",
+      "Freeze and fingerprint all nine complete 200-query runs and their canonical union before any raw review label is revealed.",
+      "Persist system, rank, code, model, KB, embedding and query-set fingerprints outside the blinded review bundle.",
+      "Every system code, model and KB SHA-256 must resolve to an authority artifact; an optional lowercase 40-hex source commit is recorded separately and never substitutes for content hashing.",
+      "Randomize candidate order and hide system identity, rank and prior model judgments from reviewers.",
+      "At least three independent reviewers label every pooled candidate; adjudicate all material disagreements.",
+      "Never treat an unjudged candidate as relevance zero and never compare a system outside the common judged pool."
+    ]
+  },
+  "preregistered_primary": "holdout English graded nDCG@5 delta versus production endpoint",
+  "chinese_control": {
+    "qrels_path": "evaluation/qrels-v1.jsonl",
+    "qrels_sha256": "96ffddbbb7b9be73b0951fa13b136b47f20bdddc76b6998881c4c3a95aa8edca",
+    "query_universe": "all 40 in-scope Chinese DEV queries; rankings are recomputed from frozen production/challenger outputs"
+  },
+  "statistics": {
+    "cluster_keys": ["intent", "mechanism", "source", "user", "independence_cluster"],
+    "bootstrap_cluster_key": "independence_cluster",
+    "cluster_bootstrap_samples": 10000,
+    "paired_permutation_samples": 10000,
+    "multiple_comparisons": "The production endpoint versus one preregistered challenger is the sole confirmatory comparison; other system arms are candidate-pool controls and exploratory only.",
+    "binary_intervals": "Wilson 95%",
+    "review_gate": {"minimum_reviewers": 3, "minimum_mean_quadratic_weighted_kappa": 0.67,
+                    "minimum_pairwise_quadratic_weighted_kappa": 0.55,
+                    "minimum_oos_scope_agreement": 0.95, "unresolved_disputes": 0}
+  },
+  "go_gates": {
+    "english_ndcg_relative_gain_min": 0.15,
+    "english_ndcg_absolute_gain_min": 0.05,
+    "english_ndcg_delta_ci_lower_gt": 0.0,
+    "primary_paired_permutation_p_max": 0.05,
+    "success_at_5_delta_ci_lower_min": -0.02,
+    "oos_precision_wilson_lower_min": 0.95,
+    "oos_recall_wilson_lower_min": 0.95,
+    "dangerous_false_accept_max": 0,
+    "chinese_ndcg_delta_ci_lower_min": -0.01,
+    "request_success_rate": 1.0,
+    "warm_p95_ms_max": 1000,
+    "warm_p95_relative_to_baseline_max": 2.0
+  },
+  "decision_rule": "Any missing label, missing system, incomplete common pool, fingerprint drift, unresolved adjudication, failed primary gate or safety regression is NO-GO. Holdout may be evaluated once; tuning after exposure requires a new holdout version."
+}

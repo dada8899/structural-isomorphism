@@ -1,0 +1,20 @@
+{"ticker": "XOM", "company_name": "Exxon Mobil Corp.", "sector": "energy_oil_gas", "market_cap_bn_usd": 470, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "CVX", "company_name": "Chevron Corporation", "sector": "energy_oil_gas", "market_cap_bn_usd": 290, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "COP", "company_name": "ConocoPhillips", "sector": "energy_oil_gas", "market_cap_bn_usd": 130, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "SLB", "company_name": "Schlumberger Limited", "sector": "energy_oilfield_svc", "market_cap_bn_usd": 60, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "EOG", "company_name": "EOG Resources Inc.", "sector": "energy_oil_gas", "market_cap_bn_usd": 75, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "PSX", "company_name": "Phillips 66", "sector": "energy_refining", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "MPC", "company_name": "Marathon Petroleum Corp.", "sector": "energy_refining", "market_cap_bn_usd": 60, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "VLO", "company_name": "Valero Energy Corp.", "sector": "energy_refining", "market_cap_bn_usd": 45, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "OXY", "company_name": "Occidental Petroleum", "sector": "energy_oil_gas", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "KMI", "company_name": "Kinder Morgan Inc.", "sector": "energy_midstream", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "SNOW", "company_name": "Snowflake Inc.", "sector": "tech_software_cloud", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "DDOG", "company_name": "Datadog Inc.", "sector": "tech_software_obs", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "NET", "company_name": "Cloudflare Inc.", "sector": "tech_software_edge", "market_cap_bn_usd": 35, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "MDB", "company_name": "MongoDB Inc.", "sector": "tech_software_db", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "CRWD", "company_name": "CrowdStrike Holdings", "sector": "tech_software_security", "market_cap_bn_usd": 95, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "PANW", "company_name": "Palo Alto Networks", "sector": "tech_software_security", "market_cap_bn_usd": 130, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ZS", "company_name": "Zscaler Inc.", "sector": "tech_software_security", "market_cap_bn_usd": 30, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "SHOP", "company_name": "Shopify Inc.", "sector": "tech_software_ecommerce", "market_cap_bn_usd": 110, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ABNB", "company_name": "Airbnb Inc.", "sector": "tech_marketplace", "market_cap_bn_usd": 90, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "U", "company_name": "Unity Software Inc.", "sector": "tech_software_gaming", "market_cap_bn_usd": 8, "expected_dynamics_family_a_priori": "scheffer_fold"}

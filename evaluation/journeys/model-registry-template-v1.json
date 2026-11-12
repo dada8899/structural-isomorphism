@@ -1,0 +1,25 @@
+{
+  "schema_version": "journey-model-registry-v1",
+  "models": [
+    {
+      "provider": "replace-provider-a",
+      "serving_name": "replace-serving-name-a",
+      "upstream_family": "replace-upstream-family-a",
+      "upstream_version": "replace-immutable-version-a",
+      "status": "pending_manual_verification",
+      "verified_by": null,
+      "verified_at": null,
+      "verification_source": null
+    },
+    {
+      "provider": "replace-provider-b",
+      "serving_name": "replace-serving-name-b",
+      "upstream_family": "replace-upstream-family-b",
+      "upstream_version": "replace-immutable-version-b",
+      "status": "pending_manual_verification",
+      "verified_by": null,
+      "verified_at": null,
+      "verification_source": null
+    }
+  ]
+}

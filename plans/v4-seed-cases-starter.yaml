@@ -1,0 +1,214 @@
+# V3 种子案例 — 10 条起手式
+#
+# 这是我根据科学史经典跨域迁移起的 draft。不是"让你照搬"，
+# 而是"省你从零开始"。请审核：
+#   - 删掉你不同意的
+#   - 改掉标注错的 transformations
+#   - 补 10-20 条你觉得更重要的
+# 审完保存为 plans/v4-seed-cases.yaml（去掉 -starter 后缀）
+#
+# 注意事项：
+#   - 每条 transformations 用 v4-variant-types.yaml 的 id
+#   - source_equation / target_equation 可以简化但必须保留核心结构
+#   - historical_note 写一句话说清楚"谁在什么时候把两者联系起来的"
+
+version: 1
+
+seeds:
+
+  - id: seed-01
+    source_domain: 经典力学
+    source_concept: 简谐振子
+    source_equation: "m·ẍ + k·x = 0"
+    target_domain: 电路理论
+    target_concept: LC 振荡回路
+    target_equation: "L·Q̈ + (1/C)·Q = 0"
+    transformations:
+      - type: concept_transfer
+        mapping: "m → L"
+        reason: "惯性量类比：机械质量 ↔ 电感"
+      - type: concept_transfer
+        mapping: "k → 1/C"
+        reason: "弹性系数 ↔ 电容倒数（恢复力 ↔ 电压回馈）"
+      - type: concept_transfer
+        mapping: "x → Q"
+        reason: "位移 ↔ 电荷"
+    historical_note: "Maxwell 1873 在《A Treatise on Electricity and Magnetism》中明确建立机电类比，后成为工程教学标配"
+    source_refs:
+      - "Maxwell 1873 — A Treatise on Electricity and Magnetism"
+
+  - id: seed-02
+    source_domain: 统计物理
+    source_concept: Fick 扩散定律
+    source_equation: "∂C/∂t = D·∇²C"
+    target_domain: 金融数学
+    target_concept: Black-Scholes 期权定价
+    target_equation: "∂V/∂t + ½σ²S²·∂²V/∂S² + rS·∂V/∂S - rV = 0"
+    transformations:
+      - type: concept_transfer
+        mapping: "C → V（价格密度 → 期权价值）"
+        reason: "扩散量替换为金融衍生品价值"
+      - type: stochastic_toggle
+        mapping: "确定性扩散 → 带漂移 + 波动率的随机扩散"
+        reason: "引入 Wiener 过程（布朗运动）"
+      - type: boundary_rewrite
+        mapping: "自然边界 → 终值条件 max(S-K, 0)"
+        reason: "期权到期时的 payoff 作为终值条件"
+    historical_note: "Black & Scholes 1973 明确借用 Bachelier 1900 的布朗运动扩散思路"
+    source_refs:
+      - "Bachelier 1900 — Théorie de la spéculation"
+      - "Black & Scholes 1973 — The Pricing of Options and Corporate Liabilities"
+
+  - id: seed-03
+    source_domain: 生态学
+    source_concept: Lotka-Volterra 捕食者-猎物
+    source_equation: "dx/dt = αx - βxy; dy/dt = δxy - γy"
+    target_domain: 经济学
+    target_concept: Goodwin 经济周期模型
+    target_equation: "dω/dt = (ρ-γ)ω; dv/dt = -(α+β)v + f(ω)"
+    transformations:
+      - type: concept_transfer
+        mapping: "x (猎物) → v (就业率); y (捕食者) → ω (工资份额)"
+        reason: "生态位替换为经济变量"
+    historical_note: "Goodwin 1967 明确用 Lotka-Volterra 结构建模资本主义周期"
+    source_refs:
+      - "Goodwin 1967 — A Growth Cycle"
+
+  - id: seed-04
+    source_domain: 统计力学
+    source_concept: 热力学熵
+    source_equation: "S = -k·Σp_i·ln(p_i)"
+    target_domain: 信息论
+    target_concept: Shannon 信息熵
+    target_equation: "H = -Σp_i·log₂(p_i)"
+    transformations:
+      - type: variable_rename
+        mapping: "k (Boltzmann 常数) → 1 (或 1/ln2)"
+        reason: "纯粹单位/常数替换，结构和语义完全一致，是 variable_rename 的教科书例子"
+    historical_note: "Shannon 1948 由 von Neumann 建议使用'熵'命名，形式完全同构"
+    source_refs:
+      - "Shannon 1948 — A Mathematical Theory of Communication"
+      - "Jaynes 1957 — Information Theory and Statistical Mechanics"
+
+  - id: seed-05
+    source_domain: 统计物理
+    source_concept: Ising 模型
+    source_equation: "H = -J·Σᵢⱼσᵢσⱼ - h·Σᵢσᵢ"
+    target_domain: 神经网络
+    target_concept: Hopfield 网络 / Boltzmann 机
+    target_equation: "E = -½·Σᵢⱼwᵢⱼsᵢsⱼ - Σᵢbᵢsᵢ"
+    transformations:
+      - type: concept_transfer
+        mapping: "σᵢ (自旋 ±1) → sᵢ (神经元激活); J → wᵢⱼ; h → bᵢ"
+        reason: "物理系统 → 计算系统"
+      - type: causal_inversion
+        mapping: "能量最小化用于求平衡态 → 能量最小化用于存储记忆"
+        reason: "从物理演化反转为信息检索目的"
+    historical_note: "Hopfield 1982, Hinton & Sejnowski 1983 明确借鉴 Ising 能量函数"
+    source_refs:
+      - "Hopfield 1982 — Neural networks and physical systems"
+      - "Ackley, Hinton, Sejnowski 1985 — A learning algorithm for Boltzmann machines"
+
+  - id: seed-06
+    source_domain: 流体力学
+    source_concept: 守恒律 + 通量函数
+    source_equation: "∂ρ/∂t + ∂(ρv)/∂x = 0; v = v(ρ)"
+    target_domain: 交通工程
+    target_concept: Lighthill-Whitham-Richards 交通流
+    target_equation: "∂k/∂t + ∂q/∂x = 0; q = q(k)"
+    transformations:
+      - type: concept_transfer
+        mapping: "ρ (流体密度) → k (车辆密度); v → 车速-密度关系"
+        reason: "流体 → 离散车辆的连续近似"
+      - type: continuity_toggle
+        mapping: "微观分子 → 宏观密度场（然后回到车辆离散）"
+        reason: "交通流本质离散但用连续近似建模"
+    historical_note: "Lighthill & Whitham 1955, Richards 1956 独立提出"
+    source_refs:
+      - "Lighthill & Whitham 1955 — On kinematic waves II"
+      - "Richards 1956 — Shock waves on the highway"
+
+  - id: seed-07
+    source_domain: 物理
+    source_concept: Maxwell 妖（热力学第二定律的挑战）
+    source_equation: "ΔS_system < 0 （如果妖没有信息成本）"
+    target_domain: 计算理论
+    target_concept: Landauer 原理（信息擦除的热力学代价）
+    target_equation: "ΔE ≥ kT·ln(2) per bit erased"
+    transformations:
+      - type: concept_transfer
+        mapping: "妖的决策 → 1 bit 信息"
+        reason: "把信息作为独立物理实体"
+      - type: causal_inversion
+        mapping: "'妖降低熵' → '擦除信息必增熵'"
+        reason: "把看似违反热力学的现象翻转为守恒的合理情形"
+    historical_note: "Szilard 1929 初步联结，Landauer 1961 明确原理，Bennett 1982 完整解决"
+    source_refs:
+      - "Szilard 1929 — Über die Entropieverminderung"
+      - "Landauer 1961 — Irreversibility and heat generation"
+      - "Bennett 1982 — The thermodynamics of computation"
+
+  - id: seed-08
+    source_domain: 群体遗传学
+    source_concept: 自然选择下的等位基因频率演化
+    source_equation: "Δp = sp(1-p) / (average fitness)"
+    target_domain: 机器学习
+    target_concept: 遗传算法 / 进化策略
+    target_equation: "x_{t+1} = select(x_t + mutation); fitness = f(x)"
+    transformations:
+      - type: concept_transfer
+        mapping: "等位基因 → 参数向量; 适应度 → 目标函数"
+        reason: "生物演化 → 优化过程"
+      - type: causal_inversion
+        mapping: "演化是结果 → 演化被用作搜索工具"
+        reason: "从解释工具反转为求解工具"
+    historical_note: "Holland 1975 明确把 Fisher-Wright 模型转译为搜索算法"
+    source_refs:
+      - "Holland 1975 — Adaptation in Natural and Artificial Systems"
+
+  - id: seed-09
+    source_domain: 免疫学
+    source_concept: 克隆选择理论
+    source_equation: "抗原刺激 → B 细胞克隆扩增 → 亲和力成熟"
+    target_domain: 机器学习
+    target_concept: Negative selection / 异常检测
+    target_equation: "训练样本 → 构建正常模式库 → 检测偏离"
+    transformations:
+      - type: concept_transfer
+        mapping: "抗原 → 输入样本; 抗体库 → 检测器库"
+        reason: "生物识别系统 → 计算识别系统"
+      - type: causal_inversion
+        mapping: "识别外来入侵 → 检测分布偏移"
+        reason: "保护目标从生物体转为数据"
+    historical_note: "Forrest et al. 1994 提出 computer immunology 方向"
+    source_refs:
+      - "Forrest et al. 1994 — Self-Nonself Discrimination in a Computer"
+
+  - id: seed-10
+    source_domain: 统计力学
+    source_concept: 相变与临界现象
+    source_equation: "ξ ~ |T - Tc|^(-ν) （关联长度发散）"
+    target_domain: 复杂网络
+    target_concept: 渗流相变 / 网络崩溃
+    target_equation: "S ~ |p - pc|^β （巨连通分量）"
+    transformations:
+      - type: concept_transfer
+        mapping: "温度 T → 边密度 p"
+        reason: "物理控制参数 → 网络拓扑参数"
+      - type: dim_shift
+        mapping: "连续格点 → 离散网络节点"
+        reason: "从规则结构到任意拓扑"
+    historical_note: "Erdős-Rényi 1960 数学基础，Stauffer 渗流理论，2000s 应用到互联网/基因网络"
+    source_refs:
+      - "Stauffer & Aharony 1994 — Introduction to Percolation Theory"
+      - "Albert, Jeong, Barabási 2000 — Attack and error tolerance of complex networks"
+
+# ===== 建议你补充的方向 =====
+#
+# 我起的这 10 条偏物理 → 其他。可以再补：
+#   - 化学反应（反应扩散）↔ 图灵斑图 / 生物形态发生
+#   - 控制论 ↔ 大脑皮层 / 稳态调节
+#   - 量子力学 ↔ 概率数据库 / 不确定性推理
+#   - 语言学（生成语法）↔ 程序语言（Chomsky 层级）
+#   - 相对论时空 ↔ 机器学习中的流形学习
+#   - 博弈论 ↔ 进化稳定策略

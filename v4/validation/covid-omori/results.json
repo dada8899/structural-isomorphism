@@ -1,0 +1,372 @@
+{
+  "domain": "epidemiology (JHU CSSE COVID-19 global confirmed-cases)",
+  "predicted_class": "soc_threshold_cascade (Omori law)",
+  "data_window": {
+    "start": "2020-01-22",
+    "end": "2023-03-09"
+  },
+  "countries_analysed": [
+    "us",
+    "uk",
+    "india",
+    "brazil",
+    "italy"
+  ],
+  "fit_window_days": [
+    30,
+    180
+  ],
+  "peak_detection": {
+    "min_prominence_frac_of_global_peak": 0.2,
+    "min_separation_days": 60,
+    "min_value_frac_of_global_peak": 0.1
+  },
+  "quality_gate": {
+    "min_r2_to_trust": 0.5,
+    "note": "waves with R\u00b2<min are kept in 'waves' list but excluded from p aggregation"
+  },
+  "c_grid_days": [
+    0.5,
+    1.0,
+    2.0,
+    5.0,
+    10.0,
+    20.0
+  ],
+  "countries": [
+    {
+      "country": "us",
+      "n_days": 1143,
+      "all_time_peak_7dma": 806962.86,
+      "n_waves_detected": 2,
+      "waves": [
+        {
+          "peak_date": "2021-01-08",
+          "peak_idx": 352,
+          "peak_value": 251104.57,
+          "p": 0.9048572794517517,
+          "p_sigma": 0.07184875412315626,
+          "c_days": 20.0,
+          "logK": 6.535663981907026,
+          "R2": 0.5514708997653035,
+          "n_points": 131,
+          "t_range_days": [
+            30.0,
+            160.0
+          ],
+          "error": null
+        },
+        {
+          "peak_date": "2022-01-12",
+          "peak_idx": 721,
+          "peak_value": 806962.86,
+          "p": 1.9549534946185203,
+          "p_sigma": 0.05510860357270801,
+          "c_days": 0.5,
+          "logK": 8.032474957722647,
+          "R2": 0.9647359455456717,
+          "n_points": 48,
+          "t_range_days": [
+            30.0,
+            77.0
+          ],
+          "error": null
+        }
+      ],
+      "p_values": [
+        0.9048572794517517,
+        1.9549534946185203
+      ],
+      "p_mean": 1.429905387035136,
+      "p_std": 0.74253015464275
+    },
+    {
+      "country": "uk",
+      "n_days": 1143,
+      "all_time_peak_7dma": 197997.57,
+      "n_waves_detected": 3,
+      "waves": [
+        {
+          "peak_date": "2021-01-06",
+          "peak_idx": 350,
+          "peak_value": 59821.57,
+          "p": 2.0707262678640013,
+          "p_sigma": 0.034151490233413836,
+          "c_days": 20.0,
+          "logK": 7.758390529003541,
+          "R2": 0.974035801023796,
+          "n_points": 100,
+          "t_range_days": [
+            30.0,
+            129.0
+          ],
+          "error": null
+        },
+        {
+          "peak_date": "2021-07-18",
+          "peak_idx": 543,
+          "peak_value": 47722.14,
+          "p": -0.13845196407812418,
+          "p_sigma": 0.06479256917791411,
+          "c_days": 0.5,
+          "logK": 4.309611479402463,
+          "R2": 0.14938515723718881,
+          "n_points": 28,
+          "t_range_days": [
+            30.0,
+            57.0
+          ],
+          "error": null
+        },
+        {
+          "peak_date": "2022-01-29",
+          "peak_idx": 738,
+          "peak_value": 197997.57,
+          "p": 2.0821907635183807,
+          "p_sigma": 0.20433836575753597,
+          "c_days": 20.0,
+          "logK": 8.625518345835102,
+          "R2": 0.5302152916303216,
+          "n_points": 94,
+          "t_range_days": [
+            30.0,
+            123.0
+          ],
+          "error": null
+        }
+      ],
+      "p_values": [
+        2.0707262678640013,
+        2.0821907635183807
+      ],
+      "p_mean": 2.0764585156911908,
+      "p_std": 0.00810662262009542
+    },
+    {
+      "country": "india",
+      "n_days": 1143,
+      "all_time_peak_7dma": 391232.0,
+      "n_waves_detected": 2,
+      "waves": [
+        {
+          "peak_date": "2021-05-05",
+          "peak_idx": 469,
+          "peak_value": 391232.0,
+          "p": 0.8406256700976905,
+          "p_sigma": 0.030015099974400772,
+          "c_days": 0.5,
+          "logK": 6.212920541755285,
+          "R2": 0.8403648761569508,
+          "n_points": 151,
+          "t_range_days": [
+            30.0,
+            180.0
+          ],
+          "error": null
+        },
+        {
+          "peak_date": "2022-01-22",
+          "peak_idx": 731,
+          "peak_value": 311982.14,
+          "p": 3.2374618519406724,
+          "p_sigma": 0.030639904141316412,
+          "c_days": 0.5,
+          "logK": 9.01270742640116,
+          "R2": 0.9957190167942918,
+          "n_points": 50,
+          "t_range_days": [
+            30.0,
+            79.0
+          ],
+          "error": null
+        }
+      ],
+      "p_values": [
+        0.8406256700976905,
+        3.2374618519406724
+      ],
+      "p_mean": 2.0390437610191814,
+      "p_std": 1.6948191175744454
+    },
+    {
+      "country": "brazil",
+      "n_days": 1143,
+      "all_time_peak_7dma": 189227.0,
+      "n_waves_detected": 4,
+      "waves": [
+        {
+          "peak_date": "2021-06-19",
+          "peak_idx": 514,
+          "peak_value": 78663.29,
+          "p": 1.2762472132942273,
+          "p_sigma": 0.04891138821268216,
+          "c_days": 20.0,
+          "logK": 6.866507766622583,
+          "R2": 0.8214387335012948,
+          "n_points": 150,
+          "t_range_days": [
+            30.0,
+            179.0
+          ],
+          "error": null
+        },
+        {
+          "peak_date": "2022-01-26",
+          "peak_idx": 735,
+          "peak_value": 189227.0,
+          "p": 1.2627426495372411,
+          "p_sigma": 0.04516589115245565,
+          "c_days": 0.5,
+          "logK": 6.678631843322329,
+          "R2": 0.9092646766296144,
+          "n_points": 80,
+          "t_range_days": [
+            30.0,
+            109.0
+          ],
+          "error": null
+        },
+        {
+          "peak_date": "2022-07-03",
+          "peak_idx": 893,
+          "peak_value": 68675.14,
+          "p": 1.929290928212985,
+          "p_sigma": 0.06447901967935554,
+          "c_days": 20.0,
+          "logK": 7.731077500408952,
+          "R2": 0.9255644233949843,
+          "n_points": 74,
+          "t_range_days": [
+            30.0,
+            103.0
+          ],
+          "error": null
+        },
+        {
+          "peak_date": "2022-12-11",
+          "peak_idx": 1054,
+          "peak_value": 50745.71,
+          "p": 1.1574285971277687,
+          "p_sigma": 0.08909473884654295,
+          "c_days": 0.5,
+          "logK": 6.0049841035362475,
+          "R2": 0.7575928910627666,
+          "n_points": 56,
+          "t_range_days": [
+            30.0,
+            85.0
+          ],
+          "error": null
+        }
+      ],
+      "p_values": [
+        1.2762472132942273,
+        1.2627426495372411,
+        1.929290928212985,
+        1.1574285971277687
+      ],
+      "p_mean": 1.4064273470430555,
+      "p_std": 0.3525993295008842
+    },
+    {
+      "country": "italy",
+      "n_days": 1143,
+      "all_time_peak_7dma": 181821.71,
+      "n_waves_detected": 3,
+      "waves": [
+        {
+          "peak_date": "2022-01-11",
+          "peak_idx": 720,
+          "peak_value": 181821.71,
+          "p": 1.315273048050399,
+          "p_sigma": 0.02694621131522209,
+          "c_days": 1.0,
+          "logK": 6.797690982847728,
+          "R2": 0.9929152475171169,
+          "n_points": 19,
+          "t_range_days": [
+            30.0,
+            48.0
+          ],
+          "error": null
+        },
+        {
+          "peak_date": "2022-03-21",
+          "peak_idx": 789,
+          "peak_value": 72466.29,
+          "p": 2.075507277259289,
+          "p_sigma": 0.07834636831962116,
+          "c_days": 20.0,
+          "logK": 8.379834046815537,
+          "R2": 0.9473539150571079,
+          "n_points": 41,
+          "t_range_days": [
+            30.0,
+            70.0
+          ],
+          "error": null
+        },
+        {
+          "peak_date": "2022-07-11",
+          "peak_idx": 901,
+          "peak_value": 104338.43,
+          "p": -0.69859415130055,
+          "p_sigma": 0.10902341987192808,
+          "c_days": 20.0,
+          "logK": 3.0721152397279625,
+          "R2": 0.33916619182306296,
+          "n_points": 82,
+          "t_range_days": [
+            30.0,
+            111.0
+          ],
+          "error": null
+        }
+      ],
+      "p_values": [
+        1.315273048050399,
+        2.075507277259289
+      ],
+      "p_mean": 1.695390162654844,
+      "p_std": 0.5375667787637342
+    }
+  ],
+  "aggregate": {
+    "verdict": "PARTIAL",
+    "median_p": 1.622281988131692,
+    "q25_p": 1.236414136434873,
+    "q75_p": 2.071921520212823,
+    "iqr_p": 0.8355073837779501,
+    "n_waves_total": 12,
+    "n_waves_in_band": 6,
+    "frac_in_band": 0.5,
+    "predicted_band": [
+      0.5,
+      1.5
+    ],
+    "extended_band": [
+      0.5,
+      2.0
+    ],
+    "median_in_band": false,
+    "median_in_extended": true,
+    "pre_omicron_median_p": 1.0905522463729895,
+    "pre_omicron_n": 4,
+    "pre_omicron_in_band": true,
+    "omicron_era_median_p": 1.9421222114157528,
+    "omicron_era_n": 8,
+    "per_country_p_mean": [
+      1.429905387035136,
+      2.0764585156911908,
+      2.0390437610191814,
+      1.4064273470430555,
+      1.695390162654844
+    ]
+  },
+  "method_refs": [
+    "Omori 1894 (aftershock decay)",
+    "Utsu 1961 / Utsu-Ogata-Matsu'ura 1995 (Omori-Utsu form)",
+    "Lloyd-Smith et al. 2003 PNAS (SARS-1 decay)",
+    "Tkachenko et al. 2021 PNAS (epidemic wave decay)"
+  ]
+}

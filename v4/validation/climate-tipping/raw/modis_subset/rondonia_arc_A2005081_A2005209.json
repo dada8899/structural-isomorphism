@@ -1,0 +1,87 @@
+{
+  "xllcorner": "-6844287.09", 
+  "yllcorner": "-1112182.14", 
+  "cellsize": 231.656358264, 
+  "nrows": 1, 
+  "ncols": 1, 
+  "band": "250m_16_days_NDVI", 
+  "units": "NDVI ratio - No units", 
+  "scale": "0.0001", 
+  "latitude": -10.0, 
+  "longitude": -62.5, 
+  "header": "https://modisrest.ornl.gov/rst/api/v1/MOD13Q1/subset?latitude=-10.0&longitude=-62.5&startDate=A2005081&endDate=A2005209&kmAboveBelow=0&kmLeftRight=0&band=250m_16_days_NDVI", 
+  "subset": [
+    {
+      "modis_date": "A2005081", 
+      "calendar_date": "2005-03-22", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h11v10", 
+      "proc_date": "2020229174601", 
+      "data": [7690]
+    }, 
+    {
+      "modis_date": "A2005097", 
+      "calendar_date": "2005-04-07", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h11v10", 
+      "proc_date": "2020231041856", 
+      "data": [7867]
+    }, 
+    {
+      "modis_date": "A2005113", 
+      "calendar_date": "2005-04-23", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h11v10", 
+      "proc_date": "2020232173104", 
+      "data": [7763]
+    }, 
+    {
+      "modis_date": "A2005129", 
+      "calendar_date": "2005-05-09", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h11v10", 
+      "proc_date": "2020233231610", 
+      "data": [8169]
+    }, 
+    {
+      "modis_date": "A2005145", 
+      "calendar_date": "2005-05-25", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h11v10", 
+      "proc_date": "2020235074737", 
+      "data": [8090]
+    }, 
+    {
+      "modis_date": "A2005161", 
+      "calendar_date": "2005-06-10", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h11v10", 
+      "proc_date": "2020236084356", 
+      "data": [7773]
+    }, 
+    {
+      "modis_date": "A2005177", 
+      "calendar_date": "2005-06-26", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h11v10", 
+      "proc_date": "2020237081353", 
+      "data": [7189]
+    }, 
+    {
+      "modis_date": "A2005193", 
+      "calendar_date": "2005-07-12", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h11v10", 
+      "proc_date": "2020241064347", 
+      "data": [6426]
+    }, 
+    {
+      "modis_date": "A2005209", 
+      "calendar_date": "2005-07-28", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h11v10", 
+      "proc_date": "2020241220127", 
+      "data": [5801]
+    }
+  ]
+}

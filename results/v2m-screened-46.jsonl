@@ -1,0 +1,91 @@
+{"rank": 4096, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "渗流导电网络幂律相变 vs 片晶折叠生长 都涉及'临界+结构形成'但机制完全不同：渗流是几何连通性相变，片晶是分子链扩散沉积动力学", "reject_reason": "机制异质：一个是拓扑相变临界指数，一个是链段扩散结晶速率，无可迁移结构"}
+{"rank": 4097, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "薄壁件颤振 vs 溪流木质残体功能 完全无结构关联，前者是再生型自激振动，后者是栖息地物理结构", "reject_reason": "no structural match"}
+{"rank": 4098, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "压气机喘振 vs 采样混叠 表面都是'频率/周期性失效'但机制不同：喘振是流体动力负阻尼，混叠是Nyquist采样理论", "reject_reason": "信号处理和流体稳定性的失效机制不同构"}
+{"rank": 4099, "verdict": "keep", "value_type": "positive_feedback_amplification", "potential": 3, "reason": "放热反应温度正反馈 vs 期货保证金杠杆放大 都是'输出反向放大输入'的正反馈：放热→升温→加速反应，亏损→追保→强平→加深亏损。化学与金融跨域，但这类正反馈同构已属经典迁移，新颖度有限", "reject_reason": ""}
+{"rank": 4100, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "网格蛋白囊泡出芽阈值 vs 光化学平衡 一个是阈值触发的不可逆事件，一个是可逆动态平衡，结构类型不同", "reject_reason": "不动点门控 vs 动态平衡，两种不同的稳态机制"}
+{"rank": 4101, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "价格歧视福利 vs 扩散语言模型 完全无结构关联", "reject_reason": "trivially unrelated"}
+{"rank": 4102, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "股权稀释追踪 vs 连续墙接头渗漏 两个都是'薄弱环节追踪'但抽象过高，无实际可迁移机制", "reject_reason": "表面联想，无结构同构"}
+{"rank": 4103, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "导轨爬行 vs 地貌侵蚀抬升耦合 一个是摩擦非线性自激振动，一个是长时间尺度负反馈稳态，机制截然不同", "reject_reason": "振动与稳态耦合不同构"}
+{"rank": 4104, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "并购整合滞后 vs 阻抗谱压扁半圆 都涉及'时间常数/延迟分布'但Nyquist图是频域响应叠加，并购滞后是单一延迟反馈，结构不严格对应", "reject_reason": "频域多过程叠加与反馈时滞是不同结构"}
+{"rank": 4105, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "输电线费兰蒂效应 vs 喷音气流机制 完全无结构关联", "reject_reason": "无结构同构"}
+{"rank": 4106, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "佩尔方程 vs 涡流损耗 完全无关", "reject_reason": "no structural match"}
+{"rank": 4107, "verdict": "keep", "value_type": "threshold_cascade", "potential": 3, "reason": "热手效应（近似马尔可夫无记忆） vs 重复序列扩张（转座博弈） 表面都涉及'随机与博弈'但一个是独立事件检验，一个是共演化军备竞赛", "reject_reason": "机制异质，拒绝"}
+{"rank": 4108, "verdict": "reject", "value_type": "trivially_same", "potential": 2, "reason": "技术扩散S曲线 vs 社会证明从众阈值 两者几乎在描述同一个社会扩散机制（阈值+自强化），属于同家族概念", "reject_reason": "trivially obvious - 近似同一现象的两个标签"}
+{"rank": 4109, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Raft多数派日志复制 vs 电缆热稳定校验 前者是分布式一致性，后者是材料热极限，完全不同构", "reject_reason": "表面都是'安全裕度'但机制不同"}
+{"rank": 4110, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "酱油氨基酸态氮 vs 民族志反身性 无结构关联", "reject_reason": "no match"}
+{"rank": 4111, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "造血干细胞龛 vs 电力次同步振荡 前者是稳态维持+应急动员，后者是谐振耦合失稳，机制不同", "reject_reason": "稳态维持与谐振失稳非同构"}
+{"rank": 4112, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "光子晶体带隙 vs 测度论概率空间 完全不同抽象层级", "reject_reason": "数学基础与物理现象无同构"}
+{"rank": 4113, "verdict": "keep", "value_type": "critical_threshold_transition", "potential": 4, "reason": "珊瑚白化温度阈值 vs 等离子体鞘套通信黑障 两者都是单一连续参数（温度/等离子密度）跨过临界值后系统状态突然切换（共生→白化、通信→黑障）。海洋生物学与航空航天跨远域，同构于一阶相变式的阈值开关", "reject_reason": ""}
+{"rank": 4114, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "MHC超显性选择 vs 盐税地理 完全不同机制", "reject_reason": "no structural isomorphism"}
+{"rank": 4115, "verdict": "keep", "value_type": "threshold_gated_transient_pulse", "potential": 5, "reason": "令牌桶限流 vs Piezo1机械门控 两者都是'连续输入→离散脉冲事件'的阈值门控转换器：桶积累令牌到阈值触发放行，通道积累膜张力到阈值触发瞬时开放后自失活。都只对变化率敏感不对静态水平敏感，都通过自重置防止持续激活。计算机系统与细胞生物学跨极远域，结构同构深刻且可双向迁移", "reject_reason": ""}
+{"rank": 4116, "verdict": "keep", "value_type": "lyapunov_fixed_point_convergence", "potential": 5, "reason": "认知失调的一致性修复 vs Lyapunov稳定性分析 两者都描述'系统存在一个类能量函数（不适/Lyapunov V），沿轨迹单调递减，驱动系统收敛到不动点（一致信念/平衡点）'。行为经济学与控制工程跨远域，数学结构严格同构——认知失调本身就是心理学的Lyapunov函数", "reject_reason": ""}
+{"rank": 4117, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "造血干细胞龛 vs 受电弓离线电弧 无结构关联", "reject_reason": "no match"}
+{"rank": 4118, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "复合材料分层 vs 网络时延抖动 都是'隐性劣化'但前者是界面应力损伤，后者是随机通信延迟，机制不同", "reject_reason": "损伤与抖动非同构"}
+{"rank": 4119, "verdict": "reject", "value_type": "asymmetric_hysteresis", "potential": 3, "reason": "信任建立崩塌不对称 vs 转座子驯化 前者是路径不对称滞回，后者是寄生元件功能募集，抽象层级差距过大", "reject_reason": "结构不同构"}
+{"rank": 4120, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "水稳基层反射裂缝 vs Hi-C染色质接触 完全无关", "reject_reason": "no match"}
+{"rank": 4121, "verdict": "keep", "value_type": "hysteresis_loop_dissipation", "potential": 4, "reason": "法律滞后性 vs 弹性体应力-应变滞后 两者都是'加载（新现实/新应力）→ 响应滞后 → 卸载路径不同于加载路径 → 形成耗散滞回环'。法律与材料力学跨极远域，滞后环结构严格同构，且两者都将滞后解读为'能量/成本耗散'", "reject_reason": ""}
+{"rank": 4122, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "造山带剥露 vs DeFi TVL 逻辑斯蒂增长 前者是侵蚀-抬升负反馈稳态，后者是饱和增长曲线，结构不同", "reject_reason": "reject"}
+{"rank": 4123, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "钛合金热软化 vs 超大陆旋回 无结构关联", "reject_reason": "no match"}
+{"rank": 4124, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "引力透镜 vs 荧光寿命成像 都涉及'局部介质影响信号'但一个是时空几何，一个是激发态弛豫，机制不同", "reject_reason": "no match"}
+{"rank": 4125, "verdict": "keep", "value_type": "logarithmic_diminishing_returns", "potential": 3, "reason": "生物多样性-功能对数关系 vs 隧道光面爆破超欠挖 前者是对数型边际递减，后者是工艺参数优化，不同构", "reject_reason": "reject"}
+{"rank": 4126, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "H∞鲁棒控制保守性 vs 大数定律损失预测 都涉及'最坏情况与平均情况'但数学结构不同", "reject_reason": "reject"}
+{"rank": 4127, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "面筋网络形成 vs 刹车片温度-摩擦非线性 无结构关联", "reject_reason": "no match"}
+{"rank": 4128, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "瓶颈效应多样性丢失 vs 古温计校准漂移 都涉及'历史信息丢失'但机制不同：一个是遗传漂变，一个是代用指标失真", "reject_reason": "抽象过高"}
+{"rank": 4129, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "群体免疫阈值 vs 魔幻现实主义并置 完全无关", "reject_reason": "no match"}
+{"rank": 4130, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "腐蚀正反馈 vs FACTS负反馈 方向相反——一个正反馈失稳，一个负反馈稳定，不是同构是对照", "reject_reason": "方向相反"}
+{"rank": 4131, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "边际效用递减 vs 热点温度监测 无结构关联", "reject_reason": "no match"}
+{"rank": 4132, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "傅里叶级数 vs 准两年振荡 前者是数学分解框架，后者是具体振荡模态，抽象层级不匹配", "reject_reason": "不同构"}
+{"rank": 4133, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "网络外部性多重均衡锁定 vs Gamma捕获机制 前者是路径依赖协调博弈，后者是凸性对冲收益，结构不同", "reject_reason": "reject"}
+{"rank": 4134, "verdict": "keep", "value_type": "threshold_phase_transition", "potential": 4, "reason": "社会认同传播阈值 vs 交通拥堵非线性相变 两者都是'控制参数（支持率/车流密度）跨过临界点后系统状态从亚稳态突然跃迁到主导态'。社会学与城市规划跨远域，相变结构严格同构，且都呈现'跨过前推动费力/跨过后自动加速'的典型特征", "reject_reason": ""}
+{"rank": 4135, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "飞控传感器粘滞 vs 聚合物冷流 前者是静摩擦死区，后者是长期蠕变，表面都是'阈值下无响应'但时间尺度和机制不同", "reject_reason": "reject"}
+{"rank": 4136, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "AMOC减速 vs 注意瞬脱 时间尺度和物理机制完全不同", "reject_reason": "no match"}
+{"rank": 4137, "verdict": "keep", "value_type": "concave_diminishing_impact", "potential": 3, "reason": "滚珠丝杠预紧消隙 vs 市场影响凹函数 前者是力学优化，后者是交易规模对价格的凹影响，不同构", "reject_reason": "reject"}
+{"rank": 4138, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "睡眠纺锤波记忆巩固 vs 核糖开关代谢物传感 都涉及'信号耦合'但机制完全不同", "reject_reason": "no match"}
+{"rank": 4139, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "赝能隙配对涨落 vs 经济制裁回旋镖 无结构同构", "reject_reason": "no match"}
+{"rank": 4140, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "流动性挖矿崩溃曲线 vs 湿地缓冲容量 都是'效率随时间/负荷递减'但前者是代币释放驱动的反馈崩溃，后者是净化能力对数递减，结构不严格对应", "reject_reason": "reject"}
+{"rank": 4141, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "预应力张拉损失 vs 无意视盲 无结构关联", "reject_reason": "no match"}
+{"rank": 4142, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "地铁站建成环境 vs 孤儿作品识别 都是'计算方法应用'但无结构同构", "reject_reason": "方法类比不算同构"}
+{"rank": 4143, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "永续合约资金费率套利 vs 冻融循环土壤导水率 无结构关联", "reject_reason": "no match"}
+{"rank": 4144, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "脓毒血症级联 vs 专家盲点 无结构关联", "reject_reason": "no match"}
+{"rank": 4145, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "城市基建老化 vs 湿地缓冲容量 都是对数型递减但两者都是工程/生态同类问题，且v2m-screened序列中重复出现（低新颖度）", "reject_reason": "trivially similar"}
+{"rank": 4146, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "牛顿冷却 vs 油脂烟点裂解 前者是指数衰减，后者是阈值触发裂解，不同构", "reject_reason": "no match"}
+{"rank": 4147, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "脓毒血症级联 vs PoS复利增长 前者是失控正反馈走向衰竭，后者是健康复利增长，结构不同", "reject_reason": "reject"}
+{"rank": 4148, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "城市基建老化 vs HRD评分 无结构关联", "reject_reason": "no match"}
+{"rank": 4149, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "互感器铁磁谐振 vs 信贷脉冲效应 前者是非线性谐振，后者是一阶微分敏感性，结构不同", "reject_reason": "reject"}
+{"rank": 4150, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "不均匀雪荷载 vs 大模型能力涌现 无结构关联", "reject_reason": "no match"}
+{"rank": 4151, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "半导体激光器驰豫振荡 vs 咸淡水交界面 前者是欠阻尼振荡，后者是负反馈稳态，机制不同", "reject_reason": "reject"}
+{"rank": 4152, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "树突棘可塑性 vs 宗主国语言衰退 都涉及'滞后'但时间尺度和机制完全不同", "reject_reason": "reject"}
+{"rank": 4153, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "首个机构客户价值 vs 立铣刀径向跳动 无结构关联", "reject_reason": "no match"}
+{"rank": 4154, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "排桩止水帷幕 vs 跨链重排攻击 无结构关联", "reject_reason": "no match"}
+{"rank": 4155, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "纳米塑料蛋白质电晕 vs 咖啡萃取金杯比例 无结构关联", "reject_reason": "no match"}
+{"rank": 4156, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "热点温度监测 vs 海洋碳汇饱和 无结构关联", "reject_reason": "no match"}
+{"rank": 4157, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "脓毒血症级联 vs 导电高分子掺杂指数跃升 前者是失控正反馈，后者是掺杂指数增长，抽象层级不匹配", "reject_reason": "reject"}
+{"rank": 4158, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "肠隐窝干细胞动态 vs 造山带剥露 都涉及'稳态更新'但机制完全不同", "reject_reason": "no match"}
+{"rank": 4159, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "高温螺栓蠕变松弛 vs 算稳死亡螺旋 前者是线性粘弹松弛，后者是非线性失控正反馈，结构不同", "reject_reason": "reject"}
+{"rank": 4160, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "Hippo器官密度负反馈 vs 碳酸盐补偿深度 前者是细胞密度感知负反馈稳态，后者是化学平衡界面上移，结构不严格对应", "reject_reason": "reject"}
+{"rank": 4161, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "集中流动性做市 vs 国家建构与族群边界共生演化 无结构关联", "reject_reason": "no match"}
+{"rank": 4162, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "配变空载损耗 vs 量化宽松边际递减 无结构关联", "reject_reason": "no match"}
+{"rank": 4163, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "玉米花丝抽出延迟 vs 微生物组多样性指数 无结构关联", "reject_reason": "no match"}
+{"rank": 4164, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "混凝土徐变挠度 vs 现金持有预防性动机 前者是材料时变，后者是边际递减，结构不同", "reject_reason": "reject"}
+{"rank": 4165, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "土工合成材料界面摩擦 vs 湿地缓冲容量 无结构关联", "reject_reason": "no match"}
+{"rank": 4166, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "日常活动空间行动圈 vs 众包标注质量控制 无结构关联", "reject_reason": "no match"}
+{"rank": 4167, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "政策因果识别方法 vs 诗歌韵律计算生成 都是计算方法但无结构同构", "reject_reason": "方法类比不算"}
+{"rank": 4168, "verdict": "keep", "value_type": "critical_phase_transition", "potential": 4, "reason": "渗流阈值导电相变 vs 信用衍生品相关性陷阱 两者都是'控制参数（浓度p/相关性ρ）跨过临界值后系统呈现不连续跃迁（电导/优先级损失），临界点附近对微小变化极度敏感'。凝聚态物理与金融衍生品跨极远域，相变结构严格同构，且两者都揭示了'平均场外推在临界点附近失效'的实用警示", "reject_reason": ""}
+{"rank": 4169, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "生物多样性对数关系 vs 接地网均压 无结构关联", "reject_reason": "no match"}
+{"rank": 4170, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "COF激子梯度传输催化 vs 气液双膜理论 前者是光激发载流子迁移，后者是分子扩散界面阻力，梯度驱动但机制不同", "reject_reason": "reject"}
+{"rank": 4171, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "外汇冲销干预 vs 河流床面形态转换 无结构关联", "reject_reason": "no match"}
+{"rank": 4172, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "修昔底德陷阱 vs 驿站信息梯度 都是'空间/预期约束治理'但机制完全不同", "reject_reason": "no match"}
+{"rank": 4173, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Raft多数派复制 vs 热装配过盈量 无结构关联", "reject_reason": "no match"}
+{"rank": 4174, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "热点温度监测 vs 资本深化对数收益 无结构关联", "reject_reason": "no match"}
+{"rank": 4175, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "班级规模效应 vs 配变空载损耗 无结构关联", "reject_reason": "no match"}
+{"rank": 4176, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "流体静压轴承 vs 边际生产力递减 无结构关联", "reject_reason": "no match"}
+{"rank": 4177, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "混凝土碳化钢筋锈蚀 vs 海洋热含量增长 都是'延迟效应'但机制完全不同", "reject_reason": "no match"}
+{"rank": 4178, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "形态发生素梯度阈值响应 vs 量子退火求解 前者是空间浓度分层激活，后者是绝热演化找全局最优，结构不同", "reject_reason": "reject"}
+{"rank": 4179, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "珊瑚-藻类双稳态 vs 奠基者效应 前者是生态双稳态切换，后者是抽样漂变固定，机制不同", "reject_reason": "reject"}
+{"rank": 4180, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "高温螺栓蠕变松弛 vs 平流层对流层耦合 无结构关联", "reject_reason": "no match"}
+{"rank": 4181, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "航空轮胎滑水 vs 传感器零点漂移 无结构关联", "reject_reason": "no match"}
+{"rank": 4182, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "砂轮自锐性 vs 流域响应时间尺度依赖 无结构关联", "reject_reason": "no match"}
+{"rank": 4183, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "水稳基层反射裂缝 vs 水稻僵苗不发棵 无结构关联", "reject_reason": "no match"}
+{"rank": 4184, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "禀赋效应 vs 蛋白质语言模型嵌入 无结构关联", "reject_reason": "no match"}
+{"rank": 4185, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "政治分极化不对称 vs 网红经济长尾 前者是双边反应升级螺旋，后者是幂律分布的马太效应，结构不同", "reject_reason": "reject"}
+{"rank": 4186, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "语言爆发期 vs 奥氏体化临界温度 都是'临界阈值启动'但一个是认知发展，一个是相变，新颖度低且抽象过高", "reject_reason": "reject"}

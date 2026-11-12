@@ -1,0 +1,90 @@
+{
+  "method": "per-unit avalanche detection (bin = per-unit mean IEI)",
+  "n_units_total": 71,
+  "n_units_used": 71,
+  "n_units_skipped_too_few": 0,
+  "n_avalanches_pooled_after_per_unit_extraction": 204339,
+  "size_fit": {
+    "name": "size_per_unit",
+    "alpha": 2.974346178841274,
+    "sigma_alpha": 0.01722170118924279,
+    "xmin": 23.0,
+    "n_total": 204339,
+    "n_tail": 13143,
+    "vs_lognormal_R": -12.103037354296653,
+    "vs_lognormal_p": 1.017745344245933e-33,
+    "vs_exponential_R": 4.442684554585078,
+    "vs_exponential_p": 8.884337094505084e-06
+  },
+  "duration_fit": {
+    "name": "duration_per_unit",
+    "alpha": 2.8738037109374996,
+    "sigma_alpha": 0.01208880461418943,
+    "xmin": 7.0,
+    "n_total": 204339,
+    "n_tail": 24026,
+    "vs_lognormal_R": -20.096497781327155,
+    "vs_lognormal_p": 7.91887391493683e-90,
+    "vs_exponential_R": -0.48501684410616397,
+    "vs_exponential_p": 0.6276643971676205
+  },
+  "scaling_relation": {
+    "gamma": 1.108117087702953,
+    "gamma_sigma": 0.006371522039887873,
+    "intercept": 0.5505420944953685,
+    "R2": 0.9988771904738407,
+    "n_T_bins": 36,
+    "T_range": [
+      1,
+      37
+    ]
+  },
+  "per_unit_stats_sample": [
+    {
+      "unit": 1,
+      "n_spikes": 13351,
+      "mean_iei_ms": 169.6504757303371,
+      "n_avalanches": 2420,
+      "size_mean": 5.5169421487603305,
+      "duration_mean": 2.774793388429752
+    },
+    {
+      "unit": 2,
+      "n_spikes": 16105,
+      "mean_iei_ms": 140.68212189518133,
+      "n_avalanches": 2499,
+      "size_mean": 6.444577831132453,
+      "duration_mean": 3.0152060824329734
+    },
+    {
+      "unit": 3,
+      "n_spikes": 5763,
+      "mean_iei_ms": 393.2670758417217,
+      "n_avalanches": 1106,
+      "size_mean": 5.210669077757685,
+      "duration_mean": 2.6717902350813745
+    },
+    {
+      "unit": 4,
+      "n_spikes": 16038,
+      "mean_iei_ms": 141.27518681798347,
+      "n_avalanches": 2533,
+      "size_mean": 6.3316225819186736,
+      "duration_mean": 3.9715752072641135
+    },
+    {
+      "unit": 5,
+      "n_spikes": 6880,
+      "mean_iei_ms": 329.39118636429725,
+      "n_avalanches": 910,
+      "size_mean": 7.56043956043956,
+      "duration_mean": 3.367032967032967
+    }
+  ],
+  "comparison_pooled_v0p2": {
+    "size_alpha_pooled": 2.984,
+    "duration_alpha_pooled": 2.757,
+    "gamma_pooled": 1.098,
+    "note": "v0.2 values from neural_results.json (pooled-spike detection)."
+  }
+}

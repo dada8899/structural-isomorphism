@@ -1,0 +1,1340 @@
+{
+  "bundle_sha256": "a534afbbb5e70581f552094ad03638e7448622610d3731932f5fe856e4d4a629",
+  "doi_placeholder": "10.5281/zenodo.PLACEHOLDER",
+  "files": [
+    {
+      "license": "MIT",
+      "path": "CITATION.cff",
+      "schema_ref": null,
+      "sha256": "9db2ebbe2804a0e3fa30c1b0bd2f85e509567c1bdd0fefb10314b51a0d1f06b7",
+      "size_bytes": 2226
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "LICENSE",
+      "schema_ref": null,
+      "sha256": "6a6e2e0956ee9354310e041e331b636a8ae19551e7d0bdb94149d65ea843b02f",
+      "size_bytes": 1524
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "LICENSE-DATA",
+      "schema_ref": null,
+      "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
+      "size_bytes": 18657
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "README.md",
+      "schema_ref": null,
+      "sha256": "af5386665cad25dadba087805982e0b41d471863f7802852343a29f86ac55662",
+      "size_bytes": 19344
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/01_earthquake/VERDICT-2026-04-15.md",
+      "schema_ref": null,
+      "sha256": "d05ea95543573a401192447fde7e712d932e89754ebe241f629f176a5f762d71",
+      "size_bytes": 7799
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/01_earthquake/catalog.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "5187e6dc051b6f38ba58b92da1b018e8a53d6403b70749c7bf09bb6f6b48dcb0",
+      "size_bytes": 22087130
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/01_earthquake/catalog.parquet",
+      "schema_ref": null,
+      "sha256": "db0239c9ccf327c453b0e3a1e403b223386a1af1a503307645e131ec57abeeaf",
+      "size_bytes": 5139487
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/01_earthquake/fetch_earthquakes.py",
+      "schema_ref": null,
+      "sha256": "379cda72b0707a5ce4977acc3d35f593c8dbb6df512a0491e5df0fd6ae8317cf",
+      "size_bytes": 4785
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/01_earthquake/fetch_log.json",
+      "schema_ref": null,
+      "sha256": "3e78b4c34ca9ce78b83204759b052cd67c509fe1f265cd84bc19a89570b1cad3",
+      "size_bytes": 307
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/01_earthquake/gr_results.json",
+      "schema_ref": null,
+      "sha256": "aaad9d50f96e6048427fa0dd9ca9e8f29a1597da155e5d055c4604e78c3a9bcd",
+      "size_bytes": 2064
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/01_earthquake/gutenberg_richter.py",
+      "schema_ref": null,
+      "sha256": "ce0087b8e1ff9039525b62bd52b133b6d714c9d33aa2b1a6cbd095fc6bb2d78b",
+      "size_bytes": 8449
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/01_earthquake/omori_decay.py",
+      "schema_ref": null,
+      "sha256": "f138f1c209a8aa2b3aeb6f76130a17765df3f4a10471902c61c38b2a16043d66",
+      "size_bytes": 8178
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/01_earthquake/omori_results.json",
+      "schema_ref": null,
+      "sha256": "96bb811afec73f3e5465c03b3e0d39dd99d02dabec42b7004d851ec85e1e783c",
+      "size_bytes": 969
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/01_earthquake/paper.md",
+      "schema_ref": null,
+      "sha256": "d390da88373ca4dd502f7c7f6c94a374f877a49e1d84754f15defd0800890a67",
+      "size_bytes": 24034
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/02_stockmarket/VERDICT-2026-04-15.md",
+      "schema_ref": null,
+      "sha256": "3a350c62749655d0d61982eeaf59b127859edde884965856c72645fea7735f7f",
+      "size_bytes": 8818
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/02_stockmarket/fetch_and_analyze.py",
+      "schema_ref": null,
+      "sha256": "6c7551d41fe11e2f16b30bd84a6e5f9eb88f4038d75ec0adbd865abbb3dab910",
+      "size_bytes": 10849
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/02_stockmarket/gr_results.json",
+      "schema_ref": null,
+      "sha256": "831b116be0493374fa7d13aab31e456aeb60c83efdba424067c7403fc394f2b2",
+      "size_bytes": 907
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/02_stockmarket/omori_results.json",
+      "schema_ref": null,
+      "sha256": "ce10c7ae3aa12b4e51e7cd9237d36525e88d3f0ee9d3389ea562ca294d47052b",
+      "size_bytes": 2412
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/02_stockmarket/paper.md",
+      "schema_ref": null,
+      "sha256": "392d351948a14b5af4d2f808e779385db831ec40db4661a7ed34b1526edb67cf",
+      "size_bytes": 14025
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/02_stockmarket/sp500_daily.csv",
+      "schema_ref": "README.md#5-schemas-csv",
+      "sha256": "7213dfdbe457ff2bee40986815b68a78ca55ab7de206170b3fe1f6d02900a6db",
+      "size_bytes": 979832
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/03_defi/VERDICT-2026-04-15.md",
+      "schema_ref": null,
+      "sha256": "9f6c36938061a91015b082245b9b6591b5d3b5478f252c05beb32c89c2202a76",
+      "size_bytes": 12005
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/03_defi/aave_v2_liquidations.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "a43503b398a80e007be860b825582a7fadf2a604f20f5aceea4a350147db80be",
+      "size_bytes": 12889578
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/03_defi/analyze.py",
+      "schema_ref": null,
+      "sha256": "9d8ba0c30914afec172c3b637fe2e6730350e731ff90f7d51225620e7efbc3ec",
+      "size_bytes": 12568
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/03_defi/analyze_multiprotocol.py",
+      "schema_ref": null,
+      "sha256": "6348d4f5ddb2cbf848aa101a9c68a86e1d4ff4a1eca26025dc8ac46e05c66e26",
+      "size_bytes": 11390
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/03_defi/compound_v2_liquidations.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "eaf11159424166321d4170fd1c2f3e67dcce2622921c04dc305171b91cb9b858",
+      "size_bytes": 6612343
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/03_defi/fetch_aave_liquidations.py",
+      "schema_ref": null,
+      "sha256": "13d0b0d217fc8f844b4056ea5d742a653849b0f365dc1caf12dc855ecc097898",
+      "size_bytes": 7467
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/03_defi/fetch_compound_liquidations.py",
+      "schema_ref": null,
+      "sha256": "35341a71e6e036de16f4da100412c89bbda2b7f0fea0aa810c8a52e0056b9d03",
+      "size_bytes": 6076
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/03_defi/fetch_log.json",
+      "schema_ref": null,
+      "sha256": "130ca06832a0c571f285e55fc483f90fe3d636ec04625bcd56137986cf83181b",
+      "size_bytes": 326
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/03_defi/fetch_maker_liquidations.py",
+      "schema_ref": null,
+      "sha256": "309549db8d10ec225855a5baa517f62a6c9ca214594aaedb6eb42a6804347ed4",
+      "size_bytes": 5827
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/03_defi/gr_results.json",
+      "schema_ref": null,
+      "sha256": "13d458b5ad3f01fd4283b82c44fd04b0e5065478b88daff76bdac4b1ec063674",
+      "size_bytes": 939
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/03_defi/maker_dog_liquidations.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "775a4098edcd356a424e73883e6418d8207ff14950bb691bc1215c12152d1db7",
+      "size_bytes": 1348041
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/03_defi/multiprotocol_results.json",
+      "schema_ref": null,
+      "sha256": "33a2171111ec6b94f734d544368ee7c10ecec479fdeaee44c0f6c01edd50fcf2",
+      "size_bytes": 5290
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/03_defi/omori_results.json",
+      "schema_ref": null,
+      "sha256": "efea57a7fb7a69af8936427ddf873e66a3d18d457febb2d02e3b74f07458f5a0",
+      "size_bytes": 1820
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/03_defi/paper.md",
+      "schema_ref": null,
+      "sha256": "2f36859366fd664ed5e26d73ed9ca15cb2c57987986c7cd78a0d6b460488417c",
+      "size_bytes": 20413
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/VERDICT-2026-04-16.md",
+      "schema_ref": null,
+      "sha256": "905f0f805e9ba93a337ecce089171f851f78ac13f2e03f39d87c35f009af68d1",
+      "size_bytes": 6864
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/04_neural/analyze_avalanches.py",
+      "schema_ref": null,
+      "sha256": "192d6ffc298ab4a9f57e16d7338cc84b9aa589ffe5d71aff80d93a4fa785b367",
+      "size_bytes": 6914
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_1.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "cff1ddbe3e0007b74c0cf47838f83bfb2d733de01131347dbd9a3281051aa47c",
+      "size_bytes": 8170109
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_16.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "98c8a9804dc2bcac489021b5ac10db627e6eb7b76f508882d8253808a8ffaf26",
+      "size_bytes": 5080
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_16_fit.json",
+      "schema_ref": null,
+      "sha256": "c19509545203cd57906aa4f7b50b3931074518ad52d283bcb2a4d4b49fc5696c",
+      "size_bytes": 1486
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_16_meta.json",
+      "schema_ref": null,
+      "sha256": "c6c66aa5b07570bab553444e58f9f4b172e1142b6814af0971121e8142ac4c0f",
+      "size_bytes": 323
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_1_fit.json",
+      "schema_ref": null,
+      "sha256": "99b6b0a33c3e9259041a58c884554aa5311aee62015761fd09054bf67aac0675",
+      "size_bytes": 1644
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_1_meta.json",
+      "schema_ref": null,
+      "sha256": "a181f5b251c22a70f0e5b344fcdf78615df87485baf2dfc6b4ecff87c2d6fa4d",
+      "size_bytes": 319
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_2.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "125229228cb9836ed239d0281ddfe148679406a6e8dbf2eac55b35518424465a",
+      "size_bytes": 2165216
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_2_fit.json",
+      "schema_ref": null,
+      "sha256": "211a466b3f0bc75a90a1cca7a49092c70e1cb7ad4d2d56777af14efa1a1ddc31",
+      "size_bytes": 1657
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_2_meta.json",
+      "schema_ref": null,
+      "sha256": "0422dd2458356bc17da20703ce5f4e5b91c94e06c2141f9ea21b86741e0dd19f",
+      "size_bytes": 319
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_4.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "1fae16b7edd11f1b73dd5be90c8780d91bb05db455dbdc671d81b76bf871ba30",
+      "size_bytes": 245052
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_4_fit.json",
+      "schema_ref": null,
+      "sha256": "1250737ad716eb08a49034774f001af9b0bfcf0ddd46cb252e43a4ba82b16981",
+      "size_bytes": 1652
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_4_meta.json",
+      "schema_ref": null,
+      "sha256": "1f04f3ed06d9add328d64cb5a54f7a0f3862ef290f4b2c4e63c5920fe5b84fab",
+      "size_bytes": 319
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_8.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "7635dc339b093efcd37bd87af906197366561a51b8811089e89c5d4d0c9f3693",
+      "size_bytes": 12861
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_8_fit.json",
+      "schema_ref": null,
+      "sha256": "eaee4f70c436a930f50ff996097633e7fee5ce669a70f3e345dd29461b0d1399",
+      "size_bytes": 1492
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/bf_8_meta.json",
+      "schema_ref": null,
+      "sha256": "6e43325e6bce193c0a718af896506e062ea3dfab03da43d4a6f4651ded0b1929",
+      "size_bytes": 321
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/04_neural/extract_nwb_avalanches.py",
+      "schema_ref": null,
+      "sha256": "1e3ecb5dcb34107067fa02e53a7f02717f37adf8861c4864e84ff485f1dcceec",
+      "size_bytes": 4854
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/04_neural/generate_synthetic.py",
+      "schema_ref": null,
+      "sha256": "9e9f0c695332e33239f45117cbd83dda128d6a4982d2954eb9fa5965c143fc76",
+      "size_bytes": 2445
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/neural_avalanches.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "cff1ddbe3e0007b74c0cf47838f83bfb2d733de01131347dbd9a3281051aa47c",
+      "size_bytes": 8170109
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/neural_fetch_log.json",
+      "schema_ref": null,
+      "sha256": "a181f5b251c22a70f0e5b344fcdf78615df87485baf2dfc6b4ecff87c2d6fa4d",
+      "size_bytes": 319
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/neural_results.json",
+      "schema_ref": null,
+      "sha256": "55185e009aef09d779a114dd5701320e3a14fa6d64b391e9ff6e55ef71e536fc",
+      "size_bytes": 1675
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/paper.md",
+      "schema_ref": null,
+      "sha256": "05881409b155b6a60cd302bf597800f7bc666efce2e81ea826f35946cbf45031",
+      "size_bytes": 13123
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/synthetic_avalanches.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "b149861511b93a3cd8038aece70b0d581bf55d4e59af423bfd2e0337cca30bc2",
+      "size_bytes": 5512674
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/04_neural/synthetic_results.json",
+      "schema_ref": null,
+      "sha256": "dd1f6e152376d20b189187fc986127db4257c5167710a7f28e3ac85b86f9adf3",
+      "size_bytes": 1651
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/05_wildfire/analyze.py",
+      "schema_ref": null,
+      "sha256": "b00fcf4493563f0bfafe94b1670810b7dbbcfaaf7f2ae92a265b865de2d99e04",
+      "size_bytes": 5797
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/05_wildfire/fetch_fires.py",
+      "schema_ref": null,
+      "sha256": "525400a9de381c3c4e006ef1c6b18e51cb3d8cd369ce56b7c5e768fb17c59ab2",
+      "size_bytes": 4585
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/05_wildfire/fires.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "5ca882323cf2aa99b207046e887f7d5930cb1904e79f8d284fc86d3845167442",
+      "size_bytes": 1956859
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/05_wildfire/paper.md",
+      "schema_ref": null,
+      "sha256": "63349a71af8b47e49593e389ed845b7b583d931202973963f3c4406a427a8577",
+      "size_bytes": 17367
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/05_wildfire/wildfire_results.json",
+      "schema_ref": null,
+      "sha256": "3cbc63c42264bd5f7656335b702e9478990396c540b79ab33a1105e687517f62",
+      "size_bytes": 2032
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/06_solar/analyze.py",
+      "schema_ref": null,
+      "sha256": "787447478d0f579d6bf8b6e1055e814071264770d4a1a00dd9b59878fdb77e73",
+      "size_bytes": 6080
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/06_solar/fetch_flares.py",
+      "schema_ref": null,
+      "sha256": "a10ca398a8fc5ceb23302784f9cd5249697e0e5859c2817d74b467de5fd3949f",
+      "size_bytes": 6027
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/06_solar/fetch_log.json",
+      "schema_ref": null,
+      "sha256": "b8c51e15bf661587926c44eda3e0a64470930d690749b67b5a47af286cfbb0c9",
+      "size_bytes": 1932
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/06_solar/flares.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "a5e6aeb941bcba4ff3b0cdd193bea8cb079d6af688a74527382fd3987e9aa3a7",
+      "size_bytes": 5695346
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/06_solar/paper.md",
+      "schema_ref": null,
+      "sha256": "58d39ece5b58812c96a84bbfb40e2f097996c341726ae5adb4b16ab4e2119c56",
+      "size_bytes": 17661
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/06_solar/solar_results.json",
+      "schema_ref": null,
+      "sha256": "d63da8a55b9b45c0668a19cc85f11bf2ed0edc65d322ef3e236a280a1eabd53b",
+      "size_bytes": 2651
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/07_bank_failures/analyze.py",
+      "schema_ref": null,
+      "sha256": "9e7571639085ab792aa0e1b1130b54537cb18105b6bc1b12f6bfaa1659924f89",
+      "size_bytes": 8334
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/07_bank_failures/bank_failures.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "41225e60bb4fb32e5b93987a6e79875a455e5bcb7094654ceefcc3f7c18acb52",
+      "size_bytes": 991627
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/07_bank_failures/bank_results.json",
+      "schema_ref": null,
+      "sha256": "0ec0f0d9ff6a8ef9d4e69c1b130486beb38f3f7254ae0471de7dcbbf2d0991b8",
+      "size_bytes": 2739
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/07_bank_failures/paper.md",
+      "schema_ref": null,
+      "sha256": "731faa0b48b0a717a39029279051a0eaf2a29e3bdda31e7b72c6e9dae7ec0e05",
+      "size_bytes": 23734
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/07_bank_failures/raw_fdic.json",
+      "schema_ref": null,
+      "sha256": "660624485462b07313cd38105cf2dcd5ac2fede8a7fd8b6637fc0a5508fe1f93",
+      "size_bytes": 2408576
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/08_github_stars/analyze.py",
+      "schema_ref": null,
+      "sha256": "23737c180b658b8948494d717530a1aaf7f6db0e49a0ba7798dfa46f9856b9dc",
+      "size_bytes": 5418
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/08_github_stars/fetch_log.json",
+      "schema_ref": null,
+      "sha256": "b9c4d5f4eb0b1d3931ba7d6c1e7f5a81f2df597ed27c36dd8e6fc177b9da9393",
+      "size_bytes": 851
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/08_github_stars/fetch_repos.py",
+      "schema_ref": null,
+      "sha256": "b7bd39f03567526062211a9080e74bf4273bc4b3418ef17e8ded5f2158a2d75e",
+      "size_bytes": 5121
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/08_github_stars/github_results.json",
+      "schema_ref": null,
+      "sha256": "1fe2fccdb4a3c245fb7738facd78351a6c0b8794f72daf9cd5a2a14ce7f86ae0",
+      "size_bytes": 2961
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/08_github_stars/paper.md",
+      "schema_ref": null,
+      "sha256": "c791d8a4363403d6ff1e4c37eefe1fc53c020404c2a99efa59c22b0ea160e471",
+      "size_bytes": 17298
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/08_github_stars/repos.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "e5d075e69dcc054f81a66065990ac101bc31c8b29f5e5a4779db45ffa09d7488",
+      "size_bytes": 1106640
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/09_power_grid/VERDICT-2026-05-13.md",
+      "schema_ref": null,
+      "sha256": "2f0e8e27cd1cb221e6a5a2a1f186c467b5b8ad037c7a7899ded1846dc8053da0",
+      "size_bytes": 2180
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/09_power_grid/analyze.py",
+      "schema_ref": null,
+      "sha256": "e984bfe87d7f72591848cf3adbf4288637d648952f141a9f42943748a6901f3f",
+      "size_bytes": 10299
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/09_power_grid/disturbances.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "5173a4bb9c83e9bea62ea7fb255e219ee15f3809fc37dd9d35bb4501ad3e85ef",
+      "size_bytes": 19565
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/09_power_grid/fetch_disturbances.py",
+      "schema_ref": null,
+      "sha256": "5176cfcf3d78a98c5e01228cb89958c94f39ee765b9b59a8104814d581b5a004",
+      "size_bytes": 21183
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/09_power_grid/paper.md",
+      "schema_ref": null,
+      "sha256": "0c059e9c1fbe9c811870a6ebdc237b1e3a7267d97519d586e53170903acf896c",
+      "size_bytes": 25492
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/09_power_grid/power_grid_results.json",
+      "schema_ref": null,
+      "sha256": "2fc85b6efea1e0a00ccd6b9227772df6d9ba59364f5308cb1011fd8de9a06e57",
+      "size_bytes": 4549
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/09_power_grid/provenance.json",
+      "schema_ref": null,
+      "sha256": "1106be0ae3e96845bbe4e98c5dfb8b934925393f4832a888ab3886c3df68a9b6",
+      "size_bytes": 761
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/10_wikipedia_views/VERDICT-2026-05-13.md",
+      "schema_ref": null,
+      "sha256": "4baf9af94a5406629ffa3e68970c0e8cb8a446c625e834d489ac703932522790",
+      "size_bytes": 1767
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/10_wikipedia_views/analyze.py",
+      "schema_ref": null,
+      "sha256": "097e2ee2f778030fff522ea6dd01a2fb3ed16e4ce67bf381cb847fe7fe6b4a81",
+      "size_bytes": 8531
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/10_wikipedia_views/fetch_log.json",
+      "schema_ref": null,
+      "sha256": "4ccb43a44207fa954df25049a5df9b7c4024ae5f809077e4b980d06ce27207e4",
+      "size_bytes": 3372
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/10_wikipedia_views/fetch_pageviews.py",
+      "schema_ref": null,
+      "sha256": "0d363ffcf57da6835cedf1e3b5119067fbf88a04cf0e299c777a470574673148",
+      "size_bytes": 5877
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/10_wikipedia_views/pageviews_2023_2024.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "4622d81455a7af37d270b1f550581c2fc36b2766241244bb19e56971f95302fe",
+      "size_bytes": 426721
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/10_wikipedia_views/paper.md",
+      "schema_ref": null,
+      "sha256": "bd9ee9d08879cb78a51c0e463d8842c9ccb4a4ada7776880dacecb87f2b3fa90",
+      "size_bytes": 25938
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/10_wikipedia_views/plot_pageviews_loglog.png",
+      "schema_ref": null,
+      "sha256": "bce7f35de8d632e699593d6885f43ce8d75225e073f90e73911ca8f7a88ad76e",
+      "size_bytes": 56002
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/10_wikipedia_views/wikipedia_results.json",
+      "schema_ref": null,
+      "sha256": "884c4b55ace5eb00134f318025bae8f44b269b7ce9df1c1b95339f9c7f2a5735",
+      "size_bytes": 3444
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/11_hawkes_omori/paper.md",
+      "schema_ref": null,
+      "sha256": "02d0085b7bf0f66f3e448fd1e90b91c772453a7217ba0fae912ff176f516feed",
+      "size_bytes": 14268
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/11_hawkes_omori/results.json",
+      "schema_ref": null,
+      "sha256": "4dad6876e5458a203e0122be8ac8eb736fbba96caf4fec1825ec0c771a0da8ae",
+      "size_bytes": 5220
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/12_scheffer_lake/VERDICT-2026-05-13.md",
+      "schema_ref": null,
+      "sha256": "b8009ff04a47aa0cc3f260ea5c350e14049723f6eee30b3932d39132206b48f9",
+      "size_bytes": 5958
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/12_scheffer_lake/analyze_regime_shift.py",
+      "schema_ref": null,
+      "sha256": "7672798137d59fb70e744a4de2bb6313ba407286c483809b4af01307440a6d7f",
+      "size_bytes": 15168
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/12_scheffer_lake/fetch_lake_data.py",
+      "schema_ref": null,
+      "sha256": "14381f8eb4c6f69201dad126a6195fee079556de653358de3686cec880c57a66",
+      "size_bytes": 8188
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/12_scheffer_lake/fetch_log.json",
+      "schema_ref": null,
+      "sha256": "ae973faf4d39747e755eac95a4a0ba529ea11a448d11faa101139b8fb25773a8",
+      "size_bytes": 2518
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/12_scheffer_lake/lake_do_timeseries.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "18b3516102b00a297992df8e459faa0323dffdd3c768685cb1454312ba958885",
+      "size_bytes": 698206
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/12_scheffer_lake/lake_panel.png",
+      "schema_ref": null,
+      "sha256": "e57b05d63dc400168bfdd979d826af0e28fa3ad7858c83b3bf415b03506c2a2d",
+      "size_bytes": 139955
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/12_scheffer_lake/lake_results.json",
+      "schema_ref": null,
+      "sha256": "144f8fbed80b5f450211cb362c747fc0d24002c3bd282ace70aad01f6c09ae3b",
+      "size_bytes": 11751
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/12_scheffer_lake/lake_timeseries.png",
+      "schema_ref": null,
+      "sha256": "68c37408d14a1a5c6408b9a9dd9d649ad41cbf14e04a32a326fcb00e11c8f56e",
+      "size_bytes": 158386
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/12_scheffer_lake/paper.md",
+      "schema_ref": null,
+      "sha256": "93b7c85841f9d048be83104e8deea7413c52de0929772b3be7113fb142b6a059",
+      "size_bytes": 20048
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/13_hysteresis_traffic/VERDICT-2026-05-13.md",
+      "schema_ref": null,
+      "sha256": "4484029ece27146969a1ce7b61c28e51b01ea2843201f07537a7f49106683049",
+      "size_bytes": 4341
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/13_hysteresis_traffic/analyze_hysteresis.py",
+      "schema_ref": null,
+      "sha256": "38a7809f171ed0f75a86f8f005e756ce7db23ad667fa7d54f0bc114198450f30",
+      "size_bytes": 18379
+    },
+    {
+      "license": "MIT",
+      "path": "datasets/13_hysteresis_traffic/fetch_traffic.py",
+      "schema_ref": null,
+      "sha256": "10d4c4581f19f63130d8f02be4e939560c1f858be225988d114d73ec52c56ba9",
+      "size_bytes": 8125
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/13_hysteresis_traffic/literature_fallback.json",
+      "schema_ref": null,
+      "sha256": "730c61cc20884c6a013dfe658b08f8a9db1ef993e00718f761856494de83a94e",
+      "size_bytes": 467
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/13_hysteresis_traffic/paper.md",
+      "schema_ref": null,
+      "sha256": "582aa90433bede95c5fd1ac3da07f250db0b5f8444458eb3952701ae79fc23ba",
+      "size_bytes": 24251
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/13_hysteresis_traffic/traffic_qrho.jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
+      "sha256": "6f47e1a834ce9958c6a0d8f5599341fca259709d60552a0c09bf11d0dccb278e",
+      "size_bytes": 945014
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/13_hysteresis_traffic/traffic_results.json",
+      "schema_ref": null,
+      "sha256": "39e413bcfa72912adeba443e9497513e262bb66a98c0e598dc8bb3dc6483c470",
+      "size_bytes": 10491
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/13_hysteresis_traffic/us101_ngsim_agg_raw.csv",
+      "schema_ref": "README.md#5-schemas-csv",
+      "sha256": "0b8bb59553e13f32653b152529c083a5fe2d51cb4ab8ae939135e1f2c1673352",
+      "size_bytes": 236284
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "datasets/_build_summary.json",
+      "schema_ref": null,
+      "sha256": "95a054e1bca39f2e8e4cc5a93ce2182071a518f51a1761a3c635aa9a192457b8",
+      "size_bytes": 6431
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "nulls/_VERDICT.md",
+      "schema_ref": null,
+      "sha256": "8d39890adaf10fc98e3ee797eff7364b66c1f5bb4ba7fdac681a7e1f6ba7e860",
+      "size_bytes": 5654
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "nulls/_all_null_results.json",
+      "schema_ref": null,
+      "sha256": "94f03f4c2459100ba199ddb65427b1c24087198dd6d7492b2fd9a648ec8cf601",
+      "size_bytes": 2091
+    },
+    {
+      "license": "MIT",
+      "path": "nulls/_generator.py",
+      "schema_ref": null,
+      "sha256": "80da37380a6002132cd31ce3251f3fa11af77036a022eff0d322fea4261a454a",
+      "size_bytes": 8958
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "nulls/_registry.jsonl",
+      "schema_ref": "README.md#5-schemas-nulls-jsonl",
+      "sha256": "d3faad1e874488c201ed7be32d12f16d761f8e5ce305c1ec673f1bd16c2126a4",
+      "size_bytes": 3144
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "nulls/exponential/results.json",
+      "schema_ref": null,
+      "sha256": "a09eb2c88d3117f383cf20892b7f21d5ba9b92bb3493f0e7f629478dc870922a",
+      "size_bytes": 843
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "nulls/gaussian/results.json",
+      "schema_ref": null,
+      "sha256": "498de5e6dfda32651c5ec2abd7a584458c7d0eef5e9e0bfbfce67ee209f7ca15",
+      "size_bytes": 858
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "nulls/poisson/results.json",
+      "schema_ref": null,
+      "sha256": "2e52812bca4ca4055d76157951233acc73544d3b042b787c060105b00f6a0518",
+      "size_bytes": 908
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "nulls/poisson_omori/results.json",
+      "schema_ref": null,
+      "sha256": "f2a1b213ecf7754d8d749c950dd4e4ba48b765bfa9436e8d4e3c4715418aa96a",
+      "size_bytes": 831
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "paper/scientific-data-benchmark-2026-05-15.md",
+      "schema_ref": null,
+      "sha256": "348e93e32b98061aaf7ea32b243b542148010ee3c207bd370401d05148b5c40b",
+      "size_bytes": 33725
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/b3_ensemble.py",
+      "schema_ref": null,
+      "sha256": "5a2eb85fec6b9312f5ca035d27208f846a94be1a5645c4a8c628961e29f9ea51",
+      "size_bytes": 23629
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/llm_guardrail.py",
+      "schema_ref": null,
+      "sha256": "eefd1b2a92b89144ac7048745e1ed92d266e9358c70077f971e04a258d9e09a4",
+      "size_bytes": 895
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/pyproject.toml",
+      "schema_ref": null,
+      "sha256": "404bc360578eeadf59d08600d94be4e710b1ab24c69ca18b2827cd4c6ac99d34",
+      "size_bytes": 2176
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "pipeline/requirements-pipeline.txt",
+      "schema_ref": null,
+      "sha256": "4623bb36c26e023d3ec234520cf327db5b44657928a8211b62bee37f30f0c250",
+      "size_bytes": 535
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/__init__.py",
+      "schema_ref": null,
+      "sha256": "3f3d20ebca91225e0931b71944184336a4d2d367196fe3dcd4baeb65d132891f",
+      "size_bytes": 1576
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/b_value.py",
+      "schema_ref": null,
+      "sha256": "7c8c0b3bafb6b950cfae825a2c31bb4f337367ccd325246a98f3ba4752d73e5f",
+      "size_bytes": 3967
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/bootstrap.py",
+      "schema_ref": null,
+      "sha256": "9a455c4d32e2c6b124d693ba65e5a602a6a3d8512a10f2b11d48eaef416554de",
+      "size_bytes": 2981
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/fit.py",
+      "schema_ref": null,
+      "sha256": "f0de84c82b5e2272de0c7fbd5607dcbfafeb9bb41142d70692a8ebeee580534c",
+      "size_bytes": 5872
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/lr_test.py",
+      "schema_ref": null,
+      "sha256": "3745f27b3d5a5ac95e29b64759f6815633517c259a2dd64548fe3a4fa498666b",
+      "size_bytes": 2437
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/null_controls.py",
+      "schema_ref": null,
+      "sha256": "677c836424b644557ac267a32058b8abef47ffab69007cefd1d2d60a0d0de0f0",
+      "size_bytes": 2736
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/omori.py",
+      "schema_ref": null,
+      "sha256": "a772320251a048c53ad1a66e1b8eb5b29ef5d6651fabd5201cc601bc1d3fd39e",
+      "size_bytes": 8030
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/time_resolution.py",
+      "schema_ref": null,
+      "sha256": "0dee3db4d75231c203a5637a90a7b82d87e74e9e0b2a974ac1db0f2c44b67050",
+      "size_bytes": 2993
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/universal_collapse.py",
+      "schema_ref": null,
+      "sha256": "b30ee831c50988ea2ce786dd479db0f2e3b12e6893fceb5da42ebaa2ab561899",
+      "size_bytes": 3394
+    },
+    {
+      "license": "MIT",
+      "path": "pipeline/soc_pipeline/utils.py",
+      "schema_ref": null,
+      "sha256": "05b4dd5a890962cfb127213dd79a7f16f4f9e609647a9734381b3310c08acfdc",
+      "size_bytes": 1693
+    },
+    {
+      "license": "MIT",
+      "path": "repro/build_datasets.py",
+      "schema_ref": null,
+      "sha256": "c241e2b05e76d025cbd409f3c7d9704e746612dfdcbd8e681338422053ebb655",
+      "size_bytes": 5909
+    },
+    {
+      "license": "MIT",
+      "path": "repro/generate_manifest.py",
+      "schema_ref": null,
+      "sha256": "3ae4dfb103ceb5be7793053a34eb27b5ec212a5015214f4d818b6a852a1c7ce8",
+      "size_bytes": 5513
+    },
+    {
+      "license": "MIT",
+      "path": "repro/reproduce_all.py",
+      "schema_ref": null,
+      "sha256": "dc467a1afb33a83fac8e55b0d8cc9b92c29530187ca36ce1ceeb816b1f2e27eb",
+      "size_bytes": 8608
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "repro/requirements-repro.txt",
+      "schema_ref": null,
+      "sha256": "2224aab5c640f706526dedc37b81f81233dd4562538fc4faf8bc8198501598aa",
+      "size_bytes": 236
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "results/B3_ensemble_review.jsonl",
+      "schema_ref": "README.md#5-schemas-results-jsonl",
+      "sha256": "e9fd79c6176fd32359e358f1cd1aeff47683fc8197f8c75895f97036b0b788e3",
+      "size_bytes": 39361
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "results/B3_ensemble_summary.md",
+      "schema_ref": null,
+      "sha256": "a1070a7ea013059d64d04750f5611fbab332c92aea9ac9913b26eb9ec4d564b9",
+      "size_bytes": 3574
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "results/B3_taxonomy_v2.jsonl",
+      "schema_ref": "README.md#5-schemas-taxonomy-jsonl",
+      "sha256": "98bd13194a2259c8527de58b545a9503ff52a87cc24bde9cc953a0f8c27667a8",
+      "size_bytes": 5689
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "results/layer3_critic.jsonl",
+      "schema_ref": "README.md#5-schemas-results-jsonl",
+      "sha256": "fbe0a5e5e5544713337d571d91745b7b06c857f387028087973431714551ec45",
+      "size_bytes": 42913
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "results/layer3_critic_summary.md",
+      "schema_ref": null,
+      "sha256": "900a21f60259da1709147f8cda8014eca04f4d9267f083e2bbed250af960b36c",
+      "size_bytes": 16370
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "results/layer4.jsonl",
+      "schema_ref": "README.md#5-schemas-results-jsonl",
+      "sha256": "75c4cd942acbe607ff7e2f87ecb310c2a8bdf637cdbe177b4b5693464cbbd8d4",
+      "size_bytes": 25153
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/B1_B3_split_merge_summary.md",
+      "schema_ref": null,
+      "sha256": "a67fd0f92831e727d3bca5dc51f6f73be4a8769092e7239ffb9e859934149799",
+      "size_bytes": 4894
+    },
+    {
+      "license": "MIT",
+      "path": "taxonomy/SCHEMA.md",
+      "schema_ref": null,
+      "sha256": "b0e844a4da6714c7bb6380b4c4a3a3b8ade3737cf4f035fa6557da28f08c3169",
+      "size_bytes": 6985
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/adverse_selection_unraveling_class.yaml",
+      "schema_ref": null,
+      "sha256": "6a64e43e3ac9312688fa74909575950f27de911e12ae1c5e5effabdb3249a102",
+      "size_bytes": 10569
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/adverse_selection_unraveling_class__akerlof_lemons.yaml",
+      "schema_ref": null,
+      "sha256": "ce7b64392516cc3768620d59edee40a6e401e2579a42f976bd850fb7921033cf",
+      "size_bytes": 11186
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/adverse_selection_unraveling_class__echo_chamber_filter.yaml",
+      "schema_ref": null,
+      "sha256": "3027ff8f786e4a954a732d001e9858af3bbb21ab5e628af0ece18b5459efb5f3",
+      "size_bytes": 9123
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/adverse_selection_unraveling_class__spiral_of_silence.yaml",
+      "schema_ref": null,
+      "sha256": "f115d9b3c08712e196693829d283fd3990aa0cfd473babe0b118bbdb8e1f9261",
+      "size_bytes": 10397
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/delay_differential_debt.yaml",
+      "schema_ref": null,
+      "sha256": "85267dfe5a13e736038011416e1ecda99d70cae341f9dc7eabcc289b6fad06e3",
+      "size_bytes": 8750
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/extreme_value_tail_class.yaml",
+      "schema_ref": null,
+      "sha256": "c85153e4fe3d01ecfe92c4ae51ad880c5fde7a97f1797e4701a1cb0b115fa702",
+      "size_bytes": 9091
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/gardner_collins_toggle_switch.yaml",
+      "schema_ref": null,
+      "sha256": "cc47a1fc8103a09b7bd114f1114d536732c5e73dc90883c276b770a497486334",
+      "size_bytes": 9650
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/gardner_collins_toggle_switch_Th1Th2.yaml",
+      "schema_ref": null,
+      "sha256": "554e2878302ca1643ac97ee4917105ad82951fb095b86ee6995e5779f0f23567",
+      "size_bytes": 7599
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/gardner_collins_toggle_switch_apoptosis.yaml",
+      "schema_ref": null,
+      "sha256": "f764be37d57e570f810b76ab1516a528de5ebeee151e6538156c5381fbb775d9",
+      "size_bytes": 9567
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/hysteresis_first_order_transition.yaml",
+      "schema_ref": null,
+      "sha256": "936ee89c260b8e66ca330f132b2dd124b4f262ac466c0541142b6b4d4a51d8db",
+      "size_bytes": 8636
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/hysteresis_first_order_transition_fertility.yaml",
+      "schema_ref": null,
+      "sha256": "85f6b2a9238002a81ebbbc47792fc9bcca94a9d10b92bddd1bfba513f40ac851",
+      "size_bytes": 6209
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/hysteresis_preisach.yaml",
+      "schema_ref": null,
+      "sha256": "72593a7c9c237835e00f014d2498a924d48ef0649bea8b58e69d31081e209db8",
+      "size_bytes": 8299
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/leaky_integrate_fire_threshold_class.yaml",
+      "schema_ref": null,
+      "sha256": "ae1d2ba79c26025c9077a09721f1f0f8f3d5ebe5db7dd1fb2e60216b03f5f7ca",
+      "size_bytes": 6605
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/leaky_integrate_fire_threshold_class__lif_reset.yaml",
+      "schema_ref": null,
+      "sha256": "c68db7600162ab477490456a5b28e9ad816e341f19432cc0280a2a2e222c47e8",
+      "size_bytes": 7013
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/leaky_integrate_fire_threshold_class__threshold_adaptation.yaml",
+      "schema_ref": null,
+      "sha256": "e8314cb5180fcbabd94d27610fcc1592f5cb310cf82f88daad41f7c4fe482cdc",
+      "size_bytes": 7666
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/markov_chain_memory_fidelity_class.yaml",
+      "schema_ref": null,
+      "sha256": "9b4fd6e3364385eca653ea47aab8bdce0740815848bbfcfc9cc72f29d28cd5c3",
+      "size_bytes": 6598
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/motter_lai_network_cascade.yaml",
+      "schema_ref": null,
+      "sha256": "5b28d3eb07a38583beb5b0dad10ea4c834f8d31de1308033c57e1d323f05ecbd",
+      "size_bytes": 8131
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/motter_lai_network_cascade__conserved_load.yaml",
+      "schema_ref": null,
+      "sha256": "d93c149c1054b25ef1139699a24866bb501d1fbd8b988550e65829340d21ef2c",
+      "size_bytes": 8591
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/motter_lai_network_cascade__threshold_contagion.yaml",
+      "schema_ref": null,
+      "sha256": "a72ad4678bf291e45a9d0d099f68993cb83f6d0f75ad48937ce5c09a6827c2cc",
+      "size_bytes": 8918
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/motter_lai_network_cascade_social.yaml",
+      "schema_ref": null,
+      "sha256": "cfe47ddab7584072132e126e8212eb2d39389af922cb651aa726b326031a21f8",
+      "size_bytes": 5430
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/percolation_connectivity.yaml",
+      "schema_ref": null,
+      "sha256": "fbf3171d70dfc6e5b7b7a9b74799d0173f161710e1a193adfbd118eacca697aa",
+      "size_bytes": 7267
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/percolation_connectivity__geometric_lattice.yaml",
+      "schema_ref": null,
+      "sha256": "00b6f8b853d5e410e518c5233306031aec02dadc7082b2c626440cef5677bd86",
+      "size_bytes": 7783
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/percolation_connectivity__mean_field_network.yaml",
+      "schema_ref": null,
+      "sha256": "534a2edbf11823d17caacd47ce4e8864aac71a37028955e32036639e3cedd5e3",
+      "size_bytes": 7859
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/preferential_attachment.yaml",
+      "schema_ref": null,
+      "sha256": "3d7749def068cc2987dd49028959022b2cb9752d0b8ad09a48b0cc12ccbb1997",
+      "size_bytes": 6961
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/reaction_diffusion_steady_state_class.yaml",
+      "schema_ref": null,
+      "sha256": "71d07e42bc257ecd93067b655b81c2d03d1f7b732e2710db661799967fa75ac1",
+      "size_bytes": 5327
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/reflexive_fixed_point_class.yaml",
+      "schema_ref": null,
+      "sha256": "7b719150426252cec8e0037789b1804b64b00b07312b050902d373f10ae8eb7c",
+      "size_bytes": 7274
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/scale_free_percolation_class.yaml",
+      "schema_ref": null,
+      "sha256": "9d7912b1873576c5f8e06ba62949ac670d43ed59d6efc38b6cdaa261879ad458",
+      "size_bytes": 6915
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/scheffer_fold_bifurcation.yaml",
+      "schema_ref": null,
+      "sha256": "0ccbd51bfd3d7ba8dd7f26470868e0791a6ff7e7a5aa27fa2666c35b7f009871",
+      "size_bytes": 6335
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/schelling_credible_commitment.yaml",
+      "schema_ref": null,
+      "sha256": "808bb0c81b8f4cf97354109aa3fa454923d33fadd92ed5cd6067bbea4951ebb3",
+      "size_bytes": 6602
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/second_order_damped_oscillator.yaml",
+      "schema_ref": null,
+      "sha256": "6e20c5fa22f0e77ac5a5c8ebd2a6472a2fe783c817f79d25cefff321317ac12c",
+      "size_bytes": 6329
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/sir_contagion_network_class.yaml",
+      "schema_ref": null,
+      "sha256": "12877c9384705fc9de0235c95a0cbf87fa1b5a9b3456154161ce7b0c9401d8c3",
+      "size_bytes": 5827
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/sir_contagion_network_class__balance_sheet_cascade.yaml",
+      "schema_ref": null,
+      "sha256": "7941c05ffde112d56d2415d73cc9389b1f915256de95f14b7ef148bb29423615",
+      "size_bytes": 8593
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/sir_contagion_network_class__sir_epidemic.yaml",
+      "schema_ref": null,
+      "sha256": "1d5a6c4b42ad570d9a69e5a6fb95d6f754c065cfc32cff3964fd9ed9e455a9f3",
+      "size_bytes": 7776
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/soc_threshold_cascade.yaml",
+      "schema_ref": null,
+      "sha256": "fe1c207b1590ed3ddeb89c9da2acc6a697969825ebf7d37aa361942f37ebe9be",
+      "size_bytes": 12940
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/classes/tail_copula_contagion.yaml",
+      "schema_ref": null,
+      "sha256": "43a42f1873d32a20ef8e3f263e0b162af2ce28086e3b252cbcc8310304c4d38e",
+      "size_bytes": 6388
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "taxonomy/universality_classes.yaml",
+      "schema_ref": null,
+      "sha256": "2054d3b3d25a024092d667274a9afb6c58b9ec5fa9ec26f9ca7436acea7b00b1",
+      "size_bytes": 12095
+    },
+    {
+      "license": "MIT",
+      "path": "tutorials/01_reproduce_earthquake_soc.ipynb",
+      "schema_ref": null,
+      "sha256": "d4c69047bb8cce1d61d2adde356b1f55a39a1caa1bccec07ced014a77956fea4",
+      "size_bytes": 18166
+    },
+    {
+      "license": "CC-BY-4.0",
+      "path": "tutorials/README.md",
+      "schema_ref": null,
+      "sha256": "f8256497a5061958c4d688b405d46dc2920c60eea8d10388ba1d165429aefa1d",
+      "size_bytes": 5404
+    }
+  ],
+  "files_count": 189,
+  "git_commit": "90a51d263ae98b8bb7a4bf50eba20cf3e750ffd0",
+  "license_code": "MIT",
+  "license_data": "CC-BY-4.0",
+  "release_date": "2026-05-15",
+  "schema": "structural-isomorphism-zenodo-benchmark-v1",
+  "sha256_alg": "sha256",
+  "size_bytes_total": 89442123,
+  "size_human": "85.30 MB",
+  "title": "structural-isomorphism cross-domain SOC + universality benchmark",
+  "version": "1.0.0"
+}

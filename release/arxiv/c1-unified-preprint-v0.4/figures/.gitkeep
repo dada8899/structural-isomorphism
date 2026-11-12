@@ -1,0 +1,15 @@
+# v0.4 figures directory (placeholder)
+#
+# v0.4 ships with NO figures embedded in main.tex.  All numeric
+# evidence is reported via inline tables (Tables 1, 2, A1-A4).
+#
+# v0.5 deliverable (per Pre-submission checklist item 8):
+#   taxonomy-v0.4.png  (and .svg)   — Layer-0/1/2 taxonomy diagram
+#                                     with 5 SPLIT edges + 1 MERGE edge
+#                                     + cross-domain scatter threshold
+#                                     dashed screen.
+#   Spec: see main.tex §3.6.7 "Updated taxonomy figure (textual
+#         specification)".
+#
+# Until v0.5, this directory is empty; arXiv submission bundles only
+# main.tex + references.bib.

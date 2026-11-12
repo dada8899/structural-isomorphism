@@ -1,0 +1,10 @@
+{
+  "schema_version": "english-holdout-candidate-pool-v2",
+  "status": "NOT_BUILT",
+  "holdout_sha256": "2df0c12663319c1631d8caa492d9bd8962ae66799d96782a3375cd63ece72b6b",
+  "pool_depth_per_system": 50,
+  "systems": [],
+  "common_pool": null,
+  "labels": "PROHIBITED_UNTIL_FROZEN_COMPLETE",
+  "boundary": "This is a fail-closed placeholder. It contains no retrieval outputs, candidate judgments or scores."
+}

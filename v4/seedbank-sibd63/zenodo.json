@@ -1,0 +1,49 @@
+{
+  "title": "SIBD-63: A Dataset of A-Level Cross-Domain Structural Isomorphism Discoveries with Shared Equations and Variable Mappings",
+  "upload_type": "dataset",
+  "description": "<p>63 cross-domain structural isomorphism discoveries produced by three independent AI-assisted pipelines (V1 broad-recall embedding, V2 strict-precision embedding, V3 StructTuple + LLM rerank) operating on a 4,443-phenomenon natural-language knowledge base. By construction the pipelines have zero overlap at the A-rated tier; each contributes 24, 19, and 20 records respectively.</p><p>Each record pairs two phenomena from disjoint scientific domains that share the same underlying mathematical structure, and is annotated with a proposed shared equation (for 20 records), variable mapping, suggested target journal, literature-gap assessment, and a step-by-step empirical execution plan. Records span 48 domain labels across geology, condensed-matter physics, ecology, molecular biology, financial microstructure, decentralized finance, behavioral economics, civil engineering, pharmacology, and more.</p><p>Released as a <b>seed bank for empirical follow-up papers</b>: domain experts can pick a seed matching their expertise and convert it into a publishable paper in 3-6 months. See the companion paper for methodology details and the README for usage and collaboration instructions.</p><p><b>Companion empirical validations</b> covering five of the SOC-class records (earthquakes, S&amp;P 500 returns, DeFi liquidations across Aave V2 + Compound V2 + MakerDAO, mouse neural avalanches, and null controls) are available at <a href='https://structural.bytedance.city'>https://structural.bytedance.city</a>.</p>",
+  "creators": [
+    {
+      "name": "Wan, Qinghui",
+      "orcid": "",
+      "affiliation": "Independent researcher, Structural Isomorphism Project"
+    }
+  ],
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "keywords": [
+    "structural isomorphism",
+    "cross-domain analogy",
+    "universality class",
+    "self-organized criticality",
+    "scientific discovery",
+    "AI for science",
+    "dataset",
+    "seed bank"
+  ],
+  "subjects": [
+    {"term": "Complex Systems", "identifier": "https://www.wikidata.org/wiki/Q181536"},
+    {"term": "Statistical Physics", "identifier": "https://www.wikidata.org/wiki/Q217129"}
+  ],
+  "communities": [],
+  "notes": "Companion code and full pipeline source at https://github.com/dada8899/structural-isomorphism . V1 and V2 trained embedding models available on Hugging Face at https://huggingface.co/qinghuiwan.",
+  "language": "eng",
+  "version": "1.0",
+  "references": [
+    "Wan Q. 2026. Recovering SOC Universality on a Global Earthquake Catalog. Layer 5 Phase 1 companion paper, Structural Isomorphism Project.",
+    "Wan Q. 2026. Cross-Protocol SOC Universality in DeFi Liquidation Cascades: 43,065 Events Across Aave V2, Compound V2, and MakerDAO. Layer 5 Phase 3 companion paper.",
+    "Clauset A, Shalizi CR, Newman MEJ. 2009. Power-law distributions in empirical data. SIAM Review 51, 661."
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/dada8899/structural-isomorphism",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded",
+      "relation": "isSupplementTo",
+      "resource_type": "other-model"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+/* Structural — GlossaryTooltip styles
+ * Companion to /assets/js/glossary.js. Wraps the FIRST mention of each
+ * jargon term with a dotted-underline span; hover/tap reveals a popup.
+ */
+
+.glossary-term {
+  display: inline;
+  border-bottom: 1px dotted var(--brand-muted, #71717A);
+  cursor: help;
+  /* Avoid breaking mid-term across lines */
+  white-space: nowrap;
+  /* Tiny visual hint that it's interactive */
+  transition: border-color 160ms ease, color 160ms ease;
+  outline: none;
+}
+
+.glossary-term:hover,
+.glossary-term:focus {
+  border-bottom-color: var(--brand-accent, #2563EB);
+  color: var(--brand-accent, #2563EB);
+}
+
+.glossary-term:focus-visible {
+  outline: 2px solid var(--brand-accent, #2563EB);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* === Tooltip === */
+.glossary-tip {
+  position: absolute;
+  z-index: 9999;
+  max-width: 320px;
+  padding: 12px 14px;
+  background: var(--brand-ink, #18181B);
+  color: var(--brand-paper, #F5F5F4);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.08);
+  font-family: var(--font-sans, -apple-system, sans-serif);
+  font-size: 13px;
+  line-height: 1.55;
+  pointer-events: auto;
+  /* Fade-in handled by .glossary-tip--visible */
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.glossary-tip--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.glossary-tip__term {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--brand-paper, #F5F5F4);
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.glossary-tip__gloss {
+  font-size: 13px;
+  color: var(--brand-paper, #F5F5F4);
+  line-height: 1.6;
+}
+
+/* Arrow — uses --arrow-x set by JS to align under the term */
+.glossary-tip::after {
+  content: '';
+  position: absolute;
+  left: var(--arrow-x, 50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  transform: translateX(-50%);
+}
+
+.glossary-tip[data-placement="top"]::after {
+  bottom: -6px;
+  border-top: 6px solid var(--brand-ink, #18181B);
+}
+
+.glossary-tip[data-placement="bottom"]::after {
+  top: -6px;
+  border-bottom: 6px solid var(--brand-ink, #18181B);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glossary-tip {
+    transition: none;
+  }
+}

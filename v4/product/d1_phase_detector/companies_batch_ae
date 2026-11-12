@@ -1,0 +1,20 @@
+{"ticker": "BBY", "company_name": "Best Buy Co. Inc.", "sector": "consumer_discretionary_retail", "market_cap_bn_usd": 18, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "INTC", "company_name": "Intel Corporation", "sector": "tech_semiconductor", "market_cap_bn_usd": 95, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "PYPL", "company_name": "PayPal Holdings", "sector": "financials_payments", "market_cap_bn_usd": 65, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "BABA", "company_name": "Alibaba Group", "sector": "tech_internet_china", "market_cap_bn_usd": 200, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "BA", "company_name": "Boeing Company", "sector": "industrials_aerospace", "market_cap_bn_usd": 100, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "GE", "company_name": "General Electric Co.", "sector": "industrials_diversified", "market_cap_bn_usd": 200, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "F", "company_name": "Ford Motor Company", "sector": "consumer_auto", "market_cap_bn_usd": 45, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "GM", "company_name": "General Motors Co.", "sector": "consumer_auto", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "T", "company_name": "AT&T Inc.", "sector": "telecom", "market_cap_bn_usd": 165, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "VZ", "company_name": "Verizon Communications", "sector": "telecom", "market_cap_bn_usd": 170, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "DIS", "company_name": "Walt Disney Company", "sector": "media_entertainment", "market_cap_bn_usd": 165, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "WBD", "company_name": "Warner Bros. Discovery", "sector": "media_entertainment", "market_cap_bn_usd": 25, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "NFLX", "company_name": "Netflix Inc.", "sector": "tech_internet_streaming", "market_cap_bn_usd": 270, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ROKU", "company_name": "Roku Inc.", "sector": "tech_internet_streaming", "market_cap_bn_usd": 9, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "SPOT", "company_name": "Spotify Technology", "sector": "tech_internet_audio", "market_cap_bn_usd": 90, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "AIG", "company_name": "American International Group", "sector": "financials_insurance", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "ALL", "company_name": "Allstate Corporation", "sector": "financials_insurance", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "TRV", "company_name": "Travelers Companies", "sector": "financials_insurance", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "RE", "company_name": "Everest Re Group", "sector": "financials_reinsurance", "market_cap_bn_usd": 16, "expected_dynamics_family_a_priori": "extreme_value_tail"}
+{"ticker": "RNR", "company_name": "RenaissanceRe Holdings", "sector": "financials_reinsurance", "market_cap_bn_usd": 13, "expected_dynamics_family_a_priori": "extreme_value_tail"}

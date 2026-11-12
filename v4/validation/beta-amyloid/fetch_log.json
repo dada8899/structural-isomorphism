@@ -1,0 +1,19 @@
+{
+  "timestamp_utc": "2026-05-24T16:08:31.656060+00:00",
+  "source": "https://aging.brain-map.org/ (Allen Brain TBI Donor Metric REST API)",
+  "citation": "Miller et al. 2017 eLife 6:e26571",
+  "api_endpoint": "https://api.brain-map.org/api/v2/data/query.json",
+  "total_rows": 377,
+  "data_provenance": "ALLEN_BRAIN_LIVE",
+  "fields_extracted": [
+    "ab42_pg_per_mg",
+    "ab40_pg_per_mg",
+    "ihc_a_beta",
+    "ihc_a_beta_ffpe",
+    "ab42_over_ab40_ratio"
+  ],
+  "raw_file": "tbi_donor_metric.json",
+  "n_ab42": 333,
+  "n_ab40": 333,
+  "n_ihc": 377
+}

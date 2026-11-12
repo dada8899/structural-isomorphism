@@ -1,0 +1,523 @@
+% -----------------------------------------------------------------
+% references.bib  ---  C1 unified preprint v0.3
+% Extracted from docs/sessions/C1-unified-preprint-draft-v0.2.md §References
+% Date: 2026-05-24
+%
+% NOTE.  The v0.3 main.tex currently inlines its references as a
+% numbered list (carrying the v0.2 ordering [1]..[45]) inside an
+% unnumbered \section*{References}. This .bib file is the
+% machine-readable equivalent for downstream tooling (e.g. switching
+% to natbib + \bibliography{references} later, or for any reference
+% manager that wants to consume the bibliography directly). The
+% citation-key naming convention is firstauthorYEARkeyword.
+% -----------------------------------------------------------------
+
+% =========================
+% Foundational - universality and SOC
+% =========================
+
+@article{wilson1983rmp,
+  author    = {Wilson, K. G.},
+  title     = {The renormalization group and critical phenomena},
+  journal   = {Reviews of Modern Physics},
+  volume    = {55},
+  pages     = {583},
+  year      = {1983}
+}
+
+@article{stanley1999rmp,
+  author    = {Stanley, H. E.},
+  title     = {Scaling, universality, and renormalization: three pillars of modern critical phenomena},
+  journal   = {Reviews of Modern Physics},
+  volume    = {71},
+  pages     = {S358},
+  year      = {1999}
+}
+
+@article{bak1987soc,
+  author    = {Bak, P. and Tang, C. and Wiesenfeld, K.},
+  title     = {Self-organized criticality: an explanation of 1/f noise},
+  journal   = {Physical Review Letters},
+  volume    = {59},
+  pages     = {381},
+  year      = {1987}
+}
+
+@article{olami1992ofc,
+  author    = {Olami, Z. and Feder, H. J. S. and Christensen, K.},
+  title     = {Self-organized criticality in a continuous, nonconservative cellular automaton modeling earthquakes},
+  journal   = {Physical Review Letters},
+  volume    = {68},
+  pages     = {1244},
+  year      = {1992}
+}
+
+@article{turcotte1999soc,
+  author    = {Turcotte, D. L.},
+  title     = {Self-organized criticality},
+  journal   = {Reports on Progress in Physics},
+  volume    = {62},
+  pages     = {1377},
+  year      = {1999}
+}
+
+@article{sethna2001crackling,
+  author    = {Sethna, J. P. and Dahmen, K. A. and Myers, C. R.},
+  title     = {Crackling noise},
+  journal   = {Nature},
+  volume    = {410},
+  pages     = {242},
+  year      = {2001}
+}
+
+@book{jensen1998soc,
+  author    = {Jensen, H. J.},
+  title     = {Self-Organized Criticality: Emergent Complex Behavior in Physical and Biological Systems},
+  publisher = {Cambridge University Press},
+  year      = {1998}
+}
+
+@book{pruessner2012soc,
+  author    = {Pruessner, G.},
+  title     = {Self-Organised Criticality: Theory, Models and Characterisation},
+  publisher = {Cambridge University Press},
+  year      = {2012}
+}
+
+@book{sornette2006critical,
+  author    = {Sornette, D.},
+  title     = {Critical Phenomena in Natural Sciences: Chaos, Fractals, Selforganization and Disorder},
+  edition   = {2nd},
+  publisher = {Springer},
+  year      = {2006}
+}
+
+% =========================
+% Statistical method - power-law fitting
+% =========================
+
+@article{clauset2009powerlaw,
+  author    = {Clauset, A. and Shalizi, C. R. and Newman, M. E. J.},
+  title     = {Power-law distributions in empirical data},
+  journal   = {SIAM Review},
+  volume    = {51},
+  pages     = {661},
+  year      = {2009}
+}
+
+@article{alstott2014powerlaw,
+  author    = {Alstott, J. and Bullmore, E. and Plenz, D.},
+  title     = {powerlaw: a Python package for analysis of heavy-tailed distributions},
+  journal   = {PLoS ONE},
+  volume    = {9},
+  pages     = {e85777},
+  year      = {2014}
+}
+
+@article{newman2005zipf,
+  author    = {Newman, M. E. J.},
+  title     = {Power laws, Pareto distributions and Zipf's law},
+  journal   = {Contemporary Physics},
+  volume    = {46},
+  pages     = {323},
+  year      = {2005}
+}
+
+@article{broido2019scalefree,
+  author    = {Broido, A. D. and Clauset, A.},
+  title     = {Scale-free networks are rare},
+  journal   = {Nature Communications},
+  volume    = {10},
+  pages     = {1017},
+  year      = {2019}
+}
+
+% =========================
+% Earthquakes (Phase 1)
+% =========================
+
+@article{gutenberg1944gr,
+  author    = {Gutenberg, B. and Richter, C. F.},
+  title     = {Frequency of earthquakes in California},
+  journal   = {Bulletin of the Seismological Society of America},
+  volume    = {34},
+  pages     = {185},
+  year      = {1944}
+}
+
+@article{omori1894aftershocks,
+  author    = {Omori, F.},
+  title     = {On the after-shocks of earthquakes},
+  journal   = {Journal of the College of Science, Imperial University of Tokyo},
+  volume    = {7},
+  pages     = {111},
+  year      = {1894}
+}
+
+@article{utsu1995omori,
+  author    = {Utsu, T. and Ogata, Y. and Matsu'ura, R. S.},
+  title     = {The centenary of the Omori formula for a decay law of aftershock activity},
+  journal   = {Journal of Physics of the Earth},
+  volume    = {43},
+  pages     = {1},
+  year      = {1995}
+}
+
+@article{aki1965bvalue,
+  author    = {Aki, K.},
+  title     = {Maximum likelihood estimate of $b$ in the formula $\log N = a - bM$ and its confidence limits},
+  journal   = {Bulletin of the Earthquake Research Institute, University of Tokyo},
+  volume    = {43},
+  pages     = {237},
+  year      = {1965}
+}
+
+@article{shi1982bvalue,
+  author    = {Shi, Y. and Bolt, B. A.},
+  title     = {The standard error of the magnitude-frequency $b$ value},
+  journal   = {Bulletin of the Seismological Society of America},
+  volume    = {72},
+  pages     = {1677},
+  year      = {1982}
+}
+
+@article{wiemer2000mc,
+  author    = {Wiemer, S. and Wyss, M.},
+  title     = {Minimum magnitude of completeness in earthquake catalogs: examples from Alaska, the western United States, and Japan},
+  journal   = {Bulletin of the Seismological Society of America},
+  volume    = {90},
+  pages     = {859},
+  year      = {2000}
+}
+
+@article{hanks1979moment,
+  author    = {Hanks, T. C. and Kanamori, H.},
+  title     = {A moment magnitude scale},
+  journal   = {Journal of Geophysical Research},
+  volume    = {84},
+  pages     = {2348},
+  year      = {1979}
+}
+
+% =========================
+% Equity finance (Phase 2)
+% =========================
+
+@article{gopikrishnan1998inverse,
+  author    = {Gopikrishnan, P. and Meyer, M. and Amaral, L. A. N. and Stanley, H. E.},
+  title     = {Inverse cubic law for the distribution of stock price variations},
+  journal   = {European Physical Journal B},
+  volume    = {3},
+  pages     = {139},
+  year      = {1998}
+}
+
+@article{plerou1999scaling,
+  author    = {Plerou, V. and Gopikrishnan, P. and Amaral, L. A. N. and Meyer, M. and Stanley, H. E.},
+  title     = {Scaling of the distribution of price variations of individual companies},
+  journal   = {Physical Review E},
+  volume    = {60},
+  pages     = {6519},
+  year      = {1999}
+}
+
+@article{gabaix2003theory,
+  author    = {Gabaix, X. and Gopikrishnan, P. and Plerou, V. and Stanley, H. E.},
+  title     = {A theory of power-law distributions in financial market fluctuations},
+  journal   = {Nature},
+  volume    = {423},
+  pages     = {267},
+  year      = {2003}
+}
+
+@article{lillo2003omori,
+  author    = {Lillo, F. and Mantegna, R. N.},
+  title     = {Power-law relaxation in a complex system: Omori law after a financial market crash},
+  journal   = {Physical Review E},
+  volume    = {68},
+  pages     = {016119},
+  year      = {2003}
+}
+
+@article{petersen2010shocks,
+  author    = {Petersen, A. M. and Wang, F. and Havlin, S. and Stanley, H. E.},
+  title     = {Market dynamics immediately before and after financial shocks: quantifying the Omori, productivity, and Bath laws},
+  journal   = {Physical Review E},
+  volume    = {82},
+  pages     = {036114},
+  year      = {2010}
+}
+
+@article{weber2007volatility,
+  author    = {Weber, P. and Wang, F. and Vodenska-Chitkushev, I. and Havlin, S. and Stanley, H. E.},
+  title     = {Relation between volatility correlations in financial markets and Omori processes occurring on all scales},
+  journal   = {Physical Review E},
+  volume    = {76},
+  pages     = {016109},
+  year      = {2007}
+}
+
+@book{mantegna2000econophysics,
+  author    = {Mantegna, R. N. and Stanley, H. E.},
+  title     = {An Introduction to Econophysics: Correlations and Complexity in Finance},
+  publisher = {Cambridge University Press},
+  year      = {2000}
+}
+
+@article{lebaron2001stochasticvol,
+  author    = {LeBaron, B.},
+  title     = {Stochastic volatility as a simple generator of apparent financial power laws and long memory},
+  journal   = {Quantitative Finance},
+  volume    = {1},
+  pages     = {621},
+  year      = {2001}
+}
+
+@article{malevergne2005stretched,
+  author    = {Malevergne, Y. and Pisarenko, V. and Sornette, D.},
+  title     = {Empirical distributions of stock returns: between the stretched exponential and the power law?},
+  journal   = {Quantitative Finance},
+  volume    = {5},
+  pages     = {379},
+  year      = {2005}
+}
+
+@article{pisarenko2006newstatistic,
+  author    = {Pisarenko, V. and Sornette, D.},
+  title     = {New statistic for financial return distributions: power-law or exponential?},
+  journal   = {Physica A},
+  volume    = {366},
+  pages     = {387},
+  year      = {2006}
+}
+
+% =========================
+% DeFi (Phase 3)
+% =========================
+
+@inproceedings{qin2021defi,
+  author    = {Qin, K. and Zhou, L. and Gervais, A.},
+  title     = {An empirical study of {DeFi} liquidations: incentives, risks, and instabilities},
+  booktitle = {Proceedings of the ACM Internet Measurement Conference (IMC '21)},
+  year      = {2021}
+}
+
+@inproceedings{perez2021liquidations,
+  author    = {Perez, D. and Werner, S. M. and Xu, J. and Livshits, B.},
+  title     = {Liquidations: {DeFi} on a knife-edge},
+  booktitle = {Financial Cryptography and Data Security 2021},
+  year      = {2021}
+}
+
+@techreport{aave2020v2,
+  author       = {{Aave Companies}},
+  title        = {Aave Protocol V2 Whitepaper},
+  institution  = {Aave Companies},
+  type         = {Technical documentation},
+  url          = {https://github.com/aave/aave-protocol/blob/master/docs/Aave_Protocol_Whitepaper_v1_0.pdf},
+  urldate      = {2026-05-24},
+  year         = {2020}
+}
+
+@techreport{compound2019v2,
+  author       = {{Compound Labs}},
+  title        = {Compound: The Money Market Protocol --- V2 Whitepaper},
+  institution  = {Compound Labs},
+  type         = {Technical documentation},
+  url          = {https://compound.finance/documents/Compound.Whitepaper.pdf},
+  urldate      = {2026-05-24},
+  year         = {2019}
+}
+
+@techreport{makerdao2021liq,
+  author       = {{MakerDAO}},
+  title        = {Liquidation 2.0 ({LIQ-2.0}): Dog and Clipper specification},
+  institution  = {MakerDAO},
+  type         = {Technical documentation},
+  url          = {https://docs.makerdao.com/smart-contract-modules/dog-and-clipper-detailed-documentation},
+  urldate      = {2026-05-24},
+  year         = {2021}
+}
+
+@article{motter2002cascade,
+  author    = {Motter, A. E. and Lai, Y.-C.},
+  title     = {Cascade-based attacks on complex networks},
+  journal   = {Physical Review E},
+  volume    = {66},
+  pages     = {065102},
+  year      = {2002}
+}
+
+% =========================
+% Neural avalanches (Phase 4)
+% =========================
+
+@article{beggs2003neuronal,
+  author    = {Beggs, J. M. and Plenz, D.},
+  title     = {Neuronal avalanches in neocortical circuits},
+  journal   = {Journal of Neuroscience},
+  volume    = {23},
+  pages     = {11167},
+  year      = {2003}
+}
+
+@article{friedman2012universal,
+  author    = {Friedman, N. and Ito, S. and Brinkman, B. A. W. and Shimono, M. and DeVille, R. E. L. and Dahmen, K. A. and Beggs, J. M. and Butler, T. C.},
+  title     = {Universal critical dynamics in high resolution neuronal avalanche data},
+  journal   = {Physical Review Letters},
+  volume    = {108},
+  pages     = {208102},
+  year      = {2012}
+}
+
+@article{priesemann2014subsampling,
+  author    = {Priesemann, V. and Munk, M. H. J. and Wibral, M.},
+  title     = {Subsampling effects in neuronal avalanche distributions recorded in vivo},
+  journal   = {BMC Neuroscience},
+  volume    = {15},
+  pages     = {1},
+  year      = {2014}
+}
+
+@article{touboul2017apparent,
+  author    = {Touboul, J. and Destexhe, A.},
+  title     = {Power-law statistics and universal scaling in the absence of criticality},
+  journal   = {Physical Review E},
+  volume    = {95},
+  pages     = {012413},
+  year      = {2017}
+}
+
+@book{harris1963branching,
+  author    = {Harris, T. E.},
+  title     = {The Theory of Branching Processes},
+  publisher = {Springer; Dover reprint (1989)},
+  year      = {1963}
+}
+
+@article{li2015motor,
+  author    = {Li, N. and Chen, T.-W. and Guo, Z. V. and Gerfen, C. R. and Svoboda, K.},
+  title     = {A motor cortex circuit for motor planning and movement},
+  journal   = {Nature},
+  volume    = {519},
+  pages     = {51},
+  year      = {2015},
+  note      = {Data: DANDI Archive dataset 000006, mouse anterior lateral motor cortex in delay-response task, \url{https://dandiarchive.org/dandiset/000006}.}
+}
+
+@article{beggs2012critical,
+  author    = {Beggs, J. M. and Timme, N.},
+  title     = {Being critical of criticality in the brain},
+  journal   = {Frontiers in Physiology},
+  volume    = {3},
+  pages     = {163},
+  year      = {2012}
+}
+
+% =========================
+% Project self-references
+% Note: arXiv IDs to be filled in at submission time. C1 (this paper)
+% is intended to be cross-listed against the four Phase-paper preprints
+% on the same submission day.
+% =========================
+
+@misc{wan2026phase1,
+  author    = {Wan, Q.},
+  title     = {Recovering self-organized criticality on a global earthquake catalog: a reproducible pipeline for cross-domain universality-class identification},
+  year      = {2026},
+  archivePrefix = {arXiv},
+  primaryClass  = {physics.geo-ph},
+  eprint        = {XXXX.XXXXX},
+  note          = {arXiv ID to be filled at submission}
+}
+
+@misc{wan2026phase2,
+  author    = {Wan, Q.},
+  title     = {Cross-domain self-organized criticality: inverse cubic law and Omori decay on thirty-five years of S\&P 500 daily returns},
+  year      = {2026},
+  archivePrefix = {arXiv},
+  primaryClass  = {q-fin.ST},
+  eprint        = {XXXX.XXXXX},
+  note          = {arXiv ID to be filled at submission}
+}
+
+@misc{wan2026phase3,
+  author    = {Wan, Q.},
+  title     = {Cross-protocol {SOC} universality in {DeFi} liquidation cascades: 43,065 events across Aave V2, Compound V2, and MakerDAO},
+  year      = {2026},
+  archivePrefix = {arXiv},
+  primaryClass  = {q-fin.ST},
+  eprint        = {XXXX.XXXXX},
+  note          = {arXiv ID to be filled at submission}
+}
+
+@misc{wan2026phase4,
+  author    = {Wan, Q.},
+  title     = {Criticality without mean-field {SOC}: neural avalanche scaling on task-active mouse cortex},
+  year      = {2026},
+  archivePrefix = {arXiv},
+  primaryClass  = {q-bio.NC},
+  eprint        = {XXXX.XXXXX},
+  note          = {arXiv ID to be filled at submission}
+}
+
+@misc{si2026zenodo,
+  author       = {{Structural Isomorphism Project}},
+  title        = {Structural Isomorphism: Cross-domain SOC validation dataset and pipeline (v1.0)},
+  year         = {2026},
+  publisher    = {Zenodo},
+  version      = {1.0.0},
+  doi          = {10.5281/zenodo.XXXXXXX},
+  url          = {https://doi.org/10.5281/zenodo.XXXXXXX},
+  note         = {DOI to be filled after Zenodo publication}
+}
+
+% =========================
+% v0.4 §3.6 additions (refs 46-50) — NEW in v0.4
+% =========================
+
+@misc{wan2026v04reports,
+  author       = {Wan, Q.},
+  title        = {v04 18-class empirical-anchor validation slate, Wave 2A/B/C reports},
+  year         = {2026},
+  month        = {May},
+  howpublished = {In-repo: \texttt{docs/sessions/v04-*-report.md} (17 verdict reports + 1 leaky-integrate-fire backfill)},
+  note         = {Companion to C1 v0.4 unified preprint §3.6. Zenodo DOI PENDING.}
+}
+
+@misc{wan2026c4mechanism,
+  author       = {Wan, Q.},
+  title        = {Mechanism vs descriptor: a taxonomy follow-up paper (C4)},
+  year         = {2026},
+  month        = {May},
+  howpublished = {In-repo: \texttt{docs/sessions/C4-mechanism-vs-descriptor-paper.md}},
+  note         = {arXiv ID PENDING; submission planned post-C1.}
+}
+
+@book{halford1992analogy,
+  author       = {Halford, G. S.},
+  title        = {From cell to society: An evolutionary view of analogy},
+  publisher    = {Lawrence Erlbaum Associates},
+  year         = {1992},
+  note         = {Cross-domain analogy distinction: functional form vs underlying process.}
+}
+
+@article{stumpf2012critical,
+  author       = {Stumpf, M. P. H. and Porter, M. A.},
+  title        = {Critical truths about power laws},
+  journal      = {Science},
+  volume       = {335},
+  pages        = {665--666},
+  year         = {2012},
+  note         = {Statistical-fitting version of descriptor vs mechanism distinction for scale-free networks.}
+}
+
+@article{cohen2000internet,
+  author       = {Cohen, R. and Erez, K. and ben-Avraham, D. and Havlin, S.},
+  title        = {Resilience of the internet to random breakdowns},
+  journal      = {Physical Review Letters},
+  volume       = {85},
+  pages        = {4626},
+  year         = {2000},
+  note         = {Scale-free vs lattice percolation closed-form exponents.}
+}

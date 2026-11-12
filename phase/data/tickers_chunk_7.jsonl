@@ -1,0 +1,18 @@
+{"ticker": "AVGO", "name": "Broadcom", "exchange": "NASDAQ", "industry": "Semiconductors / Networking", "market_cap_usd": 850000000000.0, "country": "US"}
+{"ticker": "NOW", "name": "ServiceNow", "exchange": "NYSE", "industry": "Enterprise Workflow SaaS", "market_cap_usd": 200000000000.0, "country": "US"}
+{"ticker": "NFLX.B", "name": "Warner Bros Discovery (WBD)", "exchange": "NASDAQ", "industry": "Legacy Media + Streaming", "market_cap_usd": 25000000000.0, "country": "US"}
+{"ticker": "CHWY", "name": "Chewy", "exchange": "NYSE", "industry": "Pet E-commerce", "market_cap_usd": 12000000000.0, "country": "US"}
+{"ticker": "STLA", "name": "Stellantis", "exchange": "NYSE", "industry": "Automaker (Chrysler/Fiat/Peugeot)", "market_cap_usd": 40000000000.0, "country": "NL"}
+{"ticker": "005930.KS", "name": "Samsung Electronics", "exchange": "KRX", "industry": "Chips + Phones + Appliances", "market_cap_usd": 400000000000.0, "country": "KR"}
+{"ticker": "6758.T", "name": "Sony", "exchange": "TSE", "industry": "Media + Gaming + Semi", "market_cap_usd": 120000000000.0, "country": "JP"}
+{"ticker": "GOTU", "name": "Gaotu Techedu (高途)", "exchange": "NYSE", "industry": "K-12 Online Education", "market_cap_usd": 1000000000.0, "country": "CN"}
+{"ticker": "3888.HK", "name": "金山软件 Kingsoft", "exchange": "HKEX", "industry": "Office SaaS + Games (China)", "market_cap_usd": 7000000000.0, "country": "CN"}
+{"ticker": "000333.SZ", "name": "美的集团", "exchange": "SZSE", "industry": "Home Appliances", "market_cap_usd": 60000000000.0, "country": "CN"}
+{"ticker": "JD", "name": "JD.com ADR", "exchange": "NASDAQ", "industry": "E-commerce ADR", "market_cap_usd": 40000000000.0, "country": "CN"}
+{"ticker": "TWLO", "name": "Twilio", "exchange": "NYSE", "industry": "Communications API", "market_cap_usd": 15000000000.0, "country": "US"}
+{"ticker": "S", "name": "SentinelOne", "exchange": "NYSE", "industry": "Endpoint Security", "market_cap_usd": 8000000000.0, "country": "US"}
+{"ticker": "W", "name": "Wayfair", "exchange": "NYSE", "industry": "Home Goods E-commerce", "market_cap_usd": 5000000000.0, "country": "US"}
+{"ticker": "RKLB", "name": "Rocket Lab", "exchange": "NASDAQ", "industry": "Small Launch Vehicles", "market_cap_usd": 8000000000.0, "country": "US"}
+{"ticker": "HUT", "name": "Hut 8 Mining", "exchange": "NASDAQ", "industry": "BTC Mining + HPC", "market_cap_usd": 2000000000.0, "country": "CA/US"}
+{"ticker": "FSLR", "name": "First Solar", "exchange": "NASDAQ", "industry": "Thin-film Solar", "market_cap_usd": 20000000000.0, "country": "US"}
+{"ticker": "DE", "name": "John Deere", "exchange": "NYSE", "industry": "Ag Machinery", "market_cap_usd": 120000000000.0, "country": "US"}

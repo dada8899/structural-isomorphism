@@ -1,0 +1,10 @@
+{
+  "source": "min-api.cryptocompare.com histoday (free public API)",
+  "fetched_at_utc": "2026-05-14T18:27:36.249173+00:00",
+  "n_days": 2001,
+  "n_returns": 2000,
+  "date_start_utc": "2020-11-21T00:00:00+00:00",
+  "date_end_utc": "2026-05-14T00:00:00+00:00",
+  "construction": "r_t = log(close_t / close_{t-1}); |r_t| as power-law observable",
+  "observable": "abs_daily_log_return"
+}

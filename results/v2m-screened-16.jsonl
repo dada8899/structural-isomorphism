@@ -1,0 +1,91 @@
+{"rank": 1366, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "VSG随机切换是概率性抗原逃逸，光子晶体带隙是周期结构对特定波长的禁止传播，两者机制与动力学完全不同。", "reject_reason": "表面关键词（禁止/少数逃逸）相似，结构不同构。"}
+{"rank": 1367, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "因果识别方法与众包噪声地图在研究手段层面偶有交集，但前者是统计识别框架、后者是空间测量校正，无共同结构骨架。", "reject_reason": "同属计算社会科学但结构无对应。"}
+{"rank": 1368, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "重音转移是派生词规则性音位偏移，信贷脉冲是二阶导数驱动效应，二者数学结构和机制完全无关。", "reject_reason": "无结构同构。"}
+{"rank": 1369, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "超固结土卸载路径记忆 vs 市场影响的凹函数，前者是路径依赖性滞后，后者是边际递减，结构不同。", "reject_reason": "皆具非线性但类型不同。"}
+{"rank": 1370, "verdict": "weak", "value_type": "shared_math", "potential": 2, "reason": "减速器级联效率与基流衰减皆为指数衰减函数，数学同形但机制不同（乘积 vs 一阶线性排泄）。", "reject_reason": "共享指数数学外壳但系统结构不同构，属普遍数学现象。"}
+{"rank": 1371, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "差动保护是基于基尔霍夫定律的电流平衡比较，算法稳定币死亡螺旋是正反馈崩溃，完全不同构。", "reject_reason": "无结构对应。"}
+{"rank": 1372, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "向光性是激素梯度驱动的定向生长响应，驰豫振荡是光子-载流子耦合的阻尼振荡，机制类型不同。", "reject_reason": "无结构同构。"}
+{"rank": 1373, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "护层环流是电磁感应回路损耗，连杆轴瓦磨损是机械粘着磨损，无共享结构。", "reject_reason": "同属工程问题但结构无关。"}
+{"rank": 1374, "verdict": "weak", "value_type": "shared_math", "potential": 2, "reason": "Gamma凸性是二阶曲率风险，现金持有边际递减是一阶递减，两者数学性质和方向不同。", "reject_reason": "同属非线性金融概念但结构不匹配。"}
+{"rank": 1375, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "涡轮叶片热疲劳是循环热应力导致裂纹萌生，传感器零点漂移是测量基准偏移，性质完全不同。", "reject_reason": "无结构同构。"}
+{"rank": 1376, "verdict": "weak", "value_type": "shared_math", "potential": 2, "reason": "缓存命中率边际递减与信贷脉冲效应都涉及非线性收益曲线，但一个是对数递减、一个是二阶导驱动，数学结构不同。", "reject_reason": "不同构。"}
+{"rank": 1377, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "母线差动是空间电流求和，Paris律是循环应力的幂律扩展，无对应结构。", "reject_reason": "无同构。"}
+{"rank": 1378, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "边界润滑失效是动压油膜建立条件问题，超固结土卸载路径依赖是应力历史记忆，机制完全不同。", "reject_reason": "同属工程但无结构对应。"}
+{"rank": 1379, "verdict": "moderate", "value_type": "shared_decay", "potential": 3, "reason": "预应力张拉损失随时间递减 与 初创企业资本效率递减，都呈现初始高投入产出后的衰减。但前者是物理松弛徐变，后者是边际收益递减，结构类型略有差异。", "reject_reason": "相似但非严格同构。"}
+{"rank": 1380, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "热惯性滞后是大时滞控制难题，Copula是依赖结构建模，二者毫无结构关系。", "reject_reason": "无同构。"}
+{"rank": 1381, "verdict": "strong", "value_type": "delayed_commitment", "potential": 5, "reason": "永冻土甲烷延迟反馈与灭绝债务共享极其深刻的结构同构：当前状态看似稳定，实则已注定未来衰退；原因已作用但结果被时滞隐藏；评估方法系统性低估真实风险；决策窗口已经关闭但症状未现。这是'承诺但未显现的坍塌'这一罕见结构的跨域样本，对气候、生态、债务、老龄化等所有'隐性承担'系统具有共通分析价值。", "reject_reason": ""}
+{"rank": 1382, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "词频Zipf分布是统计规律，气候模型参数化是数值近似方法，两者分属不同层次。", "reject_reason": "无同构。"}
+{"rank": 1383, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "绝缘子爬电是表面放电路径问题，裂缝宽度控制是钢筋-混凝土应变协调，结构不同。", "reject_reason": "同属工程约束但无结构映射。"}
+{"rank": 1384, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "液流电池容量单调衰减与并购退出倍数压缩都呈递减，但机制完全不同（化学降解 vs 市场情绪），类别过泛。", "reject_reason": "数学曲线相似但结构不同构。"}
+{"rank": 1385, "verdict": "moderate", "value_type": "shared_power_law", "potential": 3, "reason": "Paris律裂纹扩展与地震矩标度都是幂律自相似关系，且都应用于预测/分类。但一个是时间演化驱动，一个是事件规模统计律。", "reject_reason": "幂律作为普遍数学模式，不足以构成深度同构。"}
+{"rank": 1386, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "爬电距离是表面放电防护，重放攻击是交易广播问题，两者机制无交集。", "reject_reason": "无同构。"}
+{"rank": 1387, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "腐蚀微电池是正反馈自加速，储蓄过剩假说含负反馈再平衡，正负反馈方向相反。", "reject_reason": "反馈极性相反，不同构。"}
+{"rank": 1388, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "板块变质序列是路径重建的地质过程，功能固着是心理认知偏差，毫无结构对应。", "reject_reason": "完全无关。"}
+{"rank": 1389, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "馈线自动化是故障区段隔离恢复流程，平流层-对流层耦合是大气动力学延迟影响，结构不相干。", "reject_reason": "无同构。"}
+{"rank": 1390, "verdict": "weak", "value_type": "same_domain", "potential": 2, "reason": "涡轮叶片热疲劳与金属高周疲劳都是循环应力疲劳开裂，但同属材料-工程领域，同构过于直接不构成跨域价值。", "reject_reason": "同领域同类现象，非跨域结构同构。"}
+{"rank": 1391, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "干缩裂缝反射是累积应变开裂机制，无常损失是AMM价格偏离函数，二者数学与语境无对应。", "reject_reason": "无同构。"}
+{"rank": 1392, "verdict": "good", "value_type": "positive_feedback", "potential": 4, "reason": "城市热岛与海冰反照率反馈共享清晰的正反馈自放大结构：初始扰动→系统响应放大扰动→进一步扰动。且两者都是热收支主导的气候相关反馈，一个是人工排热+空调耦合，一个是反照率-温度耦合，跨域性好。", "reject_reason": ""}
+{"rank": 1393, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "离对角长程序是宏观量子相干的数学刻画，扩散限制是生态传播约束，层次完全不同。", "reject_reason": "无同构。"}
+{"rank": 1394, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "卡尔曼滤波发散是估计器信任失衡，大数定律是统计收敛原理，不同层次概念。", "reject_reason": "无同构。"}
+{"rank": 1395, "verdict": "moderate", "value_type": "channeling_shortcut", "potential": 3, "reason": "固定床偏流（流体走低阻通道导致短路流）与社交资本积累边际递减都涉及资源分布不均，但前者是流体物理短路，后者是关系维护心理递减，结构不完全同构。", "reject_reason": "方向一致但机制差异较大。"}
+{"rank": 1396, "verdict": "moderate", "value_type": "threshold_cascade", "potential": 3, "reason": "庇护所人口悖论（避险行为本身制造崩溃风险）与货币替代临界效应（超阈值后突然逆转）都包含'防御性行为的自我瓦解'意味，但前者是容量挤兑、后者是阈值跃迁，结构相似度中等。", "reject_reason": "结构方向类似但机制不完全对应。"}
+{"rank": 1397, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "对乙酰氨基酚中毒是代谢饱和后毒性分流，外汇冲销是货币供给对冲操作，无结构映射。", "reject_reason": "无同构。"}
+{"rank": 1398, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "支架式教学是教育支持递减，流动性挖矿代币发放衰减是协议激励递减。表面都是'初期支持后期撤除'，但一个是教学策略，一个是经济激励程序化释放，深度结构差异大。", "reject_reason": "表面近似但结构不深同构。"}
+{"rank": 1399, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "肿瘤免疫抑制网络是多通路叠加的生物学现象，ViT图像块嵌入是深度学习架构，结构完全不相关。", "reject_reason": "无同构。"}
+{"rank": 1400, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "空载损耗是持续性基础能耗，古地磁倒转是地质记录技术，两者毫无结构关联。", "reject_reason": "无同构。"}
+{"rank": 1401, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "抗阻训练肌肥大双因素与凝乳脱水收缩都涉及网络/细胞结构，但机理和结构完全不同。", "reject_reason": "无同构。"}
+{"rank": 1402, "verdict": "good", "value_type": "phase_transition", "potential": 4, "reason": "热固性树脂凝胶点渗流相变与电压崩溃都展现一阶相变式的突变：连续参数增加下系统在临界点发生状态跃迁，前后状态截然不同，且伴随某物理量发散（黏度 vs 电压跌落）。是渗流/相变理论在物理化学和电力系统的跨域平行实例。", "reject_reason": ""}
+{"rank": 1403, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "康德拉季耶夫长波是技术驱动的经济长周期，LC振荡是能量交换的简谐振荡，周期性表面相似但机制和数学完全不同。", "reject_reason": "同为周期现象但结构不同构。"}
+{"rank": 1404, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "电缆热稳定校验是短时热容约束，软弱夹层是岩体控制性滑面问题，无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1405, "verdict": "strong", "value_type": "hysteresis_tipping", "potential": 5, "reason": "生态系统突变与货币替代临界效应共享极其精准的'滞后（hysteresis）+临界阈值+不对称恢复'结构：参数缓慢变化下系统可逆→越过阈值后突然翻转到新稳态→要恢复原状必须把参数降到远低于翻转点的水平。这是Catastrophe理论在生态学和货币经济学中的严格跨域同构，具备可迁移的政策启示（预防比恢复便宜数量级）。", "reject_reason": ""}
+{"rank": 1406, "verdict": "moderate", "value_type": "delayed_feedback", "potential": 3, "reason": "并购整合滞后与安全困境螺旋都涉及延迟反馈和意图误读，但前者是时滞效应，后者是正反馈升级，结构侧重点不同。", "reject_reason": "结构重叠但核心机制不同。"}
+{"rank": 1407, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "进气道不起动是激波位置驱动的流场崩溃，超导体磁通蠕动是热激活弛豫过程，结构不同。", "reject_reason": "无同构。"}
+{"rank": 1408, "verdict": "moderate", "value_type": "damped_oscillation", "potential": 3, "reason": "血糖调节与激光器驰豫振荡都是通过负反馈使变量在目标值附近振荡的阻尼动态系统，数学上都可由速率方程耦合描述。但一个是生理调控、一个是光子-载流子耦合，抽象同构但属普遍控制论现象。", "reject_reason": "共享阻尼反馈结构，属常见模型类型，深度有限。"}
+{"rank": 1409, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "金属点蚀是电化学局部腐蚀，田野调查情感负担是方法论反思，毫无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1410, "verdict": "moderate", "value_type": "diminishing_returns", "potential": 3, "reason": "电机堵转电流倍数是启动瞬态冲击的物理极值，边际生产力递减是经济学规律，一个是瞬态峰值，一个是递减曲线，结构不完全对应。", "reject_reason": "非严格同构。"}
+{"rank": 1411, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "重放攻击是交易复制问题，扩散模型是生成式神经网络，层次不同。", "reject_reason": "无同构。"}
+{"rank": 1412, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "资金费率套利收敛是市场锚定机制，海洋热含量是地球系统热惯性储存，结构完全不同。", "reject_reason": "无同构。"}
+{"rank": 1413, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "并购整合滞后与深度伪造侵蚀都涉及时滞/信任问题，但结构上一个是协同时滞、一个是证据可信度普降，不同构。", "reject_reason": "表面相关但不同构。"}
+{"rank": 1414, "verdict": "moderate", "value_type": "positive_feedback_cascade", "potential": 3, "reason": "脓毒血症级联与OPO阈值都含'超过阈值后指数放大'的结构，但前者是炎症-损伤自激级联，后者是增益-损耗平衡的激射阈值，机制和数学均有差异。", "reject_reason": "阈值放大共性但结构层面不深。"}
+{"rank": 1415, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "分区键数据倾斜是分布式数据均衡问题，电机堵转电流是启动瞬态，无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1416, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "爬电距离是绝缘路径几何问题，踢脚破坏是支护结构几何稳定性问题，同领域但机制完全不同。", "reject_reason": "无同构。"}
+{"rank": 1417, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "邓巴数是认知处理容量上限，热效率是热力学极限，都是'物理/生理上限'概念但机制完全不同。", "reject_reason": "共享'存在上限'的弱元级类比，不构成结构同构。"}
+{"rank": 1418, "verdict": "good", "value_type": "critical_window", "potential": 4, "reason": "凝胶点渗流相变与语言习得关键期都展示'临界阈值后发生不可逆转变'：交联密度/突触可塑性越过窗口后系统从可变态跃迁到固化态，且此后恢复极难。渗流阈值作为结构固化的共同框架，连接聚合物相变与神经发育，具备跨域解释价值。", "reject_reason": ""}
+{"rank": 1419, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "做市商价差压缩是竞争均衡收敛，汇率操纵是博弈论囚徒困境，结构不同。", "reject_reason": "无同构。"}
+{"rank": 1420, "verdict": "moderate", "value_type": "exponential_growth_then_decay", "potential": 3, "reason": "热钱流入的自加速指数膨胀与流动性挖矿代币发放衰减，一个是正反馈增长、一个是程序化递减，方向相反。", "reject_reason": "方向相反不构成同构。"}
+{"rank": 1421, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "客户端负载均衡是分布式架构，地貌侵蚀-抬升耦合是地质均衡反馈，无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1422, "verdict": "good", "value_type": "autocatalytic_feedback", "potential": 4, "reason": "放热反应温度曲线与光热协同催化超加和性都是'温度/能量自激增强'的自催化结构：输出放大输入使反应加速。放热反应是热效应单一自激，光热协同是热+光双重协同指数增强，后者可视为前者的多因增强版。结构同构较清晰。", "reject_reason": ""}
+{"rank": 1423, "verdict": "moderate", "value_type": "homeostasis_buffer", "potential": 3, "reason": "蛋白酶体缓冲与燃料电池水管理都是维持稳态的负反馈调节系统，且都面临'窄平衡区间'约束。抽象结构同构但属普遍稳态控制范畴。", "reject_reason": "稳态反馈是常见范式，跨域新意有限。"}
+{"rank": 1424, "verdict": "moderate", "value_type": "diminishing_returns", "potential": 3, "reason": "班级规模效应与设备热点监测并无同构，此处应对照原配对；班级规模边际递减是经济学/教育学常见曲线，热点监测是状态评估技术。", "reject_reason": "配对不同构。"}
+{"rank": 1425, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "母线差动是基尔霍夫电流平衡，经向翻转环流减速是海洋动力学，结构无关。", "reject_reason": "无同构。"}
+{"rank": 1426, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "蠕变与授粉者错配都含时间依赖性，但一个是黏弹性应力松弛，一个是物候错位，结构不同。", "reject_reason": "不同构。"}
+{"rank": 1427, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "线路分布电容费兰蒂效应与重音转移，物理与语言学无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1428, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "造血干细胞免疫龛是稳态-应激切换，睡眠相位延迟是昼夜节律偏移，无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1429, "verdict": "moderate", "value_type": "diminishing_returns", "potential": 3, "reason": "干细胞免疫龛与国际储备预防性积累都涉及'储备-应急调用'框架，前者生物稳态调控，后者货币政策缓冲。抽象'应急储备的边际价值递减'这一概念可跨域，但机制细节差异大。", "reject_reason": "概念层相似但结构不深。"}
+{"rank": 1430, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "增材制造残余应力与海洋经向翻转环流结构毫无对应。", "reject_reason": "无同构。"}
+{"rank": 1431, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "弹性流体动力润滑与对抗样本转移性无结构关联。", "reject_reason": "无同构。"}
+{"rank": 1432, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "进气道不起动是流场崩溃，田野情感劳动是方法论反思，无同构。", "reject_reason": "无同构。"}
+{"rank": 1433, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "客户端负载均衡与电机堵转电流结构无对应。", "reject_reason": "无同构。"}
+{"rank": 1434, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Saga补偿事务与绝缘配合爬电距离结构完全不同。", "reject_reason": "无同构。"}
+{"rank": 1435, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "过冷大水滴积冰与PWM开关控制结构无关。", "reject_reason": "无同构。"}
+{"rank": 1436, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "缓存命中率递减与预应力张拉损失都含递减，但前者是访问局部性分布，后者是物理松弛衰减，机制不同。", "reject_reason": "共享'递减'数学形式但不同构。"}
+{"rank": 1437, "verdict": "moderate", "value_type": "threshold_network_effect", "potential": 3, "reason": "群体免疫阈值与营救效应都是'临界连通性'相关现象：免疫比例超阈值截断传播链 vs 连通性维持最小迁入流救援濒危种群。前者是阈值以上断链，后者是阈值以上维持，概念上互补而非同构。", "reject_reason": "方向互补但结构不严格同构。"}
+{"rank": 1438, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "钛合金切削热软化与扩散模型去噪得分匹配结构无关。", "reject_reason": "无同构。"}
+{"rank": 1439, "verdict": "good", "value_type": "phase_transition", "potential": 4, "reason": "水的沸腾结冰与货币替代临界效应同为一阶相变式跃迁：参数（温度/贬值预期）跨过临界点后系统在极窄区间内完成状态切换，前后状态截然不同。提供了物理相变与社会临界现象的经典跨域映射，有教学与建模价值。", "reject_reason": ""}
+{"rank": 1440, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "涂层鼓包脱落与PID整定振荡发散结构不同。", "reject_reason": "无同构。"}
+{"rank": 1441, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Hi-C染色质映射与变压器磁饱和无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1442, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "聚合物应力发白与网络控制时延抖动无关。", "reject_reason": "无同构。"}
+{"rank": 1443, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "扩散模型与资本深化都含'递减/迭代'元素，但前者是逆向去噪学习，后者是对数收益，结构不同。", "reject_reason": "无同构。"}
+{"rank": 1444, "verdict": "good", "value_type": "percolation_network", "potential": 4, "reason": "渗流阈值导电网络相变与条约口岸网络都可以用渗流理论框架描述：分散节点超过临界连接密度后形成贯穿性网络，具备新的宏观性质（导电 vs 特权空间）。物理渗流与历史殖民网络的跨域同构新颖且具解释力。", "reject_reason": ""}
+{"rank": 1445, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "保育旗舰偏倚与宗主国语言衰退都涉及资源分布不均与滞后，但结构不同构。", "reject_reason": "无同构。"}
+{"rank": 1446, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "深基坑踢脚破坏与功能固着结构完全无关。", "reject_reason": "无同构。"}
+{"rank": 1447, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "群体免疫阈值与诗歌意象叠加无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1448, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "商业周期与DFB激光带隙模选择都含'选频'类意味但一个是经济周期波动、一个是光学模式选择，机制完全不同。", "reject_reason": "无同构。"}
+{"rank": 1449, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "管道老化与软弱夹层稳定性都属基础设施退化但机制（渗漏退化 vs 控制性滑面）不同。", "reject_reason": "无同构。"}
+{"rank": 1450, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "资金费率套利与电机堵转电流无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1451, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "双馈风机低电压穿越与扩散模型去噪无关。", "reject_reason": "无同构。"}
+{"rank": 1452, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Raft日志复制与绝缘配合爬电距离结构完全无关。", "reject_reason": "无同构。"}
+{"rank": 1453, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "立铣刀径向跳动与信贷脉冲效应无关。", "reject_reason": "无同构。"}
+{"rank": 1454, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "电气热点监测与玉米花丝抽出延迟无结构对应。", "reject_reason": "无同构。"}
+{"rank": 1455, "verdict": "moderate", "value_type": "shared_log_response", "potential": 3, "reason": "超固结土侧压力与温室效应增强都涉及'参数翻倍引起等量响应'的对数型结构，抽象层面有相似性但机制完全不同。", "reject_reason": "共享对数形式但系统结构不同构。"}
+{"rank": 1456, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "原子钟定义与全球失衡镜像对称结构无关。", "reject_reason": "无同构。"}

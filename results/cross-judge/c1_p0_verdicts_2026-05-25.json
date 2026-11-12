@@ -1,0 +1,467 @@
+{
+  "started_at": 1779638574.473013,
+  "elapsed_s": 15.629533052444458,
+  "n_critics": 4,
+  "critics": [
+    "deepseek-real",
+    "kimi-rigor",
+    "glm-pragmatic",
+    "qwen-framing"
+  ],
+  "voting": "majority",
+  "n_issues": 9,
+  "panel_modes": {
+    "deepseek-real": "real",
+    "kimi-rigor": "mock",
+    "glm-pragmatic": "mock",
+    "qwen-framing": "mock"
+  },
+  "results": [
+    {
+      "issue_id": "P0-S1",
+      "domain": "seismology",
+      "phase": "Phase 1 (USGS earthquakes)",
+      "ask": "Is this defensible, should the paper add a declustered comparison, or should the claim be qualified?",
+      "consensus": "REJECT",
+      "disagreement": true,
+      "agreement_pct": 0.5,
+      "krippendorff_alpha": 0.0,
+      "avg_confidence": 0.75,
+      "verdicts": [
+        {
+          "critic": "deepseek-real",
+          "kind": "REJECT",
+          "confidence": 0.95,
+          "reasoning": "The paper's claim that declustering would bias the GR fit contradicts standard practice; background b-values are routinely estimated from declustered catalogs to avoid contamination by aftershock sequences. The un-declustered global b=1.084 is not defensible without a declustered comparison or a clear justification, so the issue cannot be closed without additional work.",
+          "error": null,
+          "elapsed_s": 1.45,
+          "vendor_mode": "real"
+        },
+        {
+          "critic": "kimi-rigor",
+          "kind": "REJECT",
+          "confidence": 0.8,
+          "reasoning": "Un-declustered global b-value as headline is structurally indefensible without at minimum a Gardner-Knopoff comparison; this is the standard seismological control.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "glm-pragmatic",
+          "kind": "SPLIT",
+          "confidence": 0.7,
+          "reasoning": "Acceptable to ship un-declustered headline if the paper adds (a) an Appendix declustered b for comparison and (b) one-sentence justification in \u00a73.1.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "qwen-framing",
+          "kind": "KEEP",
+          "confidence": 0.55,
+          "reasoning": "If the paper explicitly states 'un-declustered global headline; declustered comparison is a Phase 1 follow-up', that closes the issue. Re-run not required.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        }
+      ]
+    },
+    {
+      "issue_id": "P0-S2",
+      "domain": "seismology",
+      "phase": "Phase 1 (USGS earthquakes)",
+      "ask": "Should v0.3 include the FMD plot / cumulative-frequency audit, or accept the headline number?",
+      "consensus": "KEEP",
+      "disagreement": true,
+      "agreement_pct": 0.75,
+      "krippendorff_alpha": 0.0,
+      "avg_confidence": 0.7124999999999999,
+      "verdicts": [
+        {
+          "critic": "deepseek-real",
+          "kind": "KEEP",
+          "confidence": 0.85,
+          "reasoning": "The issue is valid\u2014M_c=4.45 is high and the supporting FMD plot is missing\u2014but the requested fix (including the plot/audit in v0.3) is a straightforward editorial addition that closes the concern. No re-analysis or new computation is required beyond presenting the existing data, so the issue can be resolved with the proposed edit.",
+          "error": null,
+          "elapsed_s": 1.588,
+          "vendor_mode": "real"
+        },
+        {
+          "critic": "kimi-rigor",
+          "kind": "SPLIT",
+          "confidence": 0.7,
+          "reasoning": "Split: headline number can stand if the FMD cumulative-frequency value at the two adjacent bins is reported. Otherwise REJECT.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "glm-pragmatic",
+          "kind": "KEEP",
+          "confidence": 0.6,
+          "reasoning": "Maximum-curvature on the source paper data gives 4.45; show one supplementary number (cumulative count at 4.35) and the issue closes.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "qwen-framing",
+          "kind": "KEEP",
+          "confidence": 0.7,
+          "reasoning": "M_c = 4.45 is within published global-catalog range. Adding the cumulative-frequency line is helpful but not P0.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        }
+      ]
+    },
+    {
+      "issue_id": "P0-S3",
+      "domain": "seismology",
+      "phase": "Phase 1 (USGS earthquakes)",
+      "ask": "Should the paper homogenise to Mw-only as headline, or just state the mixture and accept the residual bias?",
+      "consensus": "SPLIT",
+      "disagreement": true,
+      "agreement_pct": 0.5,
+      "krippendorff_alpha": 0.0,
+      "avg_confidence": 0.7625,
+      "verdicts": [
+        {
+          "critic": "deepseek-real",
+          "kind": "KEEP",
+          "confidence": 0.95,
+          "reasoning": "The issue is real\u2014mixing magnitude types without homogenisation can bias b-values\u2014but the v0.3 fix (presumably adding a statement about the mixture and accepting the residual bias) closes it because the paper's Phase 1 is a demonstration of method, not a definitive seismicity study, and the bias range is small enough to be acceptable for that purpose.",
+          "error": null,
+          "elapsed_s": 1.589,
+          "vendor_mode": "real"
+        },
+        {
+          "critic": "kimi-rigor",
+          "kind": "REJECT",
+          "confidence": 0.75,
+          "reasoning": "Magnitude-type mixing is a known systematic bias (0.02-0.10). Cannot ship without either Mw-only headline or explicit mixture composition + bias disclaimer.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "glm-pragmatic",
+          "kind": "SPLIT",
+          "confidence": 0.65,
+          "reasoning": "State the mixture, cite Hutton-Edwards for the conversion bias literature; full Mw-only re-fit is out of scope for a unifying paper.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "qwen-framing",
+          "kind": "SPLIT",
+          "confidence": 0.7,
+          "reasoning": "Two acceptable resolutions: (a) Mw-only subset robustness check, (b) explicit composition disclosure. Either closes the gap.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        }
+      ]
+    },
+    {
+      "issue_id": "P0-E1",
+      "domain": "econophysics",
+      "phase": "Phase 2 (S&P 500 daily returns)",
+      "ask": "Is the daily-index scope a P0 defect, or just a scope statement that needs sharpening?",
+      "consensus": "KEEP",
+      "disagreement": true,
+      "agreement_pct": 0.75,
+      "krippendorff_alpha": 0.0,
+      "avg_confidence": 0.7749999999999999,
+      "verdicts": [
+        {
+          "critic": "deepseek-real",
+          "kind": "KEEP",
+          "confidence": 0.95,
+          "reasoning": "The issue correctly notes that the canonical inverse-cubic law is established on individual stocks at high frequency, so applying it to daily index data with a small tail sample requires explicit justification. The v0.3 fix adding a defensive sentence about data availability and statistical power should satisfy this concern without requiring a re-analysis.",
+          "error": null,
+          "elapsed_s": 1.556,
+          "vendor_mode": "real"
+        },
+        {
+          "critic": "kimi-rigor",
+          "kind": "KEEP",
+          "confidence": 0.7,
+          "reasoning": "Daily-index scope is a defensible measurement; defensive sentence is the right fix, not a re-run.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "glm-pragmatic",
+          "kind": "KEEP",
+          "confidence": 0.75,
+          "reasoning": "Defensive sentence about daily-index scope is sufficient; canonical inverse-cubic has independent confirmation on daily-index data (Weber 2007, Petersen 2010).",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "qwen-framing",
+          "kind": "SPLIT",
+          "confidence": 0.7,
+          "reasoning": "Reframe as 'C1 measures the daily-index transfer of the inverse-cubic law' (Plerou 1999, Gabaix 2003 individual-stock strong form acknowledged separately). Not a defect, but a framing precision fix.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        }
+      ]
+    },
+    {
+      "issue_id": "P0-E2",
+      "domain": "econophysics",
+      "phase": "Phase 2 (S&P 500 daily returns)",
+      "ask": "Add 1-2 econophysics lognormal-alternative references to \u00a76.1, or reframe more substantively?",
+      "consensus": "KEEP",
+      "disagreement": true,
+      "agreement_pct": 0.75,
+      "krippendorff_alpha": 0.0,
+      "avg_confidence": 0.7875000000000001,
+      "verdicts": [
+        {
+          "critic": "deepseek-real",
+          "kind": "KEEP",
+          "confidence": 0.9,
+          "reasoning": "The issue is real but the v0.3 fix (correctly stating R = -6.12 and reframing \u00a76.1) appears to close it; the suggested references would strengthen the paper but are not strictly required for correctness, and the current framing is substantively accurate for the SOC argument.",
+          "error": null,
+          "elapsed_s": 2.367,
+          "vendor_mode": "real"
+        },
+        {
+          "critic": "kimi-rigor",
+          "kind": "KEEP",
+          "confidence": 0.8,
+          "reasoning": "Adding the Pisarenko-Sornette reference closes the framing gap. Pure-edit fix.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "glm-pragmatic",
+          "kind": "KEEP",
+          "confidence": 0.8,
+          "reasoning": "Adding the Pisarenko-Sornette + LeBaron references is the minimal edit.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "qwen-framing",
+          "kind": "SPLIT",
+          "confidence": 0.65,
+          "reasoning": "Add references AND reframe '\u00a76.1 joint-signature' as 'the SOC verdict rests on coherence of three independent measurements'.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        }
+      ]
+    },
+    {
+      "issue_id": "P0-E3",
+      "domain": "econophysics",
+      "phase": "Phase 2 (S&P 500 daily returns)",
+      "ask": "Re-compute and publish slope-zero significance, or soften qualitative language?",
+      "consensus": "KEEP",
+      "disagreement": true,
+      "agreement_pct": 0.5,
+      "krippendorff_alpha": 1.1102230246251565e-16,
+      "avg_confidence": 0.775,
+      "verdicts": [
+        {
+          "critic": "deepseek-real",
+          "kind": "KEEP",
+          "confidence": 0.85,
+          "reasoning": "The issue is valid\u2014Phase 2 lacks a slope-zero significance test, making the Omori claim ambiguous. However, the v0.3 fix (adding the significance statistic or softening language) closes it, as the authors can easily compute and report the t-statistic or p-value for the slope, or adjust the claim's strength accordingly.",
+          "error": null,
+          "elapsed_s": 1.712,
+          "vendor_mode": "real"
+        },
+        {
+          "critic": "kimi-rigor",
+          "kind": "REJECT",
+          "confidence": 0.85,
+          "reasoning": "Omori claim without slope-zero significance is hand-wavy. Must re-compute the statistic before submission. Cheap.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "glm-pragmatic",
+          "kind": "REJECT",
+          "confidence": 0.8,
+          "reasoning": "Slope-zero significance is a single statistic on existing data. No reason to ship without it.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "qwen-framing",
+          "kind": "KEEP",
+          "confidence": 0.6,
+          "reasoning": "If R\u00b2 = 0.71 is published, the implicit slope-zero significance is already moderate; explicit statistic is a polish.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        }
+      ]
+    },
+    {
+      "issue_id": "P0-N1",
+      "domain": "neuroscience",
+      "phase": "Phase 4 (mouse ALM avalanches)",
+      "ask": "Run multi-session expansion now, or sharpen Table 1 footnote and \u00a76.5 caveat?",
+      "consensus": "SPLIT",
+      "disagreement": true,
+      "agreement_pct": 0.5,
+      "krippendorff_alpha": 0.0,
+      "avg_confidence": 0.7625,
+      "verdicts": [
+        {
+          "critic": "deepseek-real",
+          "kind": "REJECT",
+          "confidence": 0.95,
+          "reasoning": "The issue is real and critical: a single-session, single-animal result cannot support a general claim about task-active sub-critical subclass in mouse ALM, especially given the known session-to-session and animal-to-animal variability in cortical avalanche dynamics. The proposed v0.3 fix (sharpening a footnote and caveat) does not address the fundamental lack of statistical evidence; the paper should not be submitted without running additional sessions from DANDI 000006 to confirm the scaling relation.",
+          "error": null,
+          "elapsed_s": 2.112,
+          "vendor_mode": "real"
+        },
+        {
+          "critic": "kimi-rigor",
+          "kind": "SPLIT",
+          "confidence": 0.7,
+          "reasoning": "Both: (a) sharpen Table 1 footnote AND (b) commit to a multi-session expansion in v0.3 or as a follow-up. Single-session is not a P0 if the caveat is explicit.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "glm-pragmatic",
+          "kind": "KEEP",
+          "confidence": 0.6,
+          "reasoning": "Add the single-session caveat to Table 1 footnote and \u00a76.5. Multi-session expansion is a follow-up; do not block C1 on it.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "qwen-framing",
+          "kind": "SPLIT",
+          "confidence": 0.8,
+          "reasoning": "Sharpen Table 1 + \u00a76.5 to 'preliminary single-session estimate'; multi-session expansion in v0.3 or v0.4 follow-up.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        }
+      ]
+    },
+    {
+      "issue_id": "P0-N2",
+      "domain": "neuroscience",
+      "phase": "Phase 4 (mouse ALM avalanches)",
+      "ask": "Run per-unit avalanche detection (re-run), or acknowledge methodology + cite Priesemann?",
+      "consensus": "KEEP",
+      "disagreement": true,
+      "agreement_pct": 0.75,
+      "krippendorff_alpha": 0.0,
+      "avg_confidence": 0.75,
+      "verdicts": [
+        {
+          "critic": "deepseek-real",
+          "kind": "KEEP",
+          "confidence": 0.95,
+          "reasoning": "The issue is valid\u2014pooling spike trains can indeed mask sub-critical signatures as shown in Priesemann 2014. If the v0.3 revision acknowledges this limitation and cites the relevant work, the concern is adequately addressed without requiring a full re-analysis.",
+          "error": null,
+          "elapsed_s": 1.186,
+          "vendor_mode": "real"
+        },
+        {
+          "critic": "kimi-rigor",
+          "kind": "KEEP",
+          "confidence": 0.65,
+          "reasoning": "Acknowledge + cite Priesemann is the right scope for v0.3. Per-unit re-run is a follow-up.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "glm-pragmatic",
+          "kind": "KEEP",
+          "confidence": 0.7,
+          "reasoning": "Cite Priesemann 2014 + state the pooling methodology in \u00a73.4. Per-unit re-run is follow-up.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "qwen-framing",
+          "kind": "SPLIT",
+          "confidence": 0.7,
+          "reasoning": "Acknowledge pooling + cite Priesemann + commit to per-unit follow-up in \u00a76.5.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        }
+      ]
+    },
+    {
+      "issue_id": "P0-N3",
+      "domain": "neuroscience",
+      "phase": "Phase 4 (mouse ALM avalanches)",
+      "ask": "Clarify in \u00a73.4 that \u03b3 \u2248 1.10 deviates from \u03b3_MF = 2 (cross-bin \u03b3 stability is the criticality signature; absolute value places the recording outside mean-field), or soften the criticality framing?",
+      "consensus": "SPLIT",
+      "disagreement": true,
+      "agreement_pct": 0.5,
+      "krippendorff_alpha": 0.0,
+      "avg_confidence": 0.8375,
+      "verdicts": [
+        {
+          "critic": "deepseek-real",
+          "kind": "KEEP",
+          "confidence": 0.85,
+          "reasoning": "The issue correctly identifies a significant deviation from mean-field predictions, but the v0.3 fix (clarifying in \u00a73.4 that \u03b3 \u2248 1.10 deviates from \u03b3_MF = 2 and that cross-bin \u03b3 stability is the criticality signature) directly addresses the framing concern. No further work is needed beyond the proposed edit.",
+          "error": null,
+          "elapsed_s": 2.024,
+          "vendor_mode": "real"
+        },
+        {
+          "critic": "kimi-rigor",
+          "kind": "REJECT",
+          "confidence": 0.9,
+          "reasoning": "\u03b3 = 1.10 vs \u03b3_MF = 2 cannot be framed as 'criticality confirmed' without the deviation paragraph. A Beggs-Timme reviewer will reject on this alone.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "glm-pragmatic",
+          "kind": "SPLIT",
+          "confidence": 0.75,
+          "reasoning": "Both: (a) explicit \u03b3 \u2248 1.10 \u2260 \u03b3_MF = 2 paragraph in \u00a73.4, (b) soften 'task-active sub-critical sub-class' to 'consistent with task-active sub-critical state'.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        },
+        {
+          "critic": "qwen-framing",
+          "kind": "SPLIT",
+          "confidence": 0.85,
+          "reasoning": "Both edits: \u03b3 deviation paragraph in \u00a73.4 + soften framing in \u00a76.1. Single sentence will not close the gap.",
+          "error": null,
+          "elapsed_s": 0.0,
+          "vendor_mode": "mock"
+        }
+      ]
+    }
+  ],
+  "mean_krippendorff_alpha": 1.2335811384723961e-17,
+  "n_alpha_valid": 9,
+  "n_unanimous_keep": 0,
+  "n_unanimous_reject": 0,
+  "n_contested": 9
+}

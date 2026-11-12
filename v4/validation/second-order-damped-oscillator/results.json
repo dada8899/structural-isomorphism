@@ -1,0 +1,115 @@
+{
+  "system": "Second-order damped oscillator \u2014 5-domain cross-class test",
+  "data_provenance": "MIXED: Mechanical buildings = literature digest (Tamura DB, Kareem, Li-Wu-Kareem); RLC = simulated 23 circuits Sedra-Smith parameter ranges; Pendulum = simulated 12 setups Crawford `Waves` Berkeley; Economic = REAL FRED 6 series (GDPC1/INDPRO/UNRATE/PCEC96/GDPDEF/PAYEMS) Hodrick-Prescott detrended + AR(2) fit + rolling windows; Power-grid = simulated 24 SMIB swing models with Kundur 1994 plant parameter distributions.",
+  "predicted_class": "second_order_damped_oscillator",
+  "domains": [
+    "economic_macro",
+    "mechanical_building",
+    "pendulum",
+    "power_grid_swing",
+    "rlc_circuit"
+  ],
+  "summary_per_domain": {
+    "economic_macro": {
+      "n": 23,
+      "zeta_min": 0.5241387383002453,
+      "zeta_max": 0.9862205173213443,
+      "zeta_median": 0.7952598241841379,
+      "zeta_p25": 0.6484530149649184,
+      "zeta_p75": 0.8705657091195116,
+      "zeta_geomean": 0.7615581469091814,
+      "omega_median_Hz": 0.2536155485883918,
+      "omega_min_Hz": 0.1742835382595255,
+      "omega_max_Hz": 1.4707903670673959,
+      "dominant_regime": "near_critical"
+    },
+    "mechanical_building": {
+      "n": 20,
+      "zeta_min": 0.007,
+      "zeta_max": 0.016,
+      "zeta_median": 0.012,
+      "zeta_p25": 0.01075,
+      "zeta_p75": 0.013,
+      "zeta_geomean": 0.011526283224239502,
+      "omega_median_Hz": 0.1675,
+      "omega_min_Hz": 0.103,
+      "omega_max_Hz": 0.22,
+      "dominant_regime": "underdamped"
+    },
+    "pendulum": {
+      "n": 24,
+      "zeta_min": 5.197987964433724e-07,
+      "zeta_max": 0.2141764684390596,
+      "zeta_median": 0.0005583403917502097,
+      "zeta_p25": 0.00014147178589755347,
+      "zeta_p75": 0.0027835080440965277,
+      "zeta_geomean": 0.0004353094352539501,
+      "omega_median_Hz": 0.41388688282382635,
+      "omega_min_Hz": 0.060899991775461224,
+      "omega_max_Hz": 2.2293057344511245,
+      "dominant_regime": "underdamped"
+    },
+    "power_grid_swing": {
+      "n": 24,
+      "zeta_min": 0.022458864950683867,
+      "zeta_max": 12.242741047547966,
+      "zeta_median": 1.3374514459591977,
+      "zeta_p25": 0.3698384798602504,
+      "zeta_p75": 3.3785418286608695,
+      "zeta_geomean": 0.869022518199031,
+      "omega_median_Hz": 1.3254538601172432,
+      "omega_min_Hz": 0.512247437228907,
+      "omega_max_Hz": 2.5901962800035307,
+      "dominant_regime": "overdamped"
+    },
+    "rlc_circuit": {
+      "n": 24,
+      "zeta_min": 5e-05,
+      "zeta_max": 33.23401871576773,
+      "zeta_median": 0.07645644574854821,
+      "zeta_p25": 0.002392579269786445,
+      "zeta_p75": 0.6108696031644809,
+      "zeta_geomean": 0.06647189230944739,
+      "omega_median_Hz": 1591.5494309189535,
+      "omega_min_Hz": 50.329212104487034,
+      "omega_max_Hz": 10065842.420897407,
+      "dominant_regime": "underdamped"
+    }
+  },
+  "verdict": {
+    "verdict": "REJECT",
+    "reason": "\u03b6 spread 2395.4x >= 10.0; regimes split across {'overdamped', 'near_critical', 'underdamped'}",
+    "spread_ratio": 2395.4051430288546,
+    "domain_regimes": {
+      "economic_macro": "near_critical",
+      "mechanical_building": "underdamped",
+      "pendulum": "underdamped",
+      "power_grid_swing": "overdamped",
+      "rlc_circuit": "underdamped"
+    },
+    "insufficient_domains": [],
+    "z_medians": {
+      "economic_macro": 0.7952598241841379,
+      "mechanical_building": 0.012,
+      "pendulum": 0.0005583403917502097,
+      "power_grid_swing": 1.3374514459591977,
+      "rlc_circuit": 0.07645644574854821
+    },
+    "z_geomeans": {
+      "economic_macro": 0.7615581469091814,
+      "mechanical_building": 0.011526283224239502,
+      "pendulum": 0.0004353094352539501,
+      "power_grid_swing": 0.869022518199031,
+      "rlc_circuit": 0.06647189230944739
+    }
+  },
+  "pass_gate": {
+    "min_n_per_domain": 20,
+    "max_zeta_spread_ratio": 10.0,
+    "regime_cuts": {
+      "underdamped_max": 0.5,
+      "overdamped_min": 1.0
+    }
+  },
+  "wall_clock_s": 29.066957712173462
+}

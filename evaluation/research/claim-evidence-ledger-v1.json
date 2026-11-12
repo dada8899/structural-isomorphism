@@ -1,0 +1,151 @@
+{
+  "schema_version": "1.0.0",
+  "manuscript": "paper/v0.5-draft/v05-draft-skeleton.md",
+  "manuscript_status": "reviewer-readable-do-not-submit",
+  "review_status": "internal-review-only",
+  "external_review_completed": false,
+  "manuscript_claim_inventory": [
+    {"line_sha256":"c9a0a868ca620f61b84660b7ed60a501c7d4690cec7c35e8259681d28c86fbfc","claim_ids":["C-V04-LEGACY-TAXONOMY"],"disposition":"legacy-conflict-blocked"},
+    {"line_sha256":"6b504d686d417339975da1569d2ad9ccbaae8078b4c939526df16f3cad8f2c11","claim_ids":["C-V05-AGGREGATION-L1","C-V05-PYTHIA-EVAL-SPECIFIC","C-V05-SCHELLING-SYNTHETIC","C-V05-SCHELLING-WTO-REJECT"],"disposition":"legacy-conflict-blocked"},
+    {"line_sha256":"781c35adf8952cb560b34cc6d526673a09196d99e7437052f125aa4e199af4e6","claim_ids":["C-V04-LEGACY-TAXONOMY","C-V05-AGGREGATION-L1","C-V05-PYTHIA-EVAL-SPECIFIC","C-V05-SCHELLING-WTO-REJECT"],"disposition":"legacy-conflict-blocked"},
+    {"line_sha256":"c3997f89b8a1cf60cd3f4068b773711033866d74a96cec7623dce7e43225aa59","claim_ids":["C-V04-LEGACY-TAXONOMY"],"disposition":"bounded"},
+    {"line_sha256":"cf2bd0708225e1cf8c3e85d560079e830d200131c2c5f6635bae7f21360b6999","claim_ids":["C-V04-LEGACY-TAXONOMY"],"disposition":"legacy-conflict-blocked"},
+    {"line_sha256":"2381ac7d7cdfae826a2ae395046522383ddff9e20529096d79b33b458129c6e3","claim_ids":["C-V05-AGGREGATION-L1"],"disposition":"legacy-conflict-blocked"},
+    {"line_sha256":"4f5afe31273f391e7c06881089ebd216383210f08f0ab4712e2bfff7010bba45","claim_ids":["C-V05-SCHELLING-SYNTHETIC","C-V05-SCHELLING-WTO-REJECT"],"disposition":"legacy-conflict-blocked"},
+    {"line_sha256":"de9e75a31588f4476560eafc4f1d05c1335bd874d86566a7954caeacd51ed8db","claim_ids":["C-V05-PYTHIA-EVAL-SPECIFIC"],"disposition":"legacy-conflict-blocked"}
+  ],
+  "conflict_register": [
+    {
+      "conflict_id": "X-SCHELLING-TAXONOMY-VS-FIT",
+      "claim_ids": ["C-V05-SCHELLING-SYNTHETIC", "C-V05-SCHELLING-WTO-REJECT", "C-V04-LEGACY-TAXONOMY"],
+      "evidence": [
+        {"path":"v4/results/B1_final_summary.md","sha256":"89c3ffc0917b9b291dbf7e8d0033857fc3bfb43a366f4478ef95b451a8455d02"},
+        {"path":"v4/validation/schelling-credible-commitment/results_real_wto.json","sha256":"6ba734e3602c417fd8444459746c4e6bdacf5e77b56104e6282ffee541f1ae56"},
+        {"path":"evaluation/research/wto-robustness-v1.json","sha256":"05f24c49b07fe7bb1e8cc013156efe3f8c589d83200ee6b3b183dd2c2875c3b9"}
+      ],
+      "resolution": "Exclude schelling_credible_commitment from universality-class PASS counts and submission claims; retain the synthetic response-model experiment and WTO observational rejection as bounded method results only.",
+      "submission_blocking": true
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "C-V04-LEGACY-TAXONOMY",
+      "headline": true,
+      "exact_wording": "The legacy internal taxonomy records a mixture of PASS, REJECT, INCONCLUSIVE, SPLIT, and MERGE decisions; those labels are internal pipeline verdicts rather than externally replicated universality findings.",
+      "scope": "Internal B1 taxonomy and four synthetic null controls only; the manuscript counts remain submission-blocked where they conflict with the current taxonomy or depend on synthetic anchors.",
+      "status": "reviewer-readable-do-not-submit",
+      "evidence": [
+        {"path":"v4/results/B1_final_summary.md","sha256":"89c3ffc0917b9b291dbf7e8d0033857fc3bfb43a366f4478ef95b451a8455d02"},
+        {"path":"v4/validation/null-controls/null_results.json","sha256":"94f03f4c2459100ba199ddb65427b1c24087198dd6d7492b2fd9a648ec8cf601"}
+      ],
+      "command": "python3 v4/validation/null-controls/generate_and_analyze.py",
+      "environment": "Repository Python environment; internal taxonomy review plus synthetic controls",
+      "seed": "See null_results.json",
+      "result_figure_table": "B1_final_summary.md and null_results.json; manuscript Abstract and Contributions 2-3",
+      "provenance": "Internal critic/ensemble taxonomy and synthetic null generators.",
+      "independence": "No recorded external taxonomy review or independent reproduction.",
+      "caveats": ["Synthetic null rejection is not evidence of real-domain external validity.", "Schelling is rejected as a universality class by B1 and must not be included in PASS counts."]
+    },
+    {
+      "claim_id": "C-V05-AGGREGATION-L1",
+      "headline": true,
+      "exact_wording": "In the four recorded literature anchors, Layer 1 aggregation-size exponents fall within the preregistered [1.7, 3.5] band; the anchors span biology and physical chemistry.",
+      "scope": "Four literature-anchored constants recorded in results.json; this is not a universal law over all matter and the older anchors include pre-Clauset log-log fits.",
+      "status": "reviewer-readable-do-not-submit",
+      "evidence": [
+        {
+          "path": "v4/validation/aggregation-kinetics/results.json",
+          "sha256": "6a775067cdb3f3be50c443056cf6d6893f0e474f1abd828a9fe055291d54452c"
+        }
+      ],
+      "command": "python3 v4/validation/aggregation-kinetics/run_validation.py",
+      "environment": "Repository Python environment; literature constants and inherited Allen Brain TBI fits",
+      "seed": null,
+      "result_figure_table": "results.json: layer1_per_plaque and layer2_population; manuscript Abstract and Contribution 5",
+      "provenance": "Literature-anchored constants plus an inherited real-data cross-section; not raw remeasurement of every source paper.",
+      "independence": "Internal pipeline run; no independent external replication or external reviewer verdict recorded.",
+      "caveats": [
+        "Layer 2 is biology-only.",
+        "Three Layer 1 anchors use literature-reported or pre-Clauset fits.",
+        "The evidence supports this four-anchor sample, not universality over all matter."
+      ]
+    },
+    {
+      "claim_id": "C-V05-PYTHIA-EVAL-SPECIFIC",
+      "headline": true,
+      "exact_wording": "Across the recorded Pythia cross-evaluator analysis, fitted scaling exponents vary by evaluator; the pooled qualified-evaluator result is labelled ALPHA_EVAL_SPECIFIC.",
+      "scope": "Eight Pythia sizes and eight recorded evaluator/metric recipes over the available checkpoints; no claim about other model families, training runs, or benchmarks.",
+      "status": "reviewer-readable-do-not-submit",
+      "evidence": [
+        {
+          "path": "v4/validation/llm-scaling/results_cross_eval.json",
+          "sha256": "2fe0baa1f7cb7e7b3864b7ec11968cc4ac242c391a52cc366fb18052b70ccf86"
+        }
+      ],
+      "command": "python3 v4/validation/llm-scaling/run_validation_cross_eval.py",
+      "environment": "Repository Python environment; EleutherAI Pythia evaluation extracts listed in raw/SOURCES.md",
+      "seed": null,
+      "result_figure_table": "results_cross_eval.json; manuscript Abstract and Contribution 7",
+      "provenance": "Repository analysis of upstream EleutherAI Pythia evaluation JSON extracts.",
+      "independence": "Internal re-analysis; upstream evaluations are external, but no independent replication of this fitted verdict is recorded.",
+      "caveats": [
+        "Evaluator metrics and transforms differ.",
+        "The conclusion is Pythia-specific.",
+        "Fit specification and checkpoint coverage bound the inference."
+      ]
+    },
+    {
+      "claim_id": "C-V05-SCHELLING-SYNTHETIC",
+      "headline": true,
+      "exact_wording": "The selected synthetic threshold-tobit sub-run supports only a partial-anchor-fit verdict, not a real-world confirmation of Schelling credible commitment.",
+      "scope": "Synthetic generator family and fixed seeds recorded in results_v5.json; real-world mechanism validity is explicitly outside this positive result.",
+      "status": "reviewer-readable-do-not-submit",
+      "evidence": [
+        {
+          "path": "v4/validation/schelling-credible-commitment/results_v5.json",
+          "sha256": "178b430a0e659d6f3e21ace40f4dcc8bdb52778b6de3f18ba9f147660bc111f8"
+        }
+      ],
+      "command": "python3 v4/validation/schelling-credible-commitment/run_validation_v5.py",
+      "environment": "Repository Python environment; synthetic generator only",
+      "seed": "active=20260525; sham=20260601",
+      "result_figure_table": "results_v5.json subruns and verdict ladder; manuscript Contribution 6",
+      "provenance": "Fully synthetic re-analysis with literature anchors used as comparison targets.",
+      "independence": "Internal generator and internal analysis; no independent external replication.",
+      "caveats": [
+        "Headline manuscript prose selects later sub-runs while the top-level result remains inconclusive.",
+        "The generator does not establish real-data causal identification.",
+        "Per-anchor fit is incomplete."
+      ]
+    },
+    {
+      "claim_id": "C-V05-SCHELLING-WTO-REJECT",
+      "headline": true,
+      "exact_wording": "In the manually coded 23-dispute WTO sample, the fitted slope is negative and its recorded 95% bootstrap interval excludes zero, contradicting the preregistered positive-slope observational prediction.",
+      "scope": "The 23 disputes reaching the retaliation-request stage in the recorded Horn-Mavroidis-derived sample; this rejects the stated observational prediction, not Schelling theory generally.",
+      "status": "reviewer-readable-do-not-submit",
+      "evidence": [
+        {
+          "path": "v4/validation/schelling-credible-commitment/results_real_wto.json",
+          "sha256": "6ba734e3602c417fd8444459746c4e6bdacf5e77b56104e6282ffee541f1ae56"
+        },
+        {
+          "path": "evaluation/research/wto-robustness-v1.json",
+          "sha256": "05f24c49b07fe7bb1e8cc013156efe3f8c589d83200ee6b3b183dd2c2875c3b9"
+        }
+      ],
+      "command": "python3 v4/validation/schelling-credible-commitment/run_validation_real_wto.py",
+      "environment": "Repository Python environment; manually coded WTO outcomes",
+      "seed": "bootstrap implementation recorded by the analysis script",
+      "result_figure_table": "results_real_wto.json fit.beta_probit and fit.k_ci95; manuscript Abstract and Contribution 6",
+      "provenance": "Horn-Mavroidis-derived dispute selection plus repository manual outcome coding.",
+      "independence": "Internal coding and analysis; manual coding has not received recorded independent double-coding.",
+      "caveats": [
+        "Small selected sample (n=23).",
+        "Observational selection prevents a general causal conclusion.",
+        "Policy-cluster bootstrap preserves the negative sign but has an extreme separation tail; coefficient magnitude is unstable.",
+        "The result is based on a small manually coded selected sample and requires independent double-coding before any stronger claim."
+      ]
+    }
+  ]
+}

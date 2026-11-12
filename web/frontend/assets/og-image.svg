@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#FAFAF9"/>
+  <g stroke="#18181B" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
+    <circle cx="260" cy="315" r="44"/>
+    <circle cx="940" cy="315" r="44"/>
+    <path d="M304 315 L896 315"/>
+  </g>
+  <text x="600" y="200" text-anchor="middle" font-family="Georgia, 'Noto Serif SC', serif" font-size="84" font-weight="500" fill="#18181B" letter-spacing="-2">Structural</text>
+  <text x="600" y="470" text-anchor="middle" font-family="Georgia, 'Noto Serif SC', serif" font-size="34" font-weight="400" fill="#52525B">万物的形状都在重复</text>
+  <text x="600" y="530" text-anchor="middle" font-family="Inter, sans-serif" font-size="22" font-weight="400" fill="#71717A">跨领域思维引擎  ·  4,443 phenomena  ·  87 domains</text>
+</svg>

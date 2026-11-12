@@ -1,0 +1,207 @@
+{
+  "system": "Reflexive fixed point & measurement feedback \u2014 Soros / Goodhart / Muth class (SYNTHETIC)",
+  "data_provenance": "SYNTHETIC. Generative equation IS the Soros reflexive coupling |f'(E)| = 1 + c\u00b7w (Soros 1987 Alchemy of Finance \u00a71.3). Empirical anchors cited but not loaded as raw data: Hand-Holthausen-Leftwich 1992 J Finance 47:733 (bond downgrade \u2192 excess spread widening); Norden-Weber 2004 J Bank Finance 28:2813 (CDS reaction > information content); Goodhart 1975 Bank of England note (KPI introduction destroys prior relation); Muth 1961 Econometrica 29:315 (rational expectations fixed point); Leiden Ranking / REF 2014/2021 cohorts (academic KPI \u0394 band).",
+  "predicted_class": "reflexive_fixed_point_class",
+  "preregistered_bands": {
+    "reflexivity_c": [
+      0.6,
+      1.6
+    ],
+    "quality_quantity_delta": [
+      0.1,
+      0.3
+    ],
+    "powerlaw_alpha_jump_magnitude": [
+      1.5,
+      4.0
+    ]
+  },
+  "summary": {
+    "config": {
+      "n_runs_per_arm": 80,
+      "n_steps": 600,
+      "n_meas_per_run": 5,
+      "c_active": 1.0,
+      "c_sham": 0.0,
+      "preregistered_c_band": [
+        0.6,
+        1.6
+      ],
+      "preregistered_alpha_band": [
+        1.5,
+        4.0
+      ],
+      "preregistered_delta_band": [
+        0.1,
+        0.3
+      ]
+    },
+    "active": {
+      "n_jumps": 306,
+      "mean_abs_jump": 0.03156532009698757,
+      "median_abs_jump": 0.030269440674961845,
+      "max_abs_jump": 0.1149699277237135,
+      "rms_F_per_run_mean": 0.08754688269292094
+    },
+    "sham": {
+      "n_jumps": 304,
+      "mean_abs_jump": 0.016804972618177608,
+      "median_abs_jump": 0.013622391075469253,
+      "max_abs_jump": 0.052843728089551845,
+      "rms_F_per_run_mean": 0.08229157206393542
+    },
+    "dichotomy_within_active": {
+      "n_active": 306,
+      "n_sham": 306,
+      "mean_active": 0.03156532009698757,
+      "mean_sham": 0.01647079318428696,
+      "sd_active": 0.01979515792285153,
+      "sd_sham": 0.013003530474188969,
+      "diff_mean": 0.01509452691270061,
+      "diff_ci95": [
+        0.012278725633437071,
+        0.017951761393266437
+      ],
+      "t_stat_welch": 11.148642325227653,
+      "p_permutation": 0.0004997501249375312,
+      "dichotomy_holds": true
+    },
+    "dichotomy_within_sham": {
+      "n_active": 304,
+      "n_sham": 304,
+      "mean_active": 0.016804972618177608,
+      "mean_sham": 0.01673188381879321,
+      "sd_active": 0.012464941595052062,
+      "sd_sham": 0.012993054634834323,
+      "diff_mean": 7.308879938439788e-05,
+      "diff_ci95": [
+        -0.001936519946284204,
+        0.0019119264471812948
+      ],
+      "t_stat_welch": 0.07077583047077932,
+      "p_permutation": 0.9365317341329336,
+      "dichotomy_holds": false
+    },
+    "dichotomy_cross_arm": {
+      "n_active": 306,
+      "n_sham": 304,
+      "mean_active": 0.03156532009698757,
+      "mean_sham": 0.016804972618177608,
+      "sd_active": 0.01979515792285153,
+      "sd_sham": 0.012464941595052062,
+      "diff_mean": 0.014760347478809964,
+      "diff_ci95": [
+        0.012076537429158906,
+        0.017349768247020524
+      ],
+      "t_stat_welch": 11.027316927638378,
+      "p_permutation": 0.0004997501249375312,
+      "dichotomy_holds": true
+    },
+    "active_placebo_mean": 0.01647079318428696,
+    "sham_placebo_mean": 0.01673188381879321,
+    "c_recovery": {
+      "c_estimate": 0.5031508970900204,
+      "n_used": 306,
+      "mean_abs_jump": 0.03156532009698757,
+      "placebo_floor": 0.01647079318428696,
+      "impulse_above_floor": 0.01509452691270061,
+      "method": "moment_proxy: c_hat \u2248 (mean(|\u0394F|) \u2212 placebo_floor) / (action_strength \u00b7 b \u00b7 F\u0304)",
+      "c_estimate_sweep_slope": 0.6525886326740453,
+      "c_estimate_combined": 0.6525886326740453
+    },
+    "c_in_band": true,
+    "powerlaw_active": {
+      "name": "reflexive_jump_magnitude",
+      "alpha": 2.9732150681938316,
+      "sigma_alpha": 0.14666792094751782,
+      "xmin": 0.025362888658969074,
+      "n_total": 306,
+      "n_tail": 181,
+      "vs_lognormal_R": -4.4376517154777995,
+      "vs_lognormal_p": 9.094561736566816e-06,
+      "vs_exponential_R": -7.273854618277974,
+      "vs_exponential_p": 3.493719834478426e-13,
+      "vs_powerlaw_lognormal_winner": "lognormal",
+      "rejects_power_law": true,
+      "ks_statistic": 0.1536624637535938
+    },
+    "powerlaw_sham": {
+      "name": "sham_jump_magnitude",
+      "alpha": 2.642682972295005,
+      "sigma_alpha": 0.13027323360107482,
+      "xmin": 0.013356085162282039,
+      "n_total": 304,
+      "n_tail": 159,
+      "vs_lognormal_R": -4.178760708462776,
+      "vs_lognormal_p": 2.9310187415872273e-05,
+      "vs_exponential_R": -6.879446876944391,
+      "vs_exponential_p": 6.00853987553057e-12,
+      "vs_powerlaw_lognormal_winner": "lognormal",
+      "rejects_power_law": true,
+      "ks_statistic": 0.16820914007073812
+    },
+    "pl_alpha_in_band": true,
+    "c_sweep": [
+      {
+        "c_true": 0.0,
+        "n_jumps": 112,
+        "mean_abs_jump": 0.01605712315903723,
+        "max_abs_jump": 0.055222898322019875,
+        "median_abs_jump": 0.013054668400121539
+      },
+      {
+        "c_true": 0.3,
+        "n_jumps": 108,
+        "mean_abs_jump": 0.017854231637636338,
+        "max_abs_jump": 0.07569040967054419,
+        "median_abs_jump": 0.015530069071990615
+      },
+      {
+        "c_true": 0.6,
+        "n_jumps": 115,
+        "mean_abs_jump": 0.023484639368679346,
+        "max_abs_jump": 0.06724077128743611,
+        "median_abs_jump": 0.019587425860795205
+      },
+      {
+        "c_true": 0.8,
+        "n_jumps": 110,
+        "mean_abs_jump": 0.02692728518564953,
+        "max_abs_jump": 0.07542931338200609,
+        "median_abs_jump": 0.02473456330410012
+      },
+      {
+        "c_true": 1.0,
+        "n_jumps": 112,
+        "mean_abs_jump": 0.036779934921789326,
+        "max_abs_jump": 0.10132912890735979,
+        "median_abs_jump": 0.036944284368933544
+      },
+      {
+        "c_true": 1.3,
+        "n_jumps": 116,
+        "mean_abs_jump": 0.039113101586048735,
+        "max_abs_jump": 0.09595377639528524,
+        "median_abs_jump": 0.038189308525758914
+      },
+      {
+        "c_true": 1.6,
+        "n_jumps": 115,
+        "mean_abs_jump": 0.053115860314753266,
+        "max_abs_jump": 0.11864101978767438,
+        "median_abs_jump": 0.052249704481229786
+      },
+      {
+        "c_true": 2.0,
+        "n_jumps": 109,
+        "mean_abs_jump": 0.06378793835246684,
+        "max_abs_jump": 0.1349716600889047,
+        "median_abs_jump": 0.05897754808004474
+      }
+    ],
+    "overall_verdict": "CONFIRMED",
+    "verdict_reason": "Within-active dichotomy holds (measurement > placebo, CI excludes 0), within-sham null holds (no false positive), recovered c=0.653 (sweep-slope estimator) in band (0.6, 1.6), power-law \u03b1=2.973 in band (1.5, 4.0).",
+    "wallclock_seconds": 0.8316128253936768
+  }
+}

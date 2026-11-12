@@ -1,0 +1,500 @@
+{"ticker": "AAPL", "company_name": "Apple Inc.", "sector": "tech_hardware", "market_cap_bn_usd": 3500, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "MSFT", "company_name": "Microsoft Corporation", "sector": "tech_software", "market_cap_bn_usd": 3300, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "GOOGL", "company_name": "Alphabet Inc.", "sector": "tech_internet", "market_cap_bn_usd": 2300, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "AMZN", "company_name": "Amazon.com Inc.", "sector": "tech_internet", "market_cap_bn_usd": 2100, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "META", "company_name": "Meta Platforms Inc.", "sector": "tech_internet", "market_cap_bn_usd": 1500, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "NVDA", "company_name": "NVIDIA Corporation", "sector": "tech_semiconductor", "market_cap_bn_usd": 3200, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "TSLA", "company_name": "Tesla Inc.", "sector": "tech_auto", "market_cap_bn_usd": 1000, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "AVGO", "company_name": "Broadcom Inc.", "sector": "tech_semiconductor", "market_cap_bn_usd": 800, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ORCL", "company_name": "Oracle Corporation", "sector": "tech_software", "market_cap_bn_usd": 450, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "CRM", "company_name": "Salesforce Inc.", "sector": "tech_software", "market_cap_bn_usd": 300, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "WMT", "company_name": "Walmart Inc.", "sector": "consumer_staples", "market_cap_bn_usd": 600, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "PG", "company_name": "Procter & Gamble Co.", "sector": "consumer_staples", "market_cap_bn_usd": 380, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "KO", "company_name": "Coca-Cola Company", "sector": "consumer_staples", "market_cap_bn_usd": 280, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "PEP", "company_name": "PepsiCo Inc.", "sector": "consumer_staples", "market_cap_bn_usd": 230, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "MCD", "company_name": "McDonald's Corporation", "sector": "consumer_discretionary", "market_cap_bn_usd": 210, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "NKE", "company_name": "Nike Inc.", "sector": "consumer_discretionary", "market_cap_bn_usd": 110, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "SBUX", "company_name": "Starbucks Corporation", "sector": "consumer_discretionary", "market_cap_bn_usd": 105, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "COST", "company_name": "Costco Wholesale Corp.", "sector": "consumer_staples", "market_cap_bn_usd": 380, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "HD", "company_name": "Home Depot Inc.", "sector": "consumer_discretionary", "market_cap_bn_usd": 380, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "TGT", "company_name": "Target Corporation", "sector": "consumer_discretionary", "market_cap_bn_usd": 65, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "JPM", "company_name": "JPMorgan Chase & Co.", "sector": "financials_bank", "market_cap_bn_usd": 680, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "BAC", "company_name": "Bank of America Corp.", "sector": "financials_bank", "market_cap_bn_usd": 360, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "WFC", "company_name": "Wells Fargo & Co.", "sector": "financials_bank", "market_cap_bn_usd": 250, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "C", "company_name": "Citigroup Inc.", "sector": "financials_bank", "market_cap_bn_usd": 130, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "GS", "company_name": "Goldman Sachs Group", "sector": "financials_bank", "market_cap_bn_usd": 170, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "MS", "company_name": "Morgan Stanley", "sector": "financials_bank", "market_cap_bn_usd": 160, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "BLK", "company_name": "BlackRock Inc.", "sector": "financials_asset_mgmt", "market_cap_bn_usd": 160, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "V", "company_name": "Visa Inc.", "sector": "financials_payments", "market_cap_bn_usd": 580, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "MA", "company_name": "Mastercard Inc.", "sector": "financials_payments", "market_cap_bn_usd": 470, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "AXP", "company_name": "American Express Co.", "sector": "financials_payments", "market_cap_bn_usd": 195, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "JNJ", "company_name": "Johnson & Johnson", "sector": "healthcare_pharma", "market_cap_bn_usd": 410, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "UNH", "company_name": "UnitedHealth Group", "sector": "healthcare_insurance", "market_cap_bn_usd": 480, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "LLY", "company_name": "Eli Lilly and Company", "sector": "healthcare_pharma", "market_cap_bn_usd": 720, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "PFE", "company_name": "Pfizer Inc.", "sector": "healthcare_pharma", "market_cap_bn_usd": 160, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "MRK", "company_name": "Merck & Co. Inc.", "sector": "healthcare_pharma", "market_cap_bn_usd": 300, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "ABBV", "company_name": "AbbVie Inc.", "sector": "healthcare_pharma", "market_cap_bn_usd": 310, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "TMO", "company_name": "Thermo Fisher Scientific", "sector": "healthcare_devices", "market_cap_bn_usd": 220, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "ABT", "company_name": "Abbott Laboratories", "sector": "healthcare_devices", "market_cap_bn_usd": 200, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "DHR", "company_name": "Danaher Corporation", "sector": "healthcare_devices", "market_cap_bn_usd": 170, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "CVS", "company_name": "CVS Health Corp.", "sector": "healthcare_retail", "market_cap_bn_usd": 75, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "XOM", "company_name": "Exxon Mobil Corp.", "sector": "energy_oil_gas", "market_cap_bn_usd": 470, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "CVX", "company_name": "Chevron Corporation", "sector": "energy_oil_gas", "market_cap_bn_usd": 290, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "COP", "company_name": "ConocoPhillips", "sector": "energy_oil_gas", "market_cap_bn_usd": 130, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "SLB", "company_name": "Schlumberger Limited", "sector": "energy_oilfield_svc", "market_cap_bn_usd": 60, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "EOG", "company_name": "EOG Resources Inc.", "sector": "energy_oil_gas", "market_cap_bn_usd": 75, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "PSX", "company_name": "Phillips 66", "sector": "energy_refining", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "MPC", "company_name": "Marathon Petroleum Corp.", "sector": "energy_refining", "market_cap_bn_usd": 60, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "VLO", "company_name": "Valero Energy Corp.", "sector": "energy_refining", "market_cap_bn_usd": 45, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "OXY", "company_name": "Occidental Petroleum", "sector": "energy_oil_gas", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "KMI", "company_name": "Kinder Morgan Inc.", "sector": "energy_midstream", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "SNOW", "company_name": "Snowflake Inc.", "sector": "tech_software_cloud", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "DDOG", "company_name": "Datadog Inc.", "sector": "tech_software_obs", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "NET", "company_name": "Cloudflare Inc.", "sector": "tech_software_edge", "market_cap_bn_usd": 35, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "MDB", "company_name": "MongoDB Inc.", "sector": "tech_software_db", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "CRWD", "company_name": "CrowdStrike Holdings", "sector": "tech_software_security", "market_cap_bn_usd": 95, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "PANW", "company_name": "Palo Alto Networks", "sector": "tech_software_security", "market_cap_bn_usd": 130, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ZS", "company_name": "Zscaler Inc.", "sector": "tech_software_security", "market_cap_bn_usd": 30, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "SHOP", "company_name": "Shopify Inc.", "sector": "tech_software_ecommerce", "market_cap_bn_usd": 110, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ABNB", "company_name": "Airbnb Inc.", "sector": "tech_marketplace", "market_cap_bn_usd": 90, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "U", "company_name": "Unity Software Inc.", "sector": "tech_software_gaming", "market_cap_bn_usd": 8, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "RBLX", "company_name": "Roblox Corporation", "sector": "tech_software_gaming", "market_cap_bn_usd": 30, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "PLTR", "company_name": "Palantir Technologies", "sector": "tech_software_data", "market_cap_bn_usd": 180, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "MRNA", "company_name": "Moderna Inc.", "sector": "biotech", "market_cap_bn_usd": 18, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "BNTX", "company_name": "BioNTech SE", "sector": "biotech", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "REGN", "company_name": "Regeneron Pharmaceuticals", "sector": "biotech", "market_cap_bn_usd": 90, "expected_dynamics_family_a_priori": null}
+{"ticker": "BIIB", "company_name": "Biogen Inc.", "sector": "biotech", "market_cap_bn_usd": 25, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "GILD", "company_name": "Gilead Sciences Inc.", "sector": "biotech", "market_cap_bn_usd": 100, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "ILMN", "company_name": "Illumina Inc.", "sector": "biotech_tools", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "ENPH", "company_name": "Enphase Energy Inc.", "sector": "energy_solar", "market_cap_bn_usd": 14, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "SEDG", "company_name": "SolarEdge Technologies", "sector": "energy_solar", "market_cap_bn_usd": 2, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "FSLR", "company_name": "First Solar Inc.", "sector": "energy_solar", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "PLUG", "company_name": "Plug Power Inc.", "sector": "energy_hydrogen", "market_cap_bn_usd": 2, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "BLDP", "company_name": "Ballard Power Systems", "sector": "energy_hydrogen", "market_cap_bn_usd": 1, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "RIVN", "company_name": "Rivian Automotive", "sector": "tech_auto_ev", "market_cap_bn_usd": 12, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "LCID", "company_name": "Lucid Group Inc.", "sector": "tech_auto_ev", "market_cap_bn_usd": 6, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "NIO", "company_name": "NIO Inc.", "sector": "tech_auto_ev", "market_cap_bn_usd": 9, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "COIN", "company_name": "Coinbase Global Inc.", "sector": "financials_crypto", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "HOOD", "company_name": "Robinhood Markets", "sector": "financials_retail_broker", "market_cap_bn_usd": 18, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "AFRM", "company_name": "Affirm Holdings", "sector": "financials_fintech", "market_cap_bn_usd": 14, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "UPST", "company_name": "Upstart Holdings", "sector": "financials_fintech", "market_cap_bn_usd": 3, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "BBY", "company_name": "Best Buy Co. Inc.", "sector": "consumer_discretionary_retail", "market_cap_bn_usd": 18, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "INTC", "company_name": "Intel Corporation", "sector": "tech_semiconductor", "market_cap_bn_usd": 95, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "PYPL", "company_name": "PayPal Holdings", "sector": "financials_payments", "market_cap_bn_usd": 65, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "BABA", "company_name": "Alibaba Group", "sector": "tech_internet_china", "market_cap_bn_usd": 200, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "BA", "company_name": "Boeing Company", "sector": "industrials_aerospace", "market_cap_bn_usd": 100, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "GE", "company_name": "General Electric Co.", "sector": "industrials_diversified", "market_cap_bn_usd": 200, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "F", "company_name": "Ford Motor Company", "sector": "consumer_auto", "market_cap_bn_usd": 45, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "GM", "company_name": "General Motors Co.", "sector": "consumer_auto", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "T", "company_name": "AT&T Inc.", "sector": "telecom", "market_cap_bn_usd": 165, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "VZ", "company_name": "Verizon Communications", "sector": "telecom", "market_cap_bn_usd": 170, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "DIS", "company_name": "Walt Disney Company", "sector": "media_entertainment", "market_cap_bn_usd": 165, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "WBD", "company_name": "Warner Bros. Discovery", "sector": "media_entertainment", "market_cap_bn_usd": 25, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "NFLX", "company_name": "Netflix Inc.", "sector": "tech_internet_streaming", "market_cap_bn_usd": 270, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ROKU", "company_name": "Roku Inc.", "sector": "tech_internet_streaming", "market_cap_bn_usd": 9, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "SPOT", "company_name": "Spotify Technology", "sector": "tech_internet_audio", "market_cap_bn_usd": 90, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "AIG", "company_name": "American International Group", "sector": "financials_insurance", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "ALL", "company_name": "Allstate Corporation", "sector": "financials_insurance", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "TRV", "company_name": "Travelers Companies", "sector": "financials_insurance", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "RE", "company_name": "Everest Re Group", "sector": "financials_reinsurance", "market_cap_bn_usd": 16, "expected_dynamics_family_a_priori": "extreme_value_tail"}
+{"ticker": "RNR", "company_name": "RenaissanceRe Holdings", "sector": "financials_reinsurance", "market_cap_bn_usd": 13, "expected_dynamics_family_a_priori": "extreme_value_tail"}
+{"ticker": "MMM", "company_name": "3M", "sector": "industrials"}
+{"ticker": "AOS", "company_name": "A. O. Smith", "sector": "industrials"}
+{"ticker": "ACN", "company_name": "Accenture", "sector": "tech_software"}
+{"ticker": "ADBE", "company_name": "Adobe Inc.", "sector": "tech_software"}
+{"ticker": "AMD", "company_name": "Advanced Micro Devices", "sector": "tech_software"}
+{"ticker": "AES", "company_name": "AES Corporation", "sector": "utilities"}
+{"ticker": "AFL", "company_name": "Aflac", "sector": "financials"}
+{"ticker": "A", "company_name": "Agilent Technologies", "sector": "healthcare"}
+{"ticker": "APD", "company_name": "Air Products", "sector": "materials"}
+{"ticker": "AKAM", "company_name": "Akamai Technologies", "sector": "tech_software"}
+{"ticker": "ALB", "company_name": "Albemarle Corporation", "sector": "materials"}
+{"ticker": "ARE", "company_name": "Alexandria Real Estate Equities", "sector": "real_estate"}
+{"ticker": "ALGN", "company_name": "Align Technology", "sector": "healthcare"}
+{"ticker": "ALLE", "company_name": "Allegion", "sector": "industrials"}
+{"ticker": "LNT", "company_name": "Alliant Energy", "sector": "utilities"}
+{"ticker": "GOOG", "company_name": "Alphabet Inc. (Class C)", "sector": "comms"}
+{"ticker": "MO", "company_name": "Altria", "sector": "consumer_staples"}
+{"ticker": "AMCR", "company_name": "Amcor", "sector": "materials"}
+{"ticker": "AEE", "company_name": "Ameren", "sector": "utilities"}
+{"ticker": "AEP", "company_name": "American Electric Power", "sector": "utilities"}
+{"ticker": "AMT", "company_name": "American Tower", "sector": "real_estate"}
+{"ticker": "AWK", "company_name": "American Water Works", "sector": "utilities"}
+{"ticker": "AMP", "company_name": "Ameriprise Financial", "sector": "financials"}
+{"ticker": "AME", "company_name": "Ametek", "sector": "industrials"}
+{"ticker": "AMGN", "company_name": "Amgen", "sector": "healthcare"}
+{"ticker": "APH", "company_name": "Amphenol", "sector": "tech_software"}
+{"ticker": "ADI", "company_name": "Analog Devices", "sector": "tech_software"}
+{"ticker": "AON", "company_name": "Aon plc", "sector": "financials"}
+{"ticker": "APA", "company_name": "APA Corporation", "sector": "energy"}
+{"ticker": "APO", "company_name": "Apollo Global Management", "sector": "financials"}
+{"ticker": "AMAT", "company_name": "Applied Materials", "sector": "tech_software"}
+{"ticker": "APP", "company_name": "AppLovin", "sector": "tech_software"}
+{"ticker": "APTV", "company_name": "Aptiv", "sector": "consumer_discretionary"}
+{"ticker": "ACGL", "company_name": "Arch Capital Group", "sector": "financials"}
+{"ticker": "ADM", "company_name": "Archer Daniels Midland", "sector": "consumer_staples"}
+{"ticker": "ARES", "company_name": "Ares Management", "sector": "financials"}
+{"ticker": "ANET", "company_name": "Arista Networks", "sector": "tech_software"}
+{"ticker": "AJG", "company_name": "Arthur J. Gallagher & Co.", "sector": "financials"}
+{"ticker": "AIZ", "company_name": "Assurant", "sector": "financials"}
+{"ticker": "ATO", "company_name": "Atmos Energy", "sector": "utilities"}
+{"ticker": "ADSK", "company_name": "Autodesk", "sector": "tech_software"}
+{"ticker": "ADP", "company_name": "Automatic Data Processing", "sector": "industrials"}
+{"ticker": "AZO", "company_name": "AutoZone", "sector": "consumer_discretionary"}
+{"ticker": "AVB", "company_name": "AvalonBay Communities", "sector": "real_estate"}
+{"ticker": "AVY", "company_name": "Avery Dennison", "sector": "materials"}
+{"ticker": "AXON", "company_name": "Axon Enterprise", "sector": "industrials"}
+{"ticker": "BKR", "company_name": "Baker Hughes", "sector": "energy"}
+{"ticker": "BALL", "company_name": "Ball Corporation", "sector": "materials"}
+{"ticker": "BAX", "company_name": "Baxter International", "sector": "healthcare"}
+{"ticker": "BDX", "company_name": "Becton Dickinson", "sector": "healthcare"}
+{"ticker": "BRK.B", "company_name": "Berkshire Hathaway", "sector": "financials"}
+{"ticker": "TECH", "company_name": "Bio-Techne", "sector": "healthcare"}
+{"ticker": "BX", "company_name": "Blackstone Inc.", "sector": "financials"}
+{"ticker": "XYZ", "company_name": "Block, Inc.", "sector": "financials"}
+{"ticker": "BK", "company_name": "BNY Mellon", "sector": "financials"}
+{"ticker": "BKNG", "company_name": "Booking Holdings", "sector": "consumer_discretionary"}
+{"ticker": "BSX", "company_name": "Boston Scientific", "sector": "healthcare"}
+{"ticker": "BMY", "company_name": "Bristol Myers Squibb", "sector": "healthcare"}
+{"ticker": "BR", "company_name": "Broadridge Financial Solutions", "sector": "industrials"}
+{"ticker": "BRO", "company_name": "Brown & Brown", "sector": "financials"}
+{"ticker": "BF.B", "company_name": "Brown–Forman", "sector": "consumer_staples"}
+{"ticker": "BLDR", "company_name": "Builders FirstSource", "sector": "industrials"}
+{"ticker": "BG", "company_name": "Bunge Global", "sector": "consumer_staples"}
+{"ticker": "BXP", "company_name": "BXP, Inc.", "sector": "real_estate"}
+{"ticker": "CHRW", "company_name": "C.H. Robinson", "sector": "industrials"}
+{"ticker": "CDNS", "company_name": "Cadence Design Systems", "sector": "tech_software"}
+{"ticker": "CPT", "company_name": "Camden Property Trust", "sector": "real_estate"}
+{"ticker": "CPB", "company_name": "Campbell's Company (The)", "sector": "consumer_staples"}
+{"ticker": "COF", "company_name": "Capital One", "sector": "financials"}
+{"ticker": "CAH", "company_name": "Cardinal Health", "sector": "healthcare"}
+{"ticker": "CCL", "company_name": "Carnival Corporation", "sector": "consumer_discretionary"}
+{"ticker": "CARR", "company_name": "Carrier Global", "sector": "industrials"}
+{"ticker": "CVNA", "company_name": "Carvana", "sector": "consumer_discretionary"}
+{"ticker": "CASY", "company_name": "Casey's", "sector": "consumer_staples"}
+{"ticker": "CAT", "company_name": "Caterpillar Inc.", "sector": "industrials"}
+{"ticker": "CBOE", "company_name": "Cboe Global Markets", "sector": "financials"}
+{"ticker": "CBRE", "company_name": "CBRE Group", "sector": "real_estate"}
+{"ticker": "CDW", "company_name": "CDW Corporation", "sector": "tech_software"}
+{"ticker": "COR", "company_name": "Cencora", "sector": "healthcare"}
+{"ticker": "CNC", "company_name": "Centene Corporation", "sector": "healthcare"}
+{"ticker": "CNP", "company_name": "CenterPoint Energy", "sector": "utilities"}
+{"ticker": "CF", "company_name": "CF Industries", "sector": "materials"}
+{"ticker": "CRL", "company_name": "Charles River Laboratories", "sector": "healthcare"}
+{"ticker": "SCHW", "company_name": "Charles Schwab Corporation", "sector": "financials"}
+{"ticker": "CHTR", "company_name": "Charter Communications", "sector": "comms"}
+{"ticker": "CMG", "company_name": "Chipotle Mexican Grill", "sector": "consumer_discretionary"}
+{"ticker": "CB", "company_name": "Chubb Limited", "sector": "financials"}
+{"ticker": "CHD", "company_name": "Church & Dwight", "sector": "consumer_staples"}
+{"ticker": "CIEN", "company_name": "Ciena", "sector": "tech_software"}
+{"ticker": "CI", "company_name": "Cigna", "sector": "healthcare"}
+{"ticker": "CINF", "company_name": "Cincinnati Financial", "sector": "financials"}
+{"ticker": "CTAS", "company_name": "Cintas", "sector": "industrials"}
+{"ticker": "CSCO", "company_name": "Cisco", "sector": "tech_software"}
+{"ticker": "CFG", "company_name": "Citizens Financial Group", "sector": "financials"}
+{"ticker": "CLX", "company_name": "Clorox", "sector": "consumer_staples"}
+{"ticker": "CME", "company_name": "CME Group", "sector": "financials"}
+{"ticker": "CMS", "company_name": "CMS Energy", "sector": "utilities"}
+{"ticker": "CTSH", "company_name": "Cognizant", "sector": "tech_software"}
+{"ticker": "COHR", "company_name": "Coherent Corp.", "sector": "tech_software"}
+{"ticker": "CL", "company_name": "Colgate-Palmolive", "sector": "consumer_staples"}
+{"ticker": "CMCSA", "company_name": "Comcast", "sector": "comms"}
+{"ticker": "FIX", "company_name": "Comfort Systems USA", "sector": "industrials"}
+{"ticker": "CAG", "company_name": "Conagra Brands", "sector": "consumer_staples"}
+{"ticker": "ED", "company_name": "Consolidated Edison", "sector": "utilities"}
+{"ticker": "STZ", "company_name": "Constellation Brands", "sector": "consumer_staples"}
+{"ticker": "CEG", "company_name": "Constellation Energy", "sector": "utilities"}
+{"ticker": "COO", "company_name": "Cooper Companies (The)", "sector": "healthcare"}
+{"ticker": "CPRT", "company_name": "Copart", "sector": "industrials"}
+{"ticker": "GLW", "company_name": "Corning Inc.", "sector": "tech_software"}
+{"ticker": "CPAY", "company_name": "Corpay", "sector": "financials"}
+{"ticker": "CTVA", "company_name": "Corteva", "sector": "materials"}
+{"ticker": "CSGP", "company_name": "CoStar Group", "sector": "real_estate"}
+{"ticker": "CRH", "company_name": "CRH plc", "sector": "materials"}
+{"ticker": "CCI", "company_name": "Crown Castle", "sector": "real_estate"}
+{"ticker": "CSX", "company_name": "CSX Corporation", "sector": "industrials"}
+{"ticker": "CMI", "company_name": "Cummins", "sector": "industrials"}
+{"ticker": "DRI", "company_name": "Darden Restaurants", "sector": "consumer_discretionary"}
+{"ticker": "DVA", "company_name": "DaVita", "sector": "healthcare"}
+{"ticker": "DECK", "company_name": "Deckers Brands", "sector": "consumer_discretionary"}
+{"ticker": "DE", "company_name": "Deere & Company", "sector": "industrials"}
+{"ticker": "DELL", "company_name": "Dell Technologies", "sector": "tech_software"}
+{"ticker": "DAL", "company_name": "Delta Air Lines", "sector": "industrials"}
+{"ticker": "DVN", "company_name": "Devon Energy", "sector": "energy"}
+{"ticker": "DXCM", "company_name": "Dexcom", "sector": "healthcare"}
+{"ticker": "FANG", "company_name": "Diamondback Energy", "sector": "energy"}
+{"ticker": "DLR", "company_name": "Digital Realty", "sector": "real_estate"}
+{"ticker": "DG", "company_name": "Dollar General", "sector": "consumer_staples"}
+{"ticker": "DLTR", "company_name": "Dollar Tree", "sector": "consumer_staples"}
+{"ticker": "D", "company_name": "Dominion Energy", "sector": "utilities"}
+{"ticker": "DPZ", "company_name": "Domino's", "sector": "consumer_discretionary"}
+{"ticker": "DASH", "company_name": "DoorDash", "sector": "consumer_discretionary"}
+{"ticker": "DOV", "company_name": "Dover Corporation", "sector": "industrials"}
+{"ticker": "DOW", "company_name": "Dow Inc.", "sector": "materials"}
+{"ticker": "DHI", "company_name": "D. R. Horton", "sector": "consumer_discretionary"}
+{"ticker": "DTE", "company_name": "DTE Energy", "sector": "utilities"}
+{"ticker": "DUK", "company_name": "Duke Energy", "sector": "utilities"}
+{"ticker": "DD", "company_name": "DuPont", "sector": "materials"}
+{"ticker": "ETN", "company_name": "Eaton Corporation", "sector": "industrials"}
+{"ticker": "EBAY", "company_name": "eBay Inc.", "sector": "consumer_discretionary"}
+{"ticker": "SATS", "company_name": "EchoStar", "sector": "comms"}
+{"ticker": "ECL", "company_name": "Ecolab", "sector": "materials"}
+{"ticker": "EIX", "company_name": "Edison International", "sector": "utilities"}
+{"ticker": "EW", "company_name": "Edwards Lifesciences", "sector": "healthcare"}
+{"ticker": "EA", "company_name": "Electronic Arts", "sector": "comms"}
+{"ticker": "ELV", "company_name": "Elevance Health", "sector": "healthcare"}
+{"ticker": "EME", "company_name": "Emcor", "sector": "industrials"}
+{"ticker": "EMR", "company_name": "Emerson Electric", "sector": "industrials"}
+{"ticker": "ETR", "company_name": "Entergy", "sector": "utilities"}
+{"ticker": "EPAM", "company_name": "EPAM Systems", "sector": "tech_software"}
+{"ticker": "EQT", "company_name": "EQT Corporation", "sector": "energy"}
+{"ticker": "EFX", "company_name": "Equifax", "sector": "industrials"}
+{"ticker": "EQIX", "company_name": "Equinix", "sector": "real_estate"}
+{"ticker": "EQR", "company_name": "Equity Residential", "sector": "real_estate"}
+{"ticker": "ERIE", "company_name": "Erie Indemnity", "sector": "financials"}
+{"ticker": "ESS", "company_name": "Essex Property Trust", "sector": "real_estate"}
+{"ticker": "EL", "company_name": "Estée Lauder Companies (The)", "sector": "consumer_staples"}
+{"ticker": "EG", "company_name": "Everest Group", "sector": "financials"}
+{"ticker": "EVRG", "company_name": "Evergy", "sector": "utilities"}
+{"ticker": "ES", "company_name": "Eversource Energy", "sector": "utilities"}
+{"ticker": "EXC", "company_name": "Exelon", "sector": "utilities"}
+{"ticker": "EXE", "company_name": "Expand Energy", "sector": "energy"}
+{"ticker": "EXPE", "company_name": "Expedia Group", "sector": "consumer_discretionary"}
+{"ticker": "EXPD", "company_name": "Expeditors International", "sector": "industrials"}
+{"ticker": "EXR", "company_name": "Extra Space Storage", "sector": "real_estate"}
+{"ticker": "FFIV", "company_name": "F5, Inc.", "sector": "tech_software"}
+{"ticker": "FDS", "company_name": "FactSet", "sector": "financials"}
+{"ticker": "FICO", "company_name": "Fair Isaac", "sector": "tech_software"}
+{"ticker": "FAST", "company_name": "Fastenal", "sector": "industrials"}
+{"ticker": "FRT", "company_name": "Federal Realty Investment Trust", "sector": "real_estate"}
+{"ticker": "FDX", "company_name": "FedEx", "sector": "industrials"}
+{"ticker": "FIS", "company_name": "Fidelity National Information Services", "sector": "financials"}
+{"ticker": "FITB", "company_name": "Fifth Third Bancorp", "sector": "financials"}
+{"ticker": "FE", "company_name": "FirstEnergy", "sector": "utilities"}
+{"ticker": "FISV", "company_name": "Fiserv", "sector": "financials"}
+{"ticker": "FTNT", "company_name": "Fortinet", "sector": "tech_software"}
+{"ticker": "FTV", "company_name": "Fortive", "sector": "industrials"}
+{"ticker": "FOXA", "company_name": "Fox Corporation (Class A)", "sector": "comms"}
+{"ticker": "FOX", "company_name": "Fox Corporation (Class B)", "sector": "comms"}
+{"ticker": "BEN", "company_name": "Franklin Resources", "sector": "financials"}
+{"ticker": "FCX", "company_name": "Freeport-McMoRan", "sector": "materials"}
+{"ticker": "GRMN", "company_name": "Garmin", "sector": "consumer_discretionary"}
+{"ticker": "IT", "company_name": "Gartner", "sector": "tech_software"}
+{"ticker": "GEHC", "company_name": "GE HealthCare", "sector": "healthcare"}
+{"ticker": "GEV", "company_name": "GE Vernova", "sector": "industrials"}
+{"ticker": "GEN", "company_name": "Gen Digital", "sector": "tech_software"}
+{"ticker": "GNRC", "company_name": "Generac", "sector": "industrials"}
+{"ticker": "GD", "company_name": "General Dynamics", "sector": "industrials"}
+{"ticker": "GIS", "company_name": "General Mills", "sector": "consumer_staples"}
+{"ticker": "GPC", "company_name": "Genuine Parts Company", "sector": "consumer_discretionary"}
+{"ticker": "GPN", "company_name": "Global Payments", "sector": "financials"}
+{"ticker": "GL", "company_name": "Globe Life", "sector": "financials"}
+{"ticker": "GDDY", "company_name": "GoDaddy", "sector": "tech_software"}
+{"ticker": "HAL", "company_name": "Halliburton", "sector": "energy"}
+{"ticker": "HIG", "company_name": "Hartford (The)", "sector": "financials"}
+{"ticker": "HAS", "company_name": "Hasbro", "sector": "consumer_discretionary"}
+{"ticker": "HCA", "company_name": "HCA Healthcare", "sector": "healthcare"}
+{"ticker": "DOC", "company_name": "Healthpeak Properties", "sector": "real_estate"}
+{"ticker": "HSIC", "company_name": "Henry Schein", "sector": "healthcare"}
+{"ticker": "HSY", "company_name": "Hershey Company (The)", "sector": "consumer_staples"}
+{"ticker": "HPE", "company_name": "Hewlett Packard Enterprise", "sector": "tech_software"}
+{"ticker": "HLT", "company_name": "Hilton Worldwide", "sector": "consumer_discretionary"}
+{"ticker": "HON", "company_name": "Honeywell", "sector": "industrials"}
+{"ticker": "HRL", "company_name": "Hormel Foods", "sector": "consumer_staples"}
+{"ticker": "HST", "company_name": "Host Hotels & Resorts", "sector": "real_estate"}
+{"ticker": "HWM", "company_name": "Howmet Aerospace", "sector": "industrials"}
+{"ticker": "HPQ", "company_name": "HP Inc.", "sector": "tech_software"}
+{"ticker": "HUBB", "company_name": "Hubbell Incorporated", "sector": "industrials"}
+{"ticker": "HUM", "company_name": "Humana", "sector": "healthcare"}
+{"ticker": "HBAN", "company_name": "Huntington Bancshares", "sector": "financials"}
+{"ticker": "HII", "company_name": "Huntington Ingalls Industries", "sector": "industrials"}
+{"ticker": "IBM", "company_name": "IBM", "sector": "tech_software"}
+{"ticker": "IEX", "company_name": "IDEX Corporation", "sector": "industrials"}
+{"ticker": "IDXX", "company_name": "Idexx Laboratories", "sector": "healthcare"}
+{"ticker": "ITW", "company_name": "Illinois Tool Works", "sector": "industrials"}
+{"ticker": "INCY", "company_name": "Incyte", "sector": "healthcare"}
+{"ticker": "IR", "company_name": "Ingersoll Rand", "sector": "industrials"}
+{"ticker": "PODD", "company_name": "Insulet Corporation", "sector": "healthcare"}
+{"ticker": "IBKR", "company_name": "Interactive Brokers", "sector": "financials"}
+{"ticker": "ICE", "company_name": "Intercontinental Exchange", "sector": "financials"}
+{"ticker": "IFF", "company_name": "International Flavors & Fragrances", "sector": "materials"}
+{"ticker": "IP", "company_name": "International Paper", "sector": "materials"}
+{"ticker": "INTU", "company_name": "Intuit", "sector": "tech_software"}
+{"ticker": "ISRG", "company_name": "Intuitive Surgical", "sector": "healthcare"}
+{"ticker": "IVZ", "company_name": "Invesco", "sector": "financials"}
+{"ticker": "INVH", "company_name": "Invitation Homes", "sector": "real_estate"}
+{"ticker": "IQV", "company_name": "IQVIA", "sector": "healthcare"}
+{"ticker": "IRM", "company_name": "Iron Mountain", "sector": "real_estate"}
+{"ticker": "JBHT", "company_name": "J.B. Hunt", "sector": "industrials"}
+{"ticker": "JBL", "company_name": "Jabil", "sector": "tech_software"}
+{"ticker": "JKHY", "company_name": "Jack Henry & Associates", "sector": "financials"}
+{"ticker": "J", "company_name": "Jacobs Solutions", "sector": "industrials"}
+{"ticker": "JCI", "company_name": "Johnson Controls", "sector": "industrials"}
+{"ticker": "KVUE", "company_name": "Kenvue", "sector": "consumer_staples"}
+{"ticker": "KDP", "company_name": "Keurig Dr Pepper", "sector": "consumer_staples"}
+{"ticker": "KEY", "company_name": "KeyCorp", "sector": "financials"}
+{"ticker": "KEYS", "company_name": "Keysight Technologies", "sector": "tech_software"}
+{"ticker": "KMB", "company_name": "Kimberly-Clark", "sector": "consumer_staples"}
+{"ticker": "KIM", "company_name": "Kimco Realty", "sector": "real_estate"}
+{"ticker": "KKR", "company_name": "KKR & Co.", "sector": "financials"}
+{"ticker": "KLAC", "company_name": "KLA Corporation", "sector": "tech_software"}
+{"ticker": "KHC", "company_name": "Kraft Heinz", "sector": "consumer_staples"}
+{"ticker": "KR", "company_name": "Kroger", "sector": "consumer_staples"}
+{"ticker": "LHX", "company_name": "L3Harris", "sector": "industrials"}
+{"ticker": "LH", "company_name": "Labcorp", "sector": "healthcare"}
+{"ticker": "LRCX", "company_name": "Lam Research", "sector": "tech_software"}
+{"ticker": "LVS", "company_name": "Las Vegas Sands", "sector": "consumer_discretionary"}
+{"ticker": "LDOS", "company_name": "Leidos", "sector": "industrials"}
+{"ticker": "LEN", "company_name": "Lennar", "sector": "consumer_discretionary"}
+{"ticker": "LII", "company_name": "Lennox International", "sector": "industrials"}
+{"ticker": "LIN", "company_name": "Linde plc", "sector": "materials"}
+{"ticker": "LYV", "company_name": "Live Nation Entertainment", "sector": "comms"}
+{"ticker": "LMT", "company_name": "Lockheed Martin", "sector": "industrials"}
+{"ticker": "L", "company_name": "Loews Corporation", "sector": "financials"}
+{"ticker": "LOW", "company_name": "Lowe's", "sector": "consumer_discretionary"}
+{"ticker": "LULU", "company_name": "Lululemon Athletica", "sector": "consumer_discretionary"}
+{"ticker": "LITE", "company_name": "Lumentum", "sector": "tech_software"}
+{"ticker": "LYB", "company_name": "LyondellBasell", "sector": "materials"}
+{"ticker": "MTB", "company_name": "M&T Bank", "sector": "financials"}
+{"ticker": "MAR", "company_name": "Marriott International", "sector": "consumer_discretionary"}
+{"ticker": "MRSH", "company_name": "Marsh McLennan", "sector": "financials"}
+{"ticker": "MLM", "company_name": "Martin Marietta Materials", "sector": "materials"}
+{"ticker": "MAS", "company_name": "Masco", "sector": "industrials"}
+{"ticker": "MKC", "company_name": "McCormick & Company", "sector": "consumer_staples"}
+{"ticker": "MCK", "company_name": "McKesson Corporation", "sector": "healthcare"}
+{"ticker": "MDT", "company_name": "Medtronic", "sector": "healthcare"}
+{"ticker": "MET", "company_name": "MetLife", "sector": "financials"}
+{"ticker": "MTD", "company_name": "Mettler Toledo", "sector": "healthcare"}
+{"ticker": "MGM", "company_name": "MGM Resorts", "sector": "consumer_discretionary"}
+{"ticker": "MCHP", "company_name": "Microchip Technology", "sector": "tech_software"}
+{"ticker": "MU", "company_name": "Micron Technology", "sector": "tech_software"}
+{"ticker": "MAA", "company_name": "Mid-America Apartment Communities", "sector": "real_estate"}
+{"ticker": "TAP", "company_name": "Molson Coors Beverage Company", "sector": "consumer_staples"}
+{"ticker": "MDLZ", "company_name": "Mondelez International", "sector": "consumer_staples"}
+{"ticker": "MPWR", "company_name": "Monolithic Power Systems", "sector": "tech_software"}
+{"ticker": "MNST", "company_name": "Monster Beverage", "sector": "consumer_staples"}
+{"ticker": "MCO", "company_name": "Moody's Corporation", "sector": "financials"}
+{"ticker": "MOS", "company_name": "Mosaic Company (The)", "sector": "materials"}
+{"ticker": "MSI", "company_name": "Motorola Solutions", "sector": "tech_software"}
+{"ticker": "MSCI", "company_name": "MSCI Inc.", "sector": "financials"}
+{"ticker": "NDAQ", "company_name": "Nasdaq, Inc.", "sector": "financials"}
+{"ticker": "NTAP", "company_name": "NetApp", "sector": "tech_software"}
+{"ticker": "NEM", "company_name": "Newmont", "sector": "materials"}
+{"ticker": "NWSA", "company_name": "News Corp (Class A)", "sector": "comms"}
+{"ticker": "NWS", "company_name": "News Corp (Class B)", "sector": "comms"}
+{"ticker": "NEE", "company_name": "NextEra Energy", "sector": "utilities"}
+{"ticker": "NI", "company_name": "NiSource", "sector": "utilities"}
+{"ticker": "NDSN", "company_name": "Nordson Corporation", "sector": "industrials"}
+{"ticker": "NSC", "company_name": "Norfolk Southern", "sector": "industrials"}
+{"ticker": "NTRS", "company_name": "Northern Trust", "sector": "financials"}
+{"ticker": "NOC", "company_name": "Northrop Grumman", "sector": "industrials"}
+{"ticker": "NCLH", "company_name": "Norwegian Cruise Line Holdings", "sector": "consumer_discretionary"}
+{"ticker": "NRG", "company_name": "NRG Energy", "sector": "utilities"}
+{"ticker": "NUE", "company_name": "Nucor", "sector": "materials"}
+{"ticker": "NVR", "company_name": "NVR, Inc.", "sector": "consumer_discretionary"}
+{"ticker": "NXPI", "company_name": "NXP Semiconductors", "sector": "tech_software"}
+{"ticker": "ORLY", "company_name": "O’Reilly Automotive", "sector": "consumer_discretionary"}
+{"ticker": "ODFL", "company_name": "Old Dominion", "sector": "industrials"}
+{"ticker": "OMC", "company_name": "Omnicom Group", "sector": "comms"}
+{"ticker": "ON", "company_name": "ON Semiconductor", "sector": "tech_software"}
+{"ticker": "OKE", "company_name": "Oneok", "sector": "energy"}
+{"ticker": "OTIS", "company_name": "Otis Worldwide", "sector": "industrials"}
+{"ticker": "PCAR", "company_name": "Paccar", "sector": "industrials"}
+{"ticker": "PKG", "company_name": "Packaging Corporation of America", "sector": "materials"}
+{"ticker": "PSKY", "company_name": "Paramount Skydance Corporation", "sector": "comms"}
+{"ticker": "PH", "company_name": "Parker Hannifin", "sector": "industrials"}
+{"ticker": "PAYX", "company_name": "Paychex", "sector": "industrials"}
+{"ticker": "PNR", "company_name": "Pentair", "sector": "industrials"}
+{"ticker": "PCG", "company_name": "PG&E Corporation", "sector": "utilities"}
+{"ticker": "PM", "company_name": "Philip Morris International", "sector": "consumer_staples"}
+{"ticker": "PNW", "company_name": "Pinnacle West Capital", "sector": "utilities"}
+{"ticker": "PNC", "company_name": "PNC Financial Services", "sector": "financials"}
+{"ticker": "POOL", "company_name": "Pool Corporation", "sector": "consumer_discretionary"}
+{"ticker": "PPG", "company_name": "PPG Industries", "sector": "materials"}
+{"ticker": "PPL", "company_name": "PPL Corporation", "sector": "utilities"}
+{"ticker": "PFG", "company_name": "Principal Financial Group", "sector": "financials"}
+{"ticker": "PGR", "company_name": "Progressive Corporation", "sector": "financials"}
+{"ticker": "PLD", "company_name": "Prologis", "sector": "real_estate"}
+{"ticker": "PRU", "company_name": "Prudential Financial", "sector": "financials"}
+{"ticker": "PEG", "company_name": "Public Service Enterprise Group", "sector": "utilities"}
+{"ticker": "PTC", "company_name": "PTC Inc.", "sector": "tech_software"}
+{"ticker": "PSA", "company_name": "Public Storage", "sector": "real_estate"}
+{"ticker": "PHM", "company_name": "PulteGroup", "sector": "consumer_discretionary"}
+{"ticker": "PWR", "company_name": "Quanta Services", "sector": "industrials"}
+{"ticker": "QCOM", "company_name": "Qualcomm", "sector": "tech_software"}
+{"ticker": "DGX", "company_name": "Quest Diagnostics", "sector": "healthcare"}
+{"ticker": "Q", "company_name": "Qnity Electronics", "sector": "tech_software"}
+{"ticker": "RL", "company_name": "Ralph Lauren Corporation", "sector": "consumer_discretionary"}
+{"ticker": "RJF", "company_name": "Raymond James Financial", "sector": "financials"}
+{"ticker": "RTX", "company_name": "RTX Corporation", "sector": "industrials"}
+{"ticker": "O", "company_name": "Realty Income", "sector": "real_estate"}
+{"ticker": "REG", "company_name": "Regency Centers", "sector": "real_estate"}
+{"ticker": "RF", "company_name": "Regions Financial Corporation", "sector": "financials"}
+{"ticker": "RSG", "company_name": "Republic Services", "sector": "industrials"}
+{"ticker": "RMD", "company_name": "ResMed", "sector": "healthcare"}
+{"ticker": "RVTY", "company_name": "Revvity", "sector": "healthcare"}
+{"ticker": "ROK", "company_name": "Rockwell Automation", "sector": "industrials"}
+{"ticker": "ROL", "company_name": "Rollins, Inc.", "sector": "industrials"}
+{"ticker": "ROP", "company_name": "Roper Technologies", "sector": "tech_software"}
+{"ticker": "ROST", "company_name": "Ross Stores", "sector": "consumer_discretionary"}
+{"ticker": "RCL", "company_name": "Royal Caribbean Group", "sector": "consumer_discretionary"}
+{"ticker": "SPGI", "company_name": "S&P Global", "sector": "financials"}
+{"ticker": "SNDK", "company_name": "Sandisk", "sector": "tech_software"}
+{"ticker": "SBAC", "company_name": "SBA Communications", "sector": "real_estate"}
+{"ticker": "STX", "company_name": "Seagate Technology", "sector": "tech_software"}
+{"ticker": "SRE", "company_name": "Sempra", "sector": "utilities"}
+{"ticker": "NOW", "company_name": "ServiceNow", "sector": "tech_software"}
+{"ticker": "SHW", "company_name": "Sherwin-Williams", "sector": "materials"}
+{"ticker": "SPG", "company_name": "Simon Property Group", "sector": "real_estate"}
+{"ticker": "SWKS", "company_name": "Skyworks Solutions", "sector": "tech_software"}
+{"ticker": "SJM", "company_name": "J.M. Smucker Company (The)", "sector": "consumer_staples"}
+{"ticker": "SW", "company_name": "Smurfit Westrock", "sector": "materials"}
+{"ticker": "SNA", "company_name": "Snap-on", "sector": "industrials"}
+{"ticker": "SOLV", "company_name": "Solventum", "sector": "healthcare"}
+{"ticker": "SO", "company_name": "Southern Company", "sector": "utilities"}
+{"ticker": "LUV", "company_name": "Southwest Airlines", "sector": "industrials"}
+{"ticker": "SWK", "company_name": "Stanley Black & Decker", "sector": "industrials"}
+{"ticker": "STT", "company_name": "State Street Corporation", "sector": "financials"}
+{"ticker": "STLD", "company_name": "Steel Dynamics", "sector": "materials"}
+{"ticker": "STE", "company_name": "Steris", "sector": "healthcare"}
+{"ticker": "SYK", "company_name": "Stryker Corporation", "sector": "healthcare"}
+{"ticker": "SMCI", "company_name": "Supermicro", "sector": "tech_software"}
+{"ticker": "SYF", "company_name": "Synchrony Financial", "sector": "financials"}
+{"ticker": "SNPS", "company_name": "Synopsys", "sector": "tech_software"}
+{"ticker": "SYY", "company_name": "Sysco", "sector": "consumer_staples"}
+{"ticker": "TMUS", "company_name": "T-Mobile US", "sector": "comms"}
+{"ticker": "TROW", "company_name": "T. Rowe Price", "sector": "financials"}
+{"ticker": "TTWO", "company_name": "Take-Two Interactive", "sector": "comms"}
+{"ticker": "TPR", "company_name": "Tapestry, Inc.", "sector": "consumer_discretionary"}
+{"ticker": "TRGP", "company_name": "Targa Resources", "sector": "energy"}
+{"ticker": "TEL", "company_name": "TE Connectivity", "sector": "tech_software"}
+{"ticker": "TDY", "company_name": "Teledyne Technologies", "sector": "tech_software"}
+{"ticker": "TER", "company_name": "Teradyne", "sector": "tech_software"}
+{"ticker": "TXN", "company_name": "Texas Instruments", "sector": "tech_software"}
+{"ticker": "TPL", "company_name": "Texas Pacific Land Corporation", "sector": "energy"}
+{"ticker": "TXT", "company_name": "Textron", "sector": "industrials"}
+{"ticker": "TJX", "company_name": "TJX Companies", "sector": "consumer_discretionary"}
+{"ticker": "TKO", "company_name": "TKO Group Holdings", "sector": "comms"}
+{"ticker": "TTD", "company_name": "Trade Desk (The)", "sector": "comms"}
+{"ticker": "TSCO", "company_name": "Tractor Supply", "sector": "consumer_discretionary"}
+{"ticker": "TT", "company_name": "Trane Technologies", "sector": "industrials"}
+{"ticker": "TDG", "company_name": "TransDigm Group", "sector": "industrials"}
+{"ticker": "TRMB", "company_name": "Trimble Inc.", "sector": "tech_software"}
+{"ticker": "TFC", "company_name": "Truist Financial", "sector": "financials"}
+{"ticker": "TYL", "company_name": "Tyler Technologies", "sector": "tech_software"}
+{"ticker": "TSN", "company_name": "Tyson Foods", "sector": "consumer_staples"}
+{"ticker": "USB", "company_name": "U.S. Bancorp", "sector": "financials"}
+{"ticker": "UBER", "company_name": "Uber", "sector": "industrials"}
+{"ticker": "UDR", "company_name": "UDR, Inc.", "sector": "real_estate"}
+{"ticker": "ULTA", "company_name": "Ulta Beauty", "sector": "consumer_discretionary"}
+{"ticker": "UNP", "company_name": "Union Pacific Corporation", "sector": "industrials"}
+{"ticker": "UAL", "company_name": "United Airlines Holdings", "sector": "industrials"}
+{"ticker": "UPS", "company_name": "United Parcel Service", "sector": "industrials"}
+{"ticker": "URI", "company_name": "United Rentals", "sector": "industrials"}
+{"ticker": "UHS", "company_name": "Universal Health Services", "sector": "healthcare"}
+{"ticker": "VEEV", "company_name": "Veeva Systems", "sector": "healthcare"}
+{"ticker": "VTR", "company_name": "Ventas", "sector": "real_estate"}
+{"ticker": "VLTO", "company_name": "Veralto", "sector": "industrials"}
+{"ticker": "VRSN", "company_name": "Verisign", "sector": "tech_software"}
+{"ticker": "VRSK", "company_name": "Verisk Analytics", "sector": "industrials"}
+{"ticker": "VRTX", "company_name": "Vertex Pharmaceuticals", "sector": "healthcare"}

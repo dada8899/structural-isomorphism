@@ -1,0 +1,38 @@
+name: EWS Frozen Snapshot Monitor
+
+# Phase Detector is a published frozen demo with a NULL backtest, not a live
+# trading signal. This monitor is deliberately read-only: it guards the
+# public 597-ticker snapshot and must never mutate production data nightly.
+
+on:
+  schedule:
+    - cron: '0 22 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ews-pipeline
+  cancel-in-progress: false
+
+jobs:
+  verify-frozen-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify immutable public EWS metadata
+        run: |
+          set -euo pipefail
+          meta="$(curl -fsS --retry 3 --retry-all-errors --max-time 15 \
+            https://phase.bytedance.city/api/ews/meta)"
+          META_JSON="$meta" python3 - <<'PY'
+          import json
+          import os
+
+          payload = json.loads(os.environ["META_JSON"])
+          assert payload.get("n_tickers") == 597, payload
+          assert payload.get("price_provenance") == "demo", payload
+          assert isinstance(payload.get("version"), str) and payload["version"], payload
+          print("frozen EWS snapshot verified")
+          PY

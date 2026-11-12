@@ -1,0 +1,101 @@
+{
+  "burst_size": {
+    "label": "solar_wind_bursts__size",
+    "verdict": "FAIL",
+    "underlying_verdict": "CONFIRMED",
+    "alpha": 1.87068017790358,
+    "alpha_ci_low": 1.8183923740841401,
+    "alpha_ci_high": 2.8767912923501164,
+    "xmin": 689188.7948769267,
+    "ks_statistic": 0.0896817150973862,
+    "vs_lognormal_R": -5.040099809946614,
+    "vs_lognormal_p": 4.652891195384859e-07,
+    "vs_exponential_R": 0.7320403853997783,
+    "vs_exponential_p": 0.4641439184319709,
+    "in_band": true,
+    "n_total": 596,
+    "n_tail": 519,
+    "fit": {
+      "alpha": 1.87068017790358,
+      "xmin": 689188.7948769267,
+      "sigma": 0.038218617969864054,
+      "n_total": 596,
+      "n_tail": 519,
+      "ks_statistic": 0.0896817150973862,
+      "vs_lognormal_R": -5.040099809946614,
+      "vs_lognormal_p": 4.652891195384859e-07,
+      "vs_exponential_R": 0.7320403853997783,
+      "vs_exponential_p": 0.4641439184319709,
+      "vs_powerlaw_lognormal_winner": "lognormal",
+      "rejects_power_law": true,
+      "name": "solar_wind_bursts__size",
+      "error": null,
+      "extra": {}
+    },
+    "bootstrap": {
+      "alpha_mean": 1.9515981455122846,
+      "alpha_median": 1.8959709425562297,
+      "alpha_std": 0.22835865310277362,
+      "ci_low": 1.8183923740841401,
+      "ci_high": 2.8767912923501164,
+      "n_boot_succeeded": 200,
+      "error": null
+    },
+    "error": null
+  },
+  "inter_event": {
+    "label": "solar_wind_bursts__inter_event",
+    "verdict": "FAIL",
+    "underlying_verdict": "DEVIATING",
+    "alpha": 2.8407745514570406,
+    "alpha_ci_low": 1.9149215040801244,
+    "alpha_ci_high": 2.9879623347485857,
+    "xmin": 446400.0,
+    "ks_statistic": 0.11309986124677851,
+    "vs_lognormal_R": -2.48313644207947,
+    "vs_lognormal_p": 0.013023119465807533,
+    "vs_exponential_R": -2.719570589352327,
+    "vs_exponential_p": 0.0065366741414189895,
+    "in_band": false,
+    "n_total": 595,
+    "n_tail": 126,
+    "fit": {
+      "alpha": 2.8407745514570406,
+      "xmin": 446400.0,
+      "sigma": 0.16398923090106488,
+      "n_total": 595,
+      "n_tail": 126,
+      "ks_statistic": 0.11309986124677851,
+      "vs_lognormal_R": -2.48313644207947,
+      "vs_lognormal_p": 0.013023119465807533,
+      "vs_exponential_R": -2.719570589352327,
+      "vs_exponential_p": 0.0065366741414189895,
+      "vs_powerlaw_lognormal_winner": "lognormal",
+      "rejects_power_law": true,
+      "name": "solar_wind_bursts__inter_event",
+      "error": null,
+      "extra": {}
+    },
+    "bootstrap": {
+      "alpha_mean": 2.3731047737630586,
+      "alpha_median": 2.1877125854933084,
+      "alpha_std": 0.3831290415704541,
+      "ci_low": 1.9149215040801244,
+      "ci_high": 2.9879623347485857,
+      "n_boot_succeeded": 200,
+      "error": null
+    },
+    "error": null
+  },
+  "n_bursts": 596,
+  "preregistered_bands": {
+    "burst_size": [
+      1.8,
+      2.4
+    ],
+    "inter_event": [
+      1.5,
+      2.5
+    ]
+  }
+}

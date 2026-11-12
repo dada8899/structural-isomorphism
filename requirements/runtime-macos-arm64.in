@@ -1,0 +1,9 @@
+# Candidate target: CPython 3.11, arm64 macOS >=14 (tested host 15.3.1).
+# Torch's available native wheel requires macOS 14; do not silently resolve
+# against uv's generic Darwin-13 cross target or claim Linux attestation.
+-r ../web/backend/requirements.txt
+-r ../v4/product/d1_phase_detector/api/requirements.txt
+transformers==5.19.0
+safetensors==0.8.0
+scipy==1.16.3
+scikit-learn==1.9.1

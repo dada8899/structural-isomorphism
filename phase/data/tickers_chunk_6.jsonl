@@ -1,0 +1,18 @@
+{"ticker": "LRCX", "name": "Lam Research", "exchange": "NASDAQ", "industry": "Semiconductor Equipment", "market_cap_usd": 100000000000.0, "country": "US"}
+{"ticker": "ARM", "name": "Arm Holdings", "exchange": "NASDAQ", "industry": "Chip IP Licensing", "market_cap_usd": 150000000000.0, "country": "UK"}
+{"ticker": "INTU", "name": "Intuit", "exchange": "NASDAQ", "industry": "Tax + Accounting SaaS", "market_cap_usd": 190000000000.0, "country": "US"}
+{"ticker": "DKNG", "name": "DraftKings", "exchange": "NASDAQ", "industry": "Sports Betting", "market_cap_usd": 20000000000.0, "country": "US"}
+{"ticker": "MELI", "name": "MercadoLibre", "exchange": "NASDAQ", "industry": "Latin America E-commerce", "market_cap_usd": 100000000000.0, "country": "AR"}
+{"ticker": "7203.T", "name": "Toyota", "exchange": "TSE", "industry": "Global Automaker", "market_cap_usd": 280000000000.0, "country": "JP"}
+{"ticker": "INFY", "name": "Infosys", "exchange": "NYSE", "industry": "IT Services (India)", "market_cap_usd": 90000000000.0, "country": "IN"}
+{"ticker": "1398.HK", "name": "ICBC", "exchange": "HKEX", "industry": "Banking (China largest)", "market_cap_usd": 310000000000.0, "country": "CN"}
+{"ticker": "KWEB.HK", "name": "KraneShares CSI China Internet ETF", "exchange": "NYSE", "industry": "China Tech ETF", "market_cap_usd": 5000000000.0, "country": "US/CN"}
+{"ticker": "300059.SZ", "name": "东方财富", "exchange": "SZSE", "industry": "Online Brokerage", "market_cap_usd": 20000000000.0, "country": "CN"}
+{"ticker": "BABA", "name": "阿里巴巴 ADR", "exchange": "NYSE", "industry": "E-commerce + Cloud (ADR)", "market_cap_usd": 180000000000.0, "country": "CN"}
+{"ticker": "LI", "name": "Li Auto ADR", "exchange": "NASDAQ", "industry": "EV (ADR)", "market_cap_usd": 25000000000.0, "country": "CN"}
+{"ticker": "ESTC", "name": "Elastic", "exchange": "NYSE", "industry": "Search/Observability SaaS", "market_cap_usd": 10000000000.0, "country": "NL"}
+{"ticker": "LMND", "name": "Lemonade", "exchange": "NYSE", "industry": "Insurtech", "market_cap_usd": 2000000000.0, "country": "US"}
+{"ticker": "DNA", "name": "Ginkgo Bioworks", "exchange": "NYSE", "industry": "Synthetic Biology", "market_cap_usd": 1000000000.0, "country": "US"}
+{"ticker": "CIFR", "name": "Cipher Mining", "exchange": "NASDAQ", "industry": "BTC Mining + AI HPC", "market_cap_usd": 2000000000.0, "country": "US"}
+{"ticker": "NEE", "name": "NextEra Energy", "exchange": "NYSE", "industry": "Utility + Renewables", "market_cap_usd": 150000000000.0, "country": "US"}
+{"ticker": "CAT", "name": "Caterpillar", "exchange": "NYSE", "industry": "Heavy Machinery", "market_cap_usd": 160000000000.0, "country": "US"}

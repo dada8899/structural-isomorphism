@@ -1,0 +1,24 @@
+A universality-class claim has empirical content only if a single fixed
+pipeline -- with no per-domain tuning -- recovers the predicted scaling
+across systems from different domains AND fails to find it in matched
+non-class data. We assemble such a pipeline (Clauset-Shalizi-Newman
+2009 MLE power-law with KS-driven x_min, likelihood-ratio tests against
+lognormal and exponential, Omori-Utsu decay stacking) and apply it
+unchanged to five systems: USGS earthquakes (Phase 1), S&P 500 daily
+returns (Phase 2), DeFi liquidation cascades across three protocols
+(Phase 3), mouse-cortex neural avalanches (Phase 4), and four synthetic
+non-SOC nulls (Phase 5). The pipeline recovers canonical exponents: a
+Gutenberg-Richter b = 1.084 +/- 0.005 on 37,281 earthquakes (Omori p =
+0.941); an inverse-cubic tail alpha = 2.998 +/- 0.041 on 9,060 S&P 500
+returns; alpha in [1.57, 1.68] across 43,065 DeFi liquidations (Aave V2,
+Compound V2, MakerDAO; Omori p in [0.69, 0.76]); and an SOC scaling
+relation satisfied to within 2% on 1.39M mouse-cortex spikes (gamma ~
+1.10), although the recording's tau in [2.17, 3.00] places it in a
+task-active sub-class. All four nulls are rejected (LR -16 to -45, Omori
+R^2 ~ 0.002), ruling out the failure mode "fits everything as a power
+law". Three honest caveats: (i) the lognormal is not rejected in every
+raw-tail test (S&P 500 R = -6.12); (ii) the pipeline detects endogenous
+threshold-cascade signatures only; (iii) downstream cross-domain
+predictions remain unverified. Within those limits, the result is a
+single-pipeline cross-domain test of SOC universality across geophysics,
+equity finance, DeFi, and neuroscience.

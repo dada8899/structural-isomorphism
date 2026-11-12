@@ -1,0 +1,235 @@
+{
+  "systems": {
+    "01_earthquake": {
+      "slot": "01_earthquake",
+      "source_dir": "v4/validation/soc-earthquake",
+      "files_copied": [
+        "VERDICT-2026-04-15.md",
+        "catalog.jsonl",
+        "catalog.parquet",
+        "fetch_earthquakes.py",
+        "fetch_log.json",
+        "gr_results.json",
+        "gutenberg_richter.py",
+        "omori_decay.py",
+        "omori_results.json",
+        "paper.md"
+      ],
+      "files_stubbed": [],
+      "phase": 1,
+      "label": "USGS earthquake catalog 2020-2025"
+    },
+    "02_stockmarket": {
+      "slot": "02_stockmarket",
+      "source_dir": "v4/validation/soc-stockmarket",
+      "files_copied": [
+        "VERDICT-2026-04-15.md",
+        "fetch_and_analyze.py",
+        "gr_results.json",
+        "omori_results.json",
+        "paper.md",
+        "sp500_daily.csv"
+      ],
+      "files_stubbed": [],
+      "phase": 2,
+      "label": "S&P 500 daily returns 1990-2025"
+    },
+    "03_defi": {
+      "slot": "03_defi",
+      "source_dir": "v4/validation/soc-defi",
+      "files_copied": [
+        "VERDICT-2026-04-15.md",
+        "aave_v2_liquidations.jsonl",
+        "analyze.py",
+        "analyze_multiprotocol.py",
+        "compound_v2_liquidations.jsonl",
+        "fetch_aave_liquidations.py",
+        "fetch_compound_liquidations.py",
+        "fetch_log.json",
+        "fetch_maker_liquidations.py",
+        "gr_results.json",
+        "maker_dog_liquidations.jsonl",
+        "multiprotocol_results.json",
+        "omori_results.json",
+        "paper.md"
+      ],
+      "files_stubbed": [],
+      "phase": 3,
+      "label": "Aave V2 + Compound V2 + MakerDAO Dog liquidations"
+    },
+    "04_neural": {
+      "slot": "04_neural",
+      "source_dir": "v4/validation/soc-neural",
+      "files_copied": [
+        "VERDICT-2026-04-16.md",
+        "analyze_avalanches.py",
+        "bf_1.jsonl",
+        "bf_16.jsonl",
+        "bf_16_fit.json",
+        "bf_16_meta.json",
+        "bf_1_fit.json",
+        "bf_1_meta.json",
+        "bf_2.jsonl",
+        "bf_2_fit.json",
+        "bf_2_meta.json",
+        "bf_4.jsonl",
+        "bf_4_fit.json",
+        "bf_4_meta.json",
+        "bf_8.jsonl",
+        "bf_8_fit.json",
+        "bf_8_meta.json",
+        "extract_nwb_avalanches.py",
+        "generate_synthetic.py",
+        "neural_avalanches.jsonl",
+        "neural_fetch_log.json",
+        "neural_results.json",
+        "paper.md",
+        "synthetic_avalanches.jsonl",
+        "synthetic_results.json"
+      ],
+      "files_stubbed": [],
+      "phase": 4,
+      "label": "Mouse ALM cortex avalanches (DANDI:000006)"
+    },
+    "05_wildfire": {
+      "slot": "05_wildfire",
+      "source_dir": "v4/validation/soc-wildfire",
+      "files_copied": [
+        "analyze.py",
+        "fetch_fires.py",
+        "fires.jsonl",
+        "paper.md",
+        "wildfire_results.json"
+      ],
+      "files_stubbed": [],
+      "phase": 10,
+      "label": "NIFC US wildfires"
+    },
+    "06_solar": {
+      "slot": "06_solar",
+      "source_dir": "v4/validation/soc-solar",
+      "files_copied": [
+        "analyze.py",
+        "fetch_flares.py",
+        "fetch_log.json",
+        "flares.jsonl",
+        "paper.md",
+        "solar_results.json"
+      ],
+      "files_stubbed": [],
+      "phase": 11,
+      "label": "GOES X-ray flares 2000-2016"
+    },
+    "07_bank_failures": {
+      "slot": "07_bank_failures",
+      "source_dir": "v4/validation/soc-bank-failures",
+      "files_copied": [
+        "analyze.py",
+        "bank_failures.jsonl",
+        "bank_results.json",
+        "paper.md",
+        "raw_fdic.json"
+      ],
+      "files_stubbed": [],
+      "phase": 8,
+      "label": "FDIC bank failures 1934-2026"
+    },
+    "08_github_stars": {
+      "slot": "08_github_stars",
+      "source_dir": "v4/validation/soc-github-stars",
+      "files_copied": [
+        "analyze.py",
+        "fetch_log.json",
+        "fetch_repos.py",
+        "github_results.json",
+        "paper.md",
+        "repos.jsonl"
+      ],
+      "files_stubbed": [],
+      "phase": 6,
+      "label": "GitHub stargazers 8398 repos"
+    },
+    "09_power_grid": {
+      "slot": "09_power_grid",
+      "source_dir": "v4/validation/soc-power-grid",
+      "files_copied": [
+        "VERDICT-2026-05-13.md",
+        "analyze.py",
+        "disturbances.jsonl",
+        "fetch_disturbances.py",
+        "paper.md",
+        "power_grid_results.json",
+        "provenance.json"
+      ],
+      "files_stubbed": [],
+      "phase": 7,
+      "label": "North American power-grid cascades (literature-meta)"
+    },
+    "10_wikipedia_views": {
+      "slot": "10_wikipedia_views",
+      "source_dir": "v4/validation/soc-wikipedia-views",
+      "files_copied": [
+        "VERDICT-2026-05-13.md",
+        "analyze.py",
+        "fetch_log.json",
+        "fetch_pageviews.py",
+        "pageviews_2023_2024.jsonl",
+        "paper.md",
+        "plot_pageviews_loglog.png",
+        "wikipedia_results.json"
+      ],
+      "files_stubbed": [],
+      "phase": 13,
+      "label": "English Wikipedia pageviews 2023-2024"
+    },
+    "11_hawkes_omori": {
+      "slot": "11_hawkes_omori",
+      "source_dir": "v4/validation/soc-hawkes-omori",
+      "files_copied": [
+        "paper.md",
+        "results.json"
+      ],
+      "files_stubbed": [],
+      "phase": "synthetic",
+      "label": "Hawkes-Omori synthetic baseline"
+    },
+    "12_scheffer_lake": {
+      "slot": "12_scheffer_lake",
+      "source_dir": "v4/validation/scheffer-lake",
+      "files_copied": [
+        "VERDICT-2026-05-13.md",
+        "analyze_regime_shift.py",
+        "fetch_lake_data.py",
+        "fetch_log.json",
+        "lake_do_timeseries.jsonl",
+        "lake_panel.png",
+        "lake_results.json",
+        "lake_timeseries.png",
+        "paper.md"
+      ],
+      "files_stubbed": [],
+      "phase": "A2",
+      "label": "Scheffer-style lake regime shift (USGS Fox River)"
+    },
+    "13_hysteresis_traffic": {
+      "slot": "13_hysteresis_traffic",
+      "source_dir": "v4/validation/hysteresis-traffic",
+      "files_copied": [
+        "VERDICT-2026-05-13.md",
+        "analyze_hysteresis.py",
+        "fetch_traffic.py",
+        "literature_fallback.json",
+        "paper.md",
+        "traffic_qrho.jsonl",
+        "traffic_results.json",
+        "us101_ngsim_agg_raw.csv"
+      ],
+      "files_stubbed": [],
+      "phase": "A2",
+      "label": "US-101 NGSIM traffic q-rho hysteresis"
+    }
+  },
+  "_meta": {
+    "large_threshold_bytes": 52428800
+  }
+}

@@ -1,0 +1,88 @@
+/* Structural — Analyze page action bar (share / favorite / brief)
+ * Extracted from analyze.html inline <style> block.
+ * Kept in its own file because analyze.css is held off-limits per prior note. */
+
+.analyze-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.analyze-crumb {
+  display: flex;
+  align-items: center;
+}
+
+.analyze-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+}
+
+.analyze-action-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-subtle);
+  border-color: var(--border-default);
+}
+
+.analyze-action-btn:disabled {
+  color: #686872;
+  opacity: 1;
+  cursor: not-allowed;
+  background: var(--bg-subtle);
+}
+
+.analyze-action-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.analyze-action-btn--fav.is-active {
+  color: var(--warning);
+  border-color: var(--warning-border);
+  background: var(--warning-subtle);
+}
+
+.analyze-action-btn__star {
+  font-size: var(--fs-13);
+  line-height: 1;
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+}
+
+/* === Mobile (≤640px) ===
+ * On narrow screens the crumb row squeezes the three action buttons until
+ * their labels break per-character ("分\n享"). Let the row wrap and keep
+ * each button's label on one line with a comfortable tap height. */
+@media (max-width: 640px) {
+  .analyze-actions {
+    margin-left: 0;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  .analyze-action-btn {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 8px 14px;
+    white-space: nowrap;
+  }
+}

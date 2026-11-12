@@ -1,0 +1,100 @@
+{"rank": 3701, "verdict": "reject", "value_type": "表面词汇相似", "potential": 1, "reason": "相位耦合与对比学习均涉及表征，但机制无共通结构", "reject_reason": "θ-γ耦合的时间框架机制与对比学习的拉远/拉近样本在数学结构上无同构关系"}
+{"rank": 3702, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "逆行信号与ICMP反向报文仅有'反向传递'表层共性", "reject_reason": "突触后→突触前的脂质调制 vs 路由器→源端的MTU通告，功能与约束完全不同"}
+{"rank": 3703, "verdict": "reject", "value_type": "弱同构", "potential": 2, "reason": "啁啾补偿与跨区同步都涉及相位", "reject_reason": "色散补偿是被动相位延迟管理，脑同步是主动锁相通信，核心机制不同"}
+{"rank": 3704, "verdict": "accept", "value_type": "控制-结构耦合同构", "potential": 4, "reason": "帆板挠性振动与推进剂晃动均为柔性自由度与控制回路耦合失稳，用陷波/隔板把模态推离敏感带宽，是相同控制问题的两种体现", "reject_reason": ""}
+{"rank": 3705, "verdict": "reject", "value_type": "统计识别方法共用", "potential": 2, "reason": "绅士化识别与地化找矿都用异常值检测", "reject_reason": "仅是通用统计方法的共享，不构成领域机制同构"}
+{"rank": 3706, "verdict": "reject", "value_type": "调控模块共性", "potential": 2, "reason": "组蛋白读写擦除与双组分系统都是模块化调控", "reject_reason": "一是表观遗传修饰，一是磷酸继电，耦合机制不对等，仅'模块化'词面相似"}
+{"rank": 3707, "verdict": "reject", "value_type": "无同构", "potential": 1, "reason": "负摩阻力与季风位移无结构关联", "reject_reason": "一是位移驱动的应力拖拽，一是辐射强迫驱动的雨带迁移"}
+{"rank": 3708, "verdict": "accept", "value_type": "正反馈螺旋触发同构", "potential": 4, "reason": "止损流动性螺旋与对流风暴旋转触发都是切变/阈值积累→被拉伸放大→自维持涡旋/抛压，触发-放大-自维持三段式对应良好", "reject_reason": ""}
+{"rank": 3709, "verdict": "reject", "value_type": "弱方法共性", "potential": 2, "reason": "都是用统计模式识别结构", "reject_reason": "代际流动测量与古文字解读是通用统计方法的迁移，非机制同构"}
+{"rank": 3710, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "Prime编辑与ViT图像块嵌入无结构关联", "reject_reason": "一是逆转录写入，一是块线性投影，完全异质"}
+{"rank": 3711, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "MR工具变量假设与泊松过程等价刻画是不同领域的数理条件", "reject_reason": "前者是因果推断识别假设，后者是随机过程等价定义，无同构"}
+{"rank": 3712, "verdict": "accept", "value_type": "对流-扩散双机制同构", "potential": 4, "reason": "油烟对流扩散与污染物地下水弥散都是定向对流叠加横向扩散产生拉长带状羽流，是advection-diffusion方程的不同尺度实现", "reject_reason": ""}
+{"rank": 3713, "verdict": "reject", "value_type": "免疫逃逸共性", "potential": 2, "reason": "胎盘免疫耐受与肿瘤新生抗原都涉及免疫识别", "reject_reason": "一是逃逸机制，一是激活策略，方向相反且都是免疫学本领域"}
+{"rank": 3714, "verdict": "accept", "value_type": "阈值跨越正反馈开关同构", "potential": 4, "reason": "Rb/E2F正反馈开关与菜单成本价格跳跃都是超过阈值后不可逆切换，下方滞留、上方跳转，是bistable开关共同结构", "reject_reason": ""}
+{"rank": 3715, "verdict": "accept", "value_type": "自强化正反馈同构", "potential": 5, "reason": "海冰反照率反馈与产业集群正外部性是典型跨域正反馈同构：初始优势→吸引更多相同资源→进一步放大优势；都具有阈值崩溃/爆发的潜在风险。地球物理与经济学领域的干净映射", "reject_reason": ""}
+{"rank": 3716, "verdict": "reject", "value_type": "免疫学内相近主题", "potential": 2, "reason": "IgA屏障与弓形虫操控都涉及黏膜免疫", "reject_reason": "同域主题，非跨域同构"}
+{"rank": 3717, "verdict": "reject", "value_type": "方法词面", "potential": 1, "reason": "VLBI合成孔径与UMAP降维无同构", "reject_reason": "一是相位相干合成，一是非线性降维，结构本质不同"}
+{"rank": 3718, "verdict": "accept", "value_type": "复杂性-纠错机制退化同构", "potential": 3, "reason": "主动管理占比下降导致价格发现退化 与 信任缺失导致社会复杂性应对失效，都是纠错机制减弱引发系统性脆弱", "reject_reason": ""}
+{"rank": 3719, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "孤儿作品识别与巨灾债券定价无结构共性", "reject_reason": "一是元数据推断，一是厚尾分布拟合"}
+{"rank": 3720, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "深部生物圈与面团发酵无结构同构", "reject_reason": "都涉及微生物代谢但机制与尺度差异太大"}
+{"rank": 3721, "verdict": "accept", "value_type": "阈值触发级联同构", "potential": 4, "reason": "稳定币死亡螺旋与过饱和成核都是越过临界点后从稳定态不可逆崩溃到新态，信心阈值↔过饱和度阈值映射清晰", "reject_reason": ""}
+{"rank": 3722, "verdict": "reject", "value_type": "弱界面迁移", "potential": 2, "reason": "索雷特效应与SMSI都涉及成分在梯度下的不均匀分布", "reject_reason": "一是热梯度驱动离子迁移，一是覆盖迁移改变吸附，机制驱动力不同"}
+{"rank": 3723, "verdict": "reject", "value_type": "信息论与统计力学接口", "potential": 3, "reason": "配分函数联系宏微观，信道容量联系传输与熵", "reject_reason": "都有熵概念但无明确的机制映射，属于抽象共性"}
+{"rank": 3724, "verdict": "accept", "value_type": "负反馈振荡自调节同构", "potential": 4, "reason": "储蓄过剩假说与ENSO都是：过度积累→放大→系统到达阈值后负反馈触发再平衡，是耦合振子的两个不同领域实现", "reject_reason": ""}
+{"rank": 3725, "verdict": "reject", "value_type": "两阶段原子性", "potential": 3, "reason": "2PC与Journaling都追求原子性", "reject_reason": "都是分布式/系统领域的一致性技术，跨域价值有限"}
+{"rank": 3726, "verdict": "accept", "value_type": "协同放大-阈值响应同构", "potential": 4, "reason": "血红蛋白S型结合曲线与Turing反应扩散都是局部初始事件通过正反馈放大产生非线性响应图案", "reject_reason": ""}
+{"rank": 3727, "verdict": "accept", "value_type": "浓度阈值自感应开关同构", "potential": 3, "reason": "核糖开关代谢物感应与群体感应密度开关都是分子浓度达阈值后触发构象/基因切换", "reject_reason": ""}
+{"rank": 3728, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "量子哈密顿模拟与VLBI干涉都是前沿物理手段", "reject_reason": "一是Trotter分解时间演化，一是孔径合成空间相关，结构不同"}
+{"rank": 3729, "verdict": "reject", "value_type": "弱同构", "potential": 2, "reason": "ParABS梯度扩散棘轮 与 VC跟投信号级联", "reject_reason": "棘轮是物理扩散不对称耗散，级联是离散信息传播，机制不对等"}
+{"rank": 3730, "verdict": "accept", "value_type": "自扩散正反馈螺旋同构", "potential": 4, "reason": "Polycomb H3K27me3 S型扩散与止损流动性螺旋都是局部事件招募更多相同事件→阈值后快速铺开→直至边界/资源耗尽", "reject_reason": ""}
+{"rank": 3731, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "客户端负载均衡与干式连接节点无结构共性", "reject_reason": "一是拓扑选路策略，一是物理连接刚度"}
+{"rank": 3732, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "股权悬崖与单粒子翻转无同构", "reject_reason": "一是激励归属博弈，一是辐射诱发位翻转"}
+{"rank": 3733, "verdict": "reject", "value_type": "弱同构", "potential": 2, "reason": "神经-免疫对话与镜像神经元模仿都涉及脑-行为调控", "reject_reason": "同属神经科学主题，不是跨域机制映射"}
+{"rank": 3734, "verdict": "reject", "value_type": "弱梯度共性", "potential": 2, "reason": "电纺纤维直径受多梯度控制 与 海洋层化抑制垂向扩散", "reject_reason": "一是加工参数优化，一是热稳定抑扩散，机制本质不同"}
+{"rank": 3735, "verdict": "reject", "value_type": "弱同构", "potential": 2, "reason": "MVCC多版本与vDSO用户态映射都是'避免阻塞/特权切换'", "reject_reason": "同系统领域的不同性能优化，非跨域同构"}
+{"rank": 3736, "verdict": "reject", "value_type": "弱同构", "potential": 2, "reason": "激光反馈混沌与分子钟速率变异都体现随机性", "reject_reason": "一是确定性混沌动力学，一是统计平均偏差，本质不同"}
+{"rank": 3737, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "超声束冷却与原肠收敛伸展无同构", "reject_reason": "一是气动膨胀降温，一是极性细胞重排延伸"}
+{"rank": 3738, "verdict": "reject", "value_type": "弱同构", "potential": 2, "reason": "HR同源搜索与哨点监测都'以小搏大'", "reject_reason": "一是分子尺度匹配停留，一是流行病采样代表性，不同尺度的抽象共性"}
+{"rank": 3739, "verdict": "reject", "value_type": "弱方法共性", "potential": 2, "reason": "相关性制度切换与行动圈量化都用分布描述", "reject_reason": "仅在'异质性刻画'层面有词面共性"}
+{"rank": 3740, "verdict": "accept", "value_type": "通路适应的负反馈过渡同构", "potential": 3, "reason": "Akt-S6K负反馈过度激活 与 VEGF旁路耐药都体现'短期调控机制在慢性状态下演变为病理'", "reject_reason": ""}
+{"rank": 3741, "verdict": "accept", "value_type": "分层嵌套树状同构", "potential": 3, "reason": "亲属同心圆与继电保护层级都是中心向外逐层覆盖、层间义务/职责递减的嵌套结构", "reject_reason": ""}
+{"rank": 3742, "verdict": "accept", "value_type": "局部自强化正反馈同构", "potential": 4, "reason": "腐蚀微电池与永冻土碳反馈都是：初始差异→局部速率提高→进一步放大差异的自加速正反馈", "reject_reason": ""}
+{"rank": 3743, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "连杆轴瓦磨损与高超声速气动加热无关", "reject_reason": "一是机械粘着磨损，一是高温气体离解"}
+{"rank": 3744, "verdict": "accept", "value_type": "反比例渐近同构", "potential": 3, "reason": "体能指数回升与Orowan位错绕粒子应力都是'接近满值/越密集则增益越小'的反比关系", "reject_reason": ""}
+{"rank": 3745, "verdict": "reject", "value_type": "层次分类共性", "potential": 2, "reason": "土壤分层与钢桥疲劳分类都是分级结构", "reject_reason": "一是物质沉积层序，一是构造标准分类，不是同一类机制"}
+{"rank": 3746, "verdict": "accept", "value_type": "反比/饱和负反馈同构", "potential": 3, "reason": "烧钱速率与跑道长度反比 与 湿地缓冲对数递减都描述'资源-容量反比/饱和'", "reject_reason": ""}
+{"rank": 3747, "verdict": "accept", "value_type": "周期性振荡节律同构", "potential": 4, "reason": "睡眠周期与流动性日内周期都是周期性振荡，含高低频切换与外部授时（昼夜/交易日）锁相", "reject_reason": ""}
+{"rank": 3748, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "定植抵抗与食物药物相互作用都涉及肠道", "reject_reason": "一是群落竞争排斥，一是物理化学吸收干扰"}
+{"rank": 3749, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "FBG线性漂移与泊松补给无关", "reject_reason": "一是线性传感响应，一是随机到达过程"}
+{"rank": 3750, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "原子重力梯度仪与城市洪涝评估无同构", "reject_reason": "都是测量但机制完全不同"}
+{"rank": 3751, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "RTK二聚激活与Th17屏障免疫都是信号", "reject_reason": "一是受体二聚化信号放大，一是细胞因子极化通路"}
+{"rank": 3752, "verdict": "accept", "value_type": "级联传播放大同构", "potential": 4, "reason": "抵押品再质押链条与辐照损伤级联碰撞都是一次触发引发N步扩散，每步又触发下一步，呈乘数/级联放大", "reject_reason": ""}
+{"rank": 3753, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "精算公平线性与温室效应对数递减都是函数关系", "reject_reason": "一是线性一是对数，实为对比而非同构"}
+{"rank": 3754, "verdict": "accept", "value_type": "阈值态相变探测同构", "potential": 3, "reason": "SNSPD超导破坏与群感开关都是局部阈值事件触发整体态跳变后恢复", "reject_reason": ""}
+{"rank": 3755, "verdict": "reject", "value_type": "级联共性", "potential": 2, "reason": "E1-E2-E3级联与用户/内核切换都是多步流程", "reject_reason": "前者是生物信号转换，后者是CPU特权切换，属抽象'多步'共性"}
+{"rank": 3756, "verdict": "accept", "value_type": "极值/鞍点优化同构", "potential": 3, "reason": "边际成本定价梯度爬升与H∞鲁棒控制鞍点都是'优化在驻点收敛'的结构", "reject_reason": ""}
+{"rank": 3757, "verdict": "accept", "value_type": "扰动传播触发级联同构", "potential": 3, "reason": "光污染扩散超越照明区与断层库仑应力触发都是局部扰动通过网络结构传播引发外围响应", "reject_reason": ""}
+{"rank": 3758, "verdict": "accept", "value_type": "竞争负反馈均衡同构", "potential": 4, "reason": "LH竞争吸附先升后降的最优点 与 Hotelling空间竞争价格战负反馈都是'过密则互损'的最优分离", "reject_reason": ""}
+{"rank": 3759, "verdict": "accept", "value_type": "链式级联传播同构", "potential": 4, "reason": "催化裂化碳正离子链传递与经济制裁网络级联都是一个活性/冲击产生后沿连接结构持续传导，触发相邻元素转为活跃态", "reject_reason": ""}
+{"rank": 3760, "verdict": "accept", "value_type": "阈值分岔突变同构", "potential": 5, "reason": "态度转变阈值与飞机升力失速是典型跨域分岔同构：都是在临界点前线性响应、跨过临界点后不可逆崩溃/翻转。心理学与流体力学的干净映射，是cusp catastrophe的教科书级跨域示例", "reject_reason": ""}
+{"rank": 3761, "verdict": "accept", "value_type": "阈值触发释放同构", "potential": 3, "reason": "小麦春化冷积累与菜单成本价格跳跃都是积分超过阈值才从停滞态切换到行动态", "reject_reason": ""}
+{"rank": 3762, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "表面等离激元与分子斯塔克效应无同构", "reject_reason": "一是集体振荡共振增强，一是电场分裂，都是物理响应但机制异质"}
+{"rank": 3763, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "发表偏倚检测与认知控制抑制都是'压制噪声'", "reject_reason": "一是元分析统计校正，一是脑区抑制耦合，词面相似"}
+{"rank": 3764, "verdict": "reject", "value_type": "弱方法共性", "potential": 2, "reason": "随机基准与ChIP-seq峰检出都是统计测量", "reject_reason": "都用统计显著性，但不构成机制同构"}
+{"rank": 3765, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "QAOA与城市热岛遥感无同构", "reject_reason": "一是量子变分优化，一是遥感监测"}
+{"rank": 3766, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "Th17屏障免疫与P糖蛋白外排都是屏障机制", "reject_reason": "一是免疫细胞因子，一是ATP泵转运，机制不同"}
+{"rank": 3767, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "MEV夹击攻击与CRISPR转座插入无同构", "reject_reason": "一是交易排序套利，一是DNA定向插入"}
+{"rank": 3768, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "原子重力梯度仪与行动圈量化都是'测量'", "reject_reason": "方法层完全不同"}
+{"rank": 3769, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "激子超流与伽马射线暴喷流无同构", "reject_reason": "都是物理现象但结构不对应"}
+{"rank": 3770, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "Copula与地化异常都描述分布尾部", "reject_reason": "都涉及尾部分布但不是同一机制映射"}
+{"rank": 3771, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "超冷极性分子偶极与制度切换模型无同构", "reject_reason": "完全异质"}
+{"rank": 3772, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "渗透/撇脂策略与遗址废弃都是'不可逆选择塑造终态'", "reject_reason": "抽象层面共性，无机制同构"}
+{"rank": 3773, "verdict": "accept", "value_type": "定向输运+侧向扩散同构", "potential": 4, "reason": "洋流温差输送与壤中流侧向传输都是传送带式定向流加侧向扩散，温差/坡度驱动，滞后于源头", "reject_reason": ""}
+{"rank": 3774, "verdict": "accept", "value_type": "自适应阈值控制同构", "potential": 4, "reason": "Phi故障检测器与梯度裁剪都根据历史分布/范数自适应调整上限触发动作，防止极端值导致系统失稳", "reject_reason": ""}
+{"rank": 3775, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "密近双星质量转移与土壤汞甲基化无同构", "reject_reason": "完全异质"}
+{"rank": 3776, "verdict": "accept", "value_type": "正反馈武器化同构", "potential": 3, "reason": "永冻土碳反馈与地缘经济武器化都是'原本稳定的相互依存被转化为失控放大器'", "reject_reason": ""}
+{"rank": 3777, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "贝叶斯层次模型与多变量解耦控制无同构", "reject_reason": "统计推断 vs 控制系统解耦"}
+{"rank": 3778, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "自组装纳米管与正交分子系统都是设计性分子系统", "reject_reason": "同化学/合成生物学领域，非跨域机制同构"}
+{"rank": 3779, "verdict": "accept", "value_type": "纳什均衡不动点同构", "potential": 4, "reason": "家务分工纳什谈判与双头垄断反应函数都是多方反应曲线交点处任何单边偏离都会变差的不动点均衡", "reject_reason": ""}
+{"rank": 3780, "verdict": "accept", "value_type": "双稳态迟滞转换同构", "potential": 4, "reason": "湖泊富营养化清浊转换与AMOC强弱双稳态都是多稳态生态/气候系统的分岔-滞回结构", "reject_reason": ""}
+{"rank": 3781, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "多头注意力分工与流动性社会分层都是'异质性分工'", "reject_reason": "抽象的异质性词面共性"}
+{"rank": 3782, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "冰芯尘埃指标与FRET距离标尺无同构", "reject_reason": "都是间接观测手段但机制不同"}
+{"rank": 3783, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "DC极化与EMT都是细胞状态转换", "reject_reason": "同肿瘤/免疫主题，非跨域"}
+{"rank": 3784, "verdict": "accept", "value_type": "共享资源冲突同构", "potential": 3, "reason": "力量耐力训练AMPK-mTOR干扰与铁路单线会让冲突都是有限资源通道上多需求争用引起延误", "reject_reason": ""}
+{"rank": 3785, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "NUMA延迟差异与HDR编辑无同构", "reject_reason": "完全异质"}
+{"rank": 3786, "verdict": "accept", "value_type": "欠阻尼超调振荡同构", "potential": 4, "reason": "激光驰豫振荡与高楼涡脱横风都是二阶系统欠阻尼下的振荡响应，阻尼过弱时产生超调并在共振频率附近发生锁定", "reject_reason": ""}
+{"rank": 3787, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "Hubbard量子模拟与艺术品鉴别无同构", "reject_reason": "完全异质"}
+{"rank": 3788, "verdict": "reject", "value_type": "弱方法共性", "potential": 2, "reason": "量子基准测试与VaR分位数都是统计分位量", "reject_reason": "仅是统计量度量的表面相似"}
+{"rank": 3789, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "啁啾镜与VQE无同构", "reject_reason": "光学色散 vs 量子变分，机制无关"}
+{"rank": 3790, "verdict": "accept", "value_type": "正反馈振荡同构", "potential": 3, "reason": "匝道汇入瓶颈与ENSO正反馈都是小扰动被放大形成持续性瓶颈/振荡直至外源条件变化", "reject_reason": ""}
+{"rank": 3791, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "费米接触项与空间计量溢出无同构", "reject_reason": "完全异质"}
+{"rank": 3792, "verdict": "reject", "value_type": "弱模块共性", "potential": 2, "reason": "焦点助词与生物地层分带都是'分类标记'", "reject_reason": "语言信息结构 vs 地层时代对比，仅词面相似"}
+{"rank": 3793, "verdict": "accept", "value_type": "自增强正反馈同构", "potential": 4, "reason": "互惠条件合作扩散与珊瑚礁碳酸盐工厂都是有利行为/生长通过正反馈自我放大占据生态位", "reject_reason": ""}
+{"rank": 3794, "verdict": "reject", "value_type": "弱启动共性", "potential": 2, "reason": "胎盘免疫逃逸与双边平台冷启动都是'对抗初始阻力建立稳态'", "reject_reason": "抽象层面相似，机制无对应"}
+{"rank": 3795, "verdict": "accept", "value_type": "阈值突变不可逆翻转同构", "potential": 4, "reason": "珊瑚白化温度阈值与态度翻转阈值都是在临界值之前渐进无变化、跨过临界值后突然不可逆切换", "reject_reason": ""}
+{"rank": 3796, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "单光子量子游走与分子斯塔克无同构", "reject_reason": "同属物理但机制异质"}
+{"rank": 3797, "verdict": "reject", "value_type": "弱共性", "potential": 2, "reason": "KLM级联与势函数收敛均衡都涉及'达成某态'", "reject_reason": "门级联概率提升 vs 势函数保证均衡存在，不同结构"}
+{"rank": 3798, "verdict": "reject", "value_type": "无关", "potential": 1, "reason": "飞秒泵浦探测与反熵/读修复无同构", "reject_reason": "完全异质"}
+{"rank": 3799, "verdict": "accept", "value_type": "网络级联失效同构", "potential": 4, "reason": "社会基础设施级联失效与CDS信用级联都是节点失效负载转移给邻居→邻居超限崩溃→沿网络传播，是同一网络级联模型在两类网络的实现", "reject_reason": ""}
+{"rank": 3800, "verdict": "accept", "value_type": "尺度依赖滞后响应同构", "potential": 3, "reason": "流域响应滞时与双曲折扣都是'远处响应被坦化/折扣'，但一是空间汇流叠加一是时间贴现，具有相似的非线性响应结构", "reject_reason": ""}

@@ -1,0 +1,100 @@
+{"rank": 3301, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "同属量子计算域, 误差缓解和VQE都是NISQ时代的计算技术", "reject_reason": "domain_overlap: 两者均为量子计算域(a_domain=量子计算, b_domain=量子技术应用), 非跨域"}
+{"rank": 3302, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "频率-严重度独立建模与Larson-Miller参数都是将复杂现象拆解为可组合因子", "reject_reason": "no_actionable_insight: 映射仅停留在拆分思想, 泊松过程与温度-时间主曲线参数化的数学结构不同构"}
+{"rank": 3303, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "客户端负载均衡与RDMA都是绕过中间代理直接访问目标", "reject_reason": "domain_overlap: 同属分布式系统/网络协议, 都是IT基础设施优化技术, 非真正跨域"}
+{"rank": 3304, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "回旋共振加热与中子共振捕获结构同构: 两者均表现为频率/能量精确匹配内禀模态时耦合截面尖峰式增强, 宽度由耗散(失谐/能级寿命)决定, 是开放系统中驱动-响应共振的统一数学结构(洛伦兹线型), 可将等离子体加热的chirp扫频策略迁移到共振核反应能谱诊断或反过来"}
+{"rank": 3305, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "PIP2信号域与PRR区隔化都是通过空间区隔保证信号特异性", "reject_reason": "domain_overlap: 均为细胞生物学/免疫学紧邻领域, 都是细胞内膜系统空间组织, 非真正跨域"}
+{"rank": 3306, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "两者就是同一个表面码概念的两种表述", "reject_reason": "domain_overlap: 同属量子纠错, 实际是同一条目的不同描述, 已知重复"}
+{"rank": 3307, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "脱靶效应的重尾分布与幂律网络都呈重尾", "reject_reason": "known_metaphor: 重尾分布在风险与网络科学中是通用描述, 非结构性同构而是统计分布的共性"}
+{"rank": 3308, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "相位共轭与分子振动量子比特都涉及量子光学", "reject_reason": "no_actionable_insight: 两者除同为光-物质相互作用外无可迁移的结构共性"}
+{"rank": 3309, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "刷卡出行链重建与跨馆相似性检索都是从分散记录推断隐结构", "reject_reason": "no_actionable_insight: 仅为数据挖掘共性, 串联记录与特征向量检索是不同范式"}
+{"rank": 3310, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "逆行内源性大麻素信号与卫星细胞静止态都是由邻近细胞维持的状态调控", "reject_reason": "no_actionable_insight: 两者都是旁分泌/微环境调控, 缺乏精确同构, 停留在一般调控思想"}
+{"rank": 3311, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "期权风险矩阵PCA与文体计量学特征向量分类都是高维数据主成分提取", "reject_reason": "known_metaphor: 都是PCA/特征向量降维的通用应用, 非结构同构"}
+{"rank": 3312, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "差分重力测量与签到密度差分都是相对测量抵消共模误差", "reject_reason": "no_actionable_insight: 差分测量是普适技术手段, 并非两系统的深层结构同构"}
+{"rank": 3313, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Warburg效应与深部岩石生物圈都是代谢适应极端环境", "reject_reason": "no_actionable_insight: 两者仅共享代谢适应主题, 无结构映射"}
+{"rank": 3314, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "液化判别与莫尔-库仑准则都是阈值式屈服判据", "reject_reason": "domain_overlap: 同属岩土/地质工程, 都是有效应力理论的经典教科书内容"}
+{"rank": 3315, "verdict": "keep", "value_type": "analogy_for_explanation", "potential": 3, "reason": "无功就地补偿与认知重评都体现'上游介入比下游补救更高效'的原则: 电气系统在负载侧就地提供无功避免长距离传输损耗, 认知重评在情绪信息加工上游改变意义避免下游的压抑代价. 两者都揭示'在问题源头而非末端介入'可大幅降低系统整体损耗, 可作为系统干预设计的启发式原则"}
+{"rank": 3316, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "贝氏拟态的负频率依赖与选民冷漠悖论都是频率依赖博弈", "reject_reason": "known_metaphor: 频率依赖选择与集体行动悖论是演化博弈论标准内容, 已知映射"}
+{"rank": 3317, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "软X射线谱诊断等离子体参数与FRET距离标尺都是从强度反推物理参数", "reject_reason": "no_actionable_insight: 都是谱学定量诊断, 但定标物理基础完全不同, 无深层同构"}
+{"rank": 3318, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "应力腐蚀开裂与地幔热穹隆都是多因素协同下的局部失稳", "reject_reason": "no_actionable_insight: 分属化工和构造地质, 失稳尺度和机制差异过大, 无可迁移操作"}
+{"rank": 3319, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "珊瑚礁模块化与配电辐射状结构都是功能单元的层次化组织", "reject_reason": "known_metaphor: 生态模块化与网络拓扑对比是网络科学常见类比, 已知"}
+{"rank": 3320, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "历史气候-文明相关性分析与气候归因指纹法都是时序匹配识别因果", "reject_reason": "domain_overlap: 数字人文与气候科学实际使用同一类统计工具, 属同一方法族在不同数据上的应用"}
+{"rank": 3321, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "声子晶体带隙与跨频率相位-幅度耦合存在层次化频率调控同构: 声子晶体通过周期结构使不同频段波互相调制(低频带隙由局域共振打开), 神经振荡通过慢波相位调制快波幅度. 两者都表明'慢速大尺度结构可作为快速小尺度模式的调制框架', 可启发类脑计算中的多尺度振荡控制架构或超材料的频率门控设计"}
+{"rank": 3322, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "城市异速缩放与湍流超扩散都是幂律缩放现象", "reject_reason": "known_metaphor: 幂律缩放在复杂系统中广泛存在, 两者幂律来源(网络聚集vs级联涡旋)机理不同"}
+{"rank": 3323, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "渗透压与风力混合层都驱使系统趋向均衡", "reject_reason": "no_actionable_insight: 通用的趋向平衡思想, 无结构同构, 驱动机制完全不同"}
+{"rank": 3324, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "离子陷阱与乳酸菌酸化都涉及pH驱动的化学过程", "reject_reason": "no_actionable_insight: 仅共享pH这一参数, 一为被动扩散一为代谢产酸, 无结构共性"}
+{"rank": 3325, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "季风位移与地下水污染羽流都是对流-弥散输运", "reject_reason": "known_metaphor: 对流-扩散方程是流体环境科学通用框架, 标准教科书内容"}
+{"rank": 3326, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "宏转录组功能注释与古文字解读都是从频率-共现模式中识别功能类别", "reject_reason": "known_metaphor: 都是NLP式频率分析的跨域应用, 生物序列与语言类比是已知概念"}
+{"rank": 3327, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "三突触单元与肿瘤抑制网络都是多种细胞形成的微环境调控", "reject_reason": "no_actionable_insight: 都是组织微环境概念, 一为增益调控一为抑制逃逸, 不同构"}
+{"rank": 3328, "verdict": "keep", "value_type": "constraint_contrast", "potential": 3, "reason": "电镀(沉积∝时间, 线性)与恒压过滤(滤液∝√时间, 亚线性)恰是对偶: 前者无自限机制所以线性增长, 后者因积累物自身产生反馈阻力而衰减. 两者对照揭示'工艺产物是否反过来影响驱动力'决定了工艺动力学是线性还是抛物型, 这一对照可作为判断任意积累型工艺饱和特性的通用框架"}
+{"rank": 3329, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "Aurora B张力感知与节温器温度调节都是负反馈稳态", "reject_reason": "known_metaphor: 负反馈稳态是所有调控系统的通用模板, 尺度和物理量完全不同"}
+{"rank": 3330, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "过拟合-欠拟合权衡与特里芬两难在结构上同构: 都是单一主体同时承担双重目标且目标方向相反(拟合训练vs泛化/提供流动性vs维持信用), 最优点必是某种帕累托前沿上的妥协而非单目标最优. 这一映射提示国际储备体系问题可用正则化思路建模, 或反过来用宏观双目标框架理解模型选择的根本限制, 均是真正的跨尺度结构同构"}
+{"rank": 3331, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "费米接触项与记录链接方法都涉及概率性识别", "reject_reason": "no_actionable_insight: 两者的概率结构完全不同, 仅文字表面有识别二字"}
+{"rank": 3332, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "反马氏催化与NFT版税都是通过改变默认路径实现非自然选择性", "reject_reason": "no_actionable_insight: 一为催化剂改变反应区域选择, 一为市场机制失效, 机制层面不同构"}
+{"rank": 3333, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "侧信道攻击与原子钟黑体辐射偏移都是通过无关物理量引入系统误差", "reject_reason": "no_actionable_insight: 一个是主动攻击一个是被动扰动, 没有可迁移结构"}
+{"rank": 3334, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 5, "reason": "锂枝晶尖端正反馈与财政挤出效应存在深层结构同构: 前者在电场聚集点形成'突起-场增强-更多沉积'的空间正反馈, 后者在利率通道形成'支出-利率升-投资降'的宏观负反馈. 关键洞察是两者都通过共享的中介变量(离子浓度/利率)将局部作用转化为整体反馈, 且'均匀化中介变量'都是抑制失稳的根本策略(均匀离子流/均衡利率锚). 可互为启发: 央行利率平滑操作可借鉴电化学均匀化界面设计思想, 反之电池均匀化控制可借鉴宏观经济学的多工具组合策略"}
+{"rank": 3335, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "G蛋白βγ分流与双组分磷酸化继电都是模块化信号传导", "reject_reason": "domain_overlap: 同属细胞信号转导, 都是标准信号生物学内容"}
+{"rank": 3336, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "延退政策与暴力示范效应都是同一行为产生相反双重效应", "reject_reason": "no_actionable_insight: 都是政策双刃剑的一般观察, 无深层结构映射"}
+{"rank": 3337, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "表面码与RNA折叠都用动态规划式组合优化", "reject_reason": "no_actionable_insight: 一为最小权匹配一为动态规划, 算法族不同, 表面映射"}
+{"rank": 3338, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "蛋白酶体基础降解缓冲与同步发电机惯性响应存在精确同构: 两者都是系统中存在一个持续运转的'基础容量'(酶体活性/转子动能), 在扰动发生时自动释放以缓冲瞬时偏差, 并通过负反馈恢复稳态. 两者都表明'维持冗余的基础流通量'比'精确响应'更能稳定高噪声系统, 可启发分布式计算的过载缓冲设计——预置持续运转的背景任务而非事后响应"}
+{"rank": 3339, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "一千零一夜递归嵌套与环境影响评价层次分析都是分层结构", "reject_reason": "known_metaphor: 递归嵌套与层次分析是不同的结构——前者是自相似重复, 后者是目标分解树"}
+{"rank": 3340, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "性选择失控与上升流生态都是正反馈驱动的系统放大", "reject_reason": "no_actionable_insight: 上升流不是严格正反馈而是外部风应力驱动, 对比不精确"}
+{"rank": 3341, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "发表偏倚与对齐税都是激励目标与真实目标偏离引起的系统性偏差", "reject_reason": "known_metaphor: 选择性偏差与目标错配是统计学和ML标准概念, 已知对应"}
+{"rank": 3342, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "BEC声子色散与重正化群不动点都是低能长波有效理论", "reject_reason": "known_metaphor: 普适性、低能有效理论是凝聚态物理标准框架"}
+{"rank": 3343, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "CMB各向异性与贫瘠高原都涉及随机初始态的统计分布", "reject_reason": "no_actionable_insight: 前者是量子涨落印记, 后者是参数空间集中度, 无共通结构"}
+{"rank": 3344, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "sendfile零拷贝与SRv6段路由都是网络栈优化", "reject_reason": "domain_overlap: 同属系统/网络协议栈, 非跨域"}
+{"rank": 3345, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "肠肝循环与压缩空气储能都是回收原本浪费的资源", "reject_reason": "no_actionable_insight: 循环利用是通用思想, 无结构同构"}
+{"rank": 3346, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "鸡群啄癖与气溶胶间接效应都是多因素级联放大", "reject_reason": "no_actionable_insight: 一为行为传染一为云物理, 无深层映射"}
+{"rank": 3347, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "端粒抑癌权衡与保护诱致冲突都是解决一个问题引发新问题", "reject_reason": "no_actionable_insight: 意外后果是普适现象, 不构成结构同构"}
+{"rank": 3348, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "稀疏神经编码与卫星星座都用少量单元实现高覆盖", "reject_reason": "known_metaphor: 稀疏表征与覆盖设计是信息论与几何优化的通用技巧, 已知"}
+{"rank": 3349, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "结构改革短期代价与海外基地政治都是长期收益被短期成本制约", "reject_reason": "no_actionable_insight: 跨期权衡是政治经济学的一般观察, 不构成结构同构"}
+{"rank": 3350, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "拉曼斯托克斯/反斯托克斯与温度-CO2耦合都是两量间的统计耦合", "reject_reason": "no_actionable_insight: 前者是熵驱动的相空间因子, 后者是因果循环, 机制不同"}
+{"rank": 3351, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "Akt-S6K负反馈与挤出效应都是扩张性输入被内生负反馈削弱", "reject_reason": "known_metaphor: 负反馈削弱初始激励是通用系统思维, 已知"}
+{"rank": 3352, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "P值曲线与城市洪涝动态评估都是参数空间的分辨率描述", "reject_reason": "no_actionable_insight: 两者仅共享高分辨率主题, 结构无关"}
+{"rank": 3353, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "脉冲星计时Hellings-Downs曲线与等长训练角度特异性都体现方向依赖性", "reject_reason": "no_actionable_insight: 尺度与机制相差悬殊, 仅语言表面相似"}
+{"rank": 3354, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "MTO烃池正反馈与稳定币死亡螺旋存在精确同构: 两者都是'活性中间体/参与者'被消耗同时被再生产, 当再生产>消耗时系统自加速直至耗尽某种关键资源(催化剂积炭/套利者信心)而崩溃. 共性模式是'参与者的存在本身放大了活性', 可启发将催化剂失活动力学方程迁移到算法稳定币崩溃时序预测, 或反之用金融恐慌指标监测催化剂临界失活"}
+{"rank": 3355, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "差动保护二次谐波制动与记录链接模糊匹配都需要避免误判", "reject_reason": "no_actionable_insight: 两者的识别机制不同构, 仅共享'分辨真假'主题"}
+{"rank": 3356, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "萨哈罗夫三条件与单线态氧探针三原则都是多条件必要性组合", "reject_reason": "no_actionable_insight: 多条件列表是设计原则通用格式, 无结构同构"}
+{"rank": 3357, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "双曲折扣与逆运动学求解都是非线性收敛", "reject_reason": "no_actionable_insight: 前者是偏好函数形式, 后者是求解空间维度, 无结构关系"}
+{"rank": 3358, "verdict": "keep", "value_type": "constraint_contrast", "potential": 3, "reason": "电镀线性累积与国际储备对数递减形成对比: 前者是无自限的线性积累(电荷守恒), 后者是边际效益递减的对数积累(保险效用饱和). 对比揭示'积累过程是否存在边际价值衰减'决定了积累策略应当线性推进还是尽早停止, 可作为判断任意累积行为(如碳储/数据收集)是否应持续推进的框架"}
+{"rank": 3359, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "量子随机游走弹道传播与玻色采样都是量子光学计算", "reject_reason": "domain_overlap: 同属量子光学/量子计算, 两者本就直接相关"}
+{"rank": 3360, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "聚合飞温与土壤激发效应都是输入触发自加速分解", "reject_reason": "no_actionable_insight: 放热失控与微生物激活机制完全不同, 结构不构成同构"}
+{"rank": 3361, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "激光驰豫振荡与河床形态转换都是两状态变量的耦合非线性", "reject_reason": "no_actionable_insight: 振荡的物理机制差异过大, 无可迁移结构"}
+{"rank": 3362, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "等长训练角度特异性与双曲折扣都是非线性衰减", "reject_reason": "no_actionable_insight: 空间角度衰减与时间折扣完全不同量纲"}
+{"rank": 3363, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "相位共轭自矫正与Hippo器官稳态都是自动恢复机制", "reject_reason": "no_actionable_insight: 前者是时间反转波前补偿, 后者是密度负反馈, 同构性薄弱"}
+{"rank": 3364, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "市场影响凹函数与学习曲线都是幂律/对数增长", "reject_reason": "known_metaphor: 幂律/对数关系在经济学中是标准形式"}
+{"rank": 3365, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "海冰反照率反馈与双边市场网络效应都是正反馈放大", "reject_reason": "known_metaphor: 正反馈循环是复杂系统标准模板, 已知教科书映射"}
+{"rank": 3366, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "SEIR模型与城市洪涝动态都是动态扩散过程", "reject_reason": "no_actionable_insight: 隔室模型与水动力模拟完全不同, 仅共享动态主题"}
+{"rank": 3367, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "密码子摇摆配对与存储槽冲突都涉及编码一致性问题", "reject_reason": "no_actionable_insight: 前者是冗余容错, 后者是冲突漏洞, 并非同类结构"}
+{"rank": 3368, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "鞭毛T3SS组装序列与无细胞蛋白合成都是体外自组装", "reject_reason": "no_actionable_insight: 两者都是蛋白合成主题但结构迥异"}
+{"rank": 3369, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Saga补偿事务与DNSSEC都是链式顺序验证", "reject_reason": "domain_overlap: 同属分布式系统/网络协议, 非跨域"}
+{"rank": 3370, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "纠缠面积律与临界乳光都是关联长度发散", "reject_reason": "domain_overlap: 同属凝聚态/统计力学, 都是普适性框架的表述"}
+{"rank": 3371, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "DPD涨落-耗散与权重共享都是降参数约束", "reject_reason": "no_actionable_insight: 两者的约束本质完全不同(热力学定理vs空间不变性)"}
+{"rank": 3372, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "电镀线性关系与尾部对冲反比关系都是简单函数关系", "reject_reason": "no_actionable_insight: 线性与反比是常见函数, 无结构同构"}
+{"rank": 3373, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "KLM线性光学级联与对比学习都通过组合操作提升目标", "reject_reason": "no_actionable_insight: 两者的组合逻辑完全不同"}
+{"rank": 3374, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "减数驱动与mtDNA棘轮都是基因组内选择偏差", "reject_reason": "domain_overlap: 同属进化生物学/分子生物学, 是经典教科书现象"}
+{"rank": 3375, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "蒸馏塔全回流极限与H∞鲁棒控制都是'两个极端约束下的极小极大博弈': 全回流(最少板数零产量)与最小回流(无限板数最低能耗)构成控制变量的两个不可兼得的极值, H∞则是扰动极大与控制极小的鞍点. 两者都揭示'最优设计永远在两端之间的妥协, 无法同时逼近双端', 可将鲁棒控制的H∞框架迁移到化工塔盘设计作为博弈论优化工具, 反之化工多回流的分段操作思路可启发控制器分段鲁棒性设计"}
+{"rank": 3376, "verdict": "reject", "value_type": "none", "potential": 4, "reason": "传感器融合与多基因评分都通过加权求和整合多个弱信号", "reject_reason": "known_metaphor: 加权融合与多变量线性评分是统计学通用框架, 贝叶斯或线性模型标准做法"}
+{"rank": 3377, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "大坝下游侵蚀与渐进倒塌都是局部扰动沿网络传递", "reject_reason": "no_actionable_insight: 级联失稳是普遍现象, 水文过程与结构倒塌尺度机制不同"}
+{"rank": 3378, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "VIX展期损耗与岩石风化碳汇都是长期成本的累积", "reject_reason": "no_actionable_insight: 两者累积性质(价差/吸收)完全不同, 无结构映射"}
+{"rank": 3379, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "丝绸之路扩散与西边界流热输送都是沿定向通道的大尺度传输", "reject_reason": "no_actionable_insight: 信息扩散与热输送共享'沿通道输运'的一般物理, 非深层同构"}
+{"rank": 3380, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "Stoll价差分解与齿轮阶次分析都是将观测量分解为多个来源贡献", "reject_reason": "known_metaphor: 信号分解是通用工程方法"}
+{"rank": 3381, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "总线仲裁失效与味觉疲劳都是信号通道的临时失效", "reject_reason": "no_actionable_insight: 过于表面的类比, 机制完全不同"}
+{"rank": 3382, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "Tfh辅助稀缺资源竞争与国家品牌竞争都是稀缺认可的竞争", "reject_reason": "no_actionable_insight: 免疫选择与国际软实力机制差异巨大"}
+{"rank": 3383, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "TAD边界与脊索形态原都是空间区隔化发育调控", "reject_reason": "domain_overlap: 同属分子/发育生物学, 是基因组组织与形态发生的常规话题"}
+{"rank": 3384, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "极性复合体互斥正反馈与交错定价黏性存在结构同构: 两者都是系统通过局部相互作用形成稳定的空间/时间不均匀状态, 相互排斥或错位使整体呈现双稳态或缓慢响应. 共通机制是'局部交互+时间错位=宏观刚性', 可启发将发育生物学的互斥反馈模型迁移到理解价格黏性的微观起源, 或反之用新凯恩斯模型分析细胞域的稳定性"}
+{"rank": 3385, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "厨房油烟与地震P/S波都是某种扩散传播", "reject_reason": "no_actionable_insight: 一为对流-扩散一为弹性波传播, 物理方程完全不同"}
+{"rank": 3386, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "量子噪声谱重构与肿瘤克隆推断都是从观测反推隐藏结构", "reject_reason": "no_actionable_insight: 都是逆问题求解, 但具体数学结构不同"}
+{"rank": 3387, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "工具变量方法与指纹归因法都是因果推断技术", "reject_reason": "domain_overlap: 都是统计因果推断方法在不同领域应用, 方法本身同源"}
+{"rank": 3388, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "电磁暂态波过程与季风翻转都是周期反转", "reject_reason": "no_actionable_insight: 反射波与季风机制不同, 映射牵强"}
+{"rank": 3389, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "piRNA乒乓循环与磷酸酶级联都是自我放大", "reject_reason": "domain_overlap: 同属分子/细胞生物学, 两者分别是负反馈和正反馈, 并非同构"}
+{"rank": 3390, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "碎裂函数与工具变量方法都需从复杂数据提取参数", "reject_reason": "no_actionable_insight: 非微扰参数提取与因果识别结构完全不同"}
+{"rank": 3391, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Akt-S6K反馈与陶瓷相变增韧都是损伤触发的自调节", "reject_reason": "no_actionable_insight: 生化负反馈与相变增韧力学机制完全不同"}
+{"rank": 3392, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "信号肽分选与sendfile零拷贝都是通过识别标签绕过中转", "reject_reason": "no_actionable_insight: 生物分选与内核拷贝仅表面相似, 无结构同构"}
+{"rank": 3393, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "MVCC多版本快照与双棘轮密钥更新都是维护多个时间版本", "reject_reason": "no_actionable_insight: 多版本隔离与前向安全的安全目标不同, 机制不对应"}
+{"rank": 3394, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "不经意传输与账户抽象Gas代付都涉及第三方介入代理", "reject_reason": "no_actionable_insight: 密码学盲性与Gas代付功能差异巨大, 无同构"}
+{"rank": 3395, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "Galois对应与Lévy刻画都是将一个对象的性质转化为另一对象的刻画", "reject_reason": "known_metaphor: 数学对应/表征定理是纯数学内部的标准工具, 非跨域结构迁移"}
+{"rank": 3396, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "内波破碎混合与PM2.5辐合带都是流体汇聚导致的局部强化", "reject_reason": "no_actionable_insight: 流体辐合是普遍动力学概念, 两者尺度差异大"}
+{"rank": 3397, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "炎症小体焦亡与信号肽分选都是识别后触发下游反应", "reject_reason": "domain_overlap: 都属免疫/微生物学的蛋白通路, 同学科"}
+{"rank": 3398, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "聚落层级与流动数据社会分层都是从分布中识别社会结构", "reject_reason": "known_metaphor: 齐普夫定律式的层级分布分析是社会科学通用方法"}
+{"rank": 3399, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "PRR区隔化与量子纠错码都是通过空间/结构分离防止错误识别", "reject_reason": "no_actionable_insight: 生物区隔与量子纠错机理完全不同, 仅表面类比"}
+{"rank": 3400, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "ICER增量成本效用比与流动性调整VaR都是在传统指标基础上叠加修正项", "reject_reason": "no_actionable_insight: 叠加修正项是应用统计通用做法, 非结构同构"}

@@ -1,0 +1,15 @@
+{
+  "version": "0.3.0-ews",
+  "generated_at": "2026-05-23T04:24:28.488326+00:00",
+  "n_tickers": 597,
+  "n_critical": 40,
+  "n_approaching": 0,
+  "n_post": 131,
+  "by_market": {
+    "US": 498,
+    "HK": 99
+  },
+  "price_provenance": "demo",
+  "period": "2y",
+  "interval": "1d"
+}

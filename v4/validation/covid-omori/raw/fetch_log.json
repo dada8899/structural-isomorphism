@@ -1,0 +1,68 @@
+{
+  "source_url": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
+  "fetched_at": "2026-05-24T12:23:38.510041Z",
+  "sha256": "e6234a59eec4359d2577358b5220e1a7e3da74c162913cdb7d882db1413f98c2",
+  "raw_size_bytes": 1819904,
+  "header_cols": 1147,
+  "n_rows": 289,
+  "n_date_columns": 1143,
+  "first_date": "1/22/20 (=2020-01-22)",
+  "last_date": "3/9/23",
+  "countries": {
+    "us": {
+      "country_jhu_name": "US",
+      "n_subregion_rows_summed": 1,
+      "n_days": 1143,
+      "first_date": "2020-01-22",
+      "last_date": "2023-03-09",
+      "cumulative_final": 103802702,
+      "peak_date_7dma": "2022-01-12",
+      "peak_7dma_new_cases": 806962.86,
+      "csv": "us.csv"
+    },
+    "uk": {
+      "country_jhu_name": "United Kingdom",
+      "n_subregion_rows_summed": 15,
+      "n_days": 1143,
+      "first_date": "2020-01-22",
+      "last_date": "2023-03-09",
+      "cumulative_final": 24658705,
+      "peak_date_7dma": "2022-01-29",
+      "peak_7dma_new_cases": 197997.57,
+      "csv": "uk.csv"
+    },
+    "india": {
+      "country_jhu_name": "India",
+      "n_subregion_rows_summed": 1,
+      "n_days": 1143,
+      "first_date": "2020-01-22",
+      "last_date": "2023-03-09",
+      "cumulative_final": 44690738,
+      "peak_date_7dma": "2021-05-05",
+      "peak_7dma_new_cases": 391232.0,
+      "csv": "india.csv"
+    },
+    "brazil": {
+      "country_jhu_name": "Brazil",
+      "n_subregion_rows_summed": 1,
+      "n_days": 1143,
+      "first_date": "2020-01-22",
+      "last_date": "2023-03-09",
+      "cumulative_final": 37076053,
+      "peak_date_7dma": "2022-01-26",
+      "peak_7dma_new_cases": 189227.0,
+      "csv": "brazil.csv"
+    },
+    "italy": {
+      "country_jhu_name": "Italy",
+      "n_subregion_rows_summed": 1,
+      "n_days": 1143,
+      "first_date": "2020-01-22",
+      "last_date": "2023-03-09",
+      "cumulative_final": 25603510,
+      "peak_date_7dma": "2022-01-11",
+      "peak_7dma_new_cases": 181821.71,
+      "csv": "italy.csv"
+    }
+  }
+}

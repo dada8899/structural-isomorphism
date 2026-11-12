@@ -1,0 +1,9 @@
+  [fetch] page=1 got=10000 total=10000
+  [fetch] page=2 got=10000 total=20000
+  [fetch] page=3 got=10000 total=30000
+  [fetch] page=4 got=10000 total=40000
+  [fetch] page=5 got=10000 total=50000
+[fetch] hit --limit cap 50000
+[fetch] wrote /private/tmp/si-nyc-fdny/v4/validation/nyc-fdny-fires/raw_2023.json
+[fetch] wrote /private/tmp/si-nyc-fdny/v4/validation/nyc-fdny-fires/incident_sizes_2023.json
+[fetch] source=nyc-opendata-socrata records=50000 incidents=50000 fire_all=21443 fire_strict=2746 units_all_n=21424 units_strict_n=2743 daily_all_n=31 daily_strict_n=31 groups_n=6

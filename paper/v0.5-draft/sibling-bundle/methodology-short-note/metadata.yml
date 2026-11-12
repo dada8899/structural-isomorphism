@@ -1,0 +1,107 @@
+# arXiv submission metadata — Methodology short-note (third arm of the triple-submission)
+# Sibling of C1 v0.4 (release/arxiv/c1-unified-preprint-v0.4/) and C4 v0.4 (c4-arxiv-bundle/)
+# Date: 2026-05-25 (SESSION-25)
+
+title: "Three methodology patterns surfaced by cross-domain universality validation: a methods note"
+
+authors:
+  - name: "Wan Qinghui (万庆徽)"
+    affiliation: "Independent researcher, Structural Isomorphism Project"
+    orcid: ""
+    email: ""
+
+abstract_summary: |
+  Three patterns pre-registered as standalone methodological commitments:
+    P1 — (s*, k) threshold-tobit reparametrisation as targeted remediation for
+         over-specified binary-outcome logit pre-registrations (tier-1).
+    P2 — multilayer testing for hierarchically-scaling candidate universality
+         classes (tier-2, general methodology).
+    P3 — head-vs-tail-aware LLM rewrite validator (tier-3, engineering provenance,
+         not scientific methodology).
+  First instances: schelling_credible_commitment (P1), aggregation_kinetics (P2),
+  Wave 3 C KB cleanup (P3). Four v0.6+ candidates pre-listed for P2.
+
+# Word count
+word_count: 4295  # main.md, including references and abstract; ~5 pages typeset
+estimated_pages_typeset: 5  # at 11pt single-column, 1-inch margins, no figures
+
+# arXiv classification (deliberately *different* from C1 and C4 to support discovery)
+primary_category: stat.ME       # statistical methodology — Pattern 1 + 2 are pre-reg discipline
+cross_lists:
+  - cs.LG                       # Pattern 3 (LLM rewrite validator); cross-cites C4
+  - physics.data-an             # universality-class validation tooling (cross-cites C1)
+  - q-bio.QM                    # aggregation_kinetics first-instance, biological data
+
+msc_classification:
+  - "62F03"   # Hypothesis testing
+  - "62P10"   # Applications of statistics to biology and medical sciences
+  - "68T50"   # Natural language processing (Pattern 3)
+
+# Sibling-bundle members
+companion_preprints:
+  - id: c1-unified-preprint-v0.4
+    relation: "Empirical companion. The patterns documented here were surfaced during the cross-domain validation program documented in C1. Pattern 1 was first applied to schelling_credible_commitment (a C1 class); Pattern 2 was first applied to aggregation_kinetics (a C1 class)."
+    location: "release/arxiv/c1-unified-preprint-v0.4/"
+    cite_as: "[1] in main.md (placeholder [PENDING_C1_ARXIV_ID])"
+  - id: c4-arxiv-bundle
+    relation: "Sibling methodology preprint. C4 covers the LLM critic stages (B1 + B3 within-vendor multi-decoding ensemble); the present short-note's Pattern 3 (head-aware validator) is the sibling engineering contribution in a closely-related LLM-tooling domain."
+    location: "paper/v0.5-draft/sibling-bundle/c4-arxiv-bundle/"
+    cite_as: "[22] in main.md (placeholder [PENDING_C4_ARXIV_ID])"
+
+# Submission notes for arXiv moderators
+moderator_notes: |
+  Third of three concurrent preprints from the Structural Isomorphism Project (single-author independent researcher).
+  The three are:
+    - C1: empirical companion (universality-class validation, primary physics.soc-ph)
+    - C4: methodology companion (LLM critic ensemble, primary cs.LG)
+    - This note: methods short-note (pre-registration patterns, primary stat.ME)
+
+  The three are *not* duplicates: each addresses a distinct methodological surface
+  (positive discovery / false-positive control / pre-registration discipline) and is
+  technically self-contained. Concurrent submission is for cross-citation purposes
+  (the three preprints reference each other's arXiv IDs) and is documented in the
+  triple-submission plan at paper/v0.5-draft/sibling-bundle/TRIPLE-SUBMISSION-PLAN.md.
+
+  No undisclosed conflicts of interest. AI-assisted drafting disclosed in the
+  acknowledgments of [1] (C1) and §9 of [22] (C4); the present short-note uses the
+  same disclosure umbrella (Claude Opus for drafting; analyst retains responsibility).
+
+# Comments field (visible on arXiv abstract page)
+comments: "Short-note (5 pages, 4295 words, no figures). Three pre-registered methodology patterns from a cross-domain universality program. Companion to arXiv:[PENDING_C1_ARXIV_ID] (C1 empirical) and arXiv:[PENDING_C4_ARXIV_ID] (C4 methodology). All pre-registrations and code at github.com/dada8899/structural-isomorphism."
+
+# Build / source notes
+source_layout:
+  - main.md             # 4295 words, 7 sections + 22 references; should be pandoc-converted to LaTeX at submission time
+  # No figures in this note (deliberately text-only short-note).
+  # Pre-registration files are companions in paper/v0.5-draft/preregistrations/, referenced but not bundled into the arXiv submission.
+
+# Build instruction
+build_instruction: |
+  At submission time, convert main.md → main.tex via:
+    pandoc paper/v0.5-draft/sibling-bundle/methodology-short-note/main.md \
+      --from=markdown --to=latex --standalone \
+      --variable=documentclass:article --variable=classoption:11pt \
+      --variable=geometry:margin=1in --variable=fontfamily:lmodern \
+      --variable=colorlinks:true --variable=linkcolor:blue --variable=urlcolor:blue \
+      --variable=papersize:letter \
+      --bibliography=<no-bib-yet> \
+      -o main.tex
+
+  The note has no separate references.bib because the 22 references are inline-numbered;
+  if the chosen arXiv compile flow prefers BibTeX, generate one from the bibliography
+  pattern of c4-arxiv-bundle/references.bib (which already covers refs [3]-[7] and [9]).
+
+  Alternatively, the note is short enough to submit as a single self-contained
+  .tex file with thebibliography environment populated by hand from the §7 numbered list.
+
+# Known caveats
+build_notes:
+  - "The note targets ~5 typeset pages, below the implicit lower bound some reviewers expect for a standalone preprint. We accept this risk; see TRIPLE-SUBMISSION-PLAN.md §risk-register R2."
+  - "The note has no original empirical results — the empirical instances (schelling, aggregation_kinetics, Wave 3 C cleanup) are documented in the companion preprints. Reviewers expecting empirical novelty in a methods note may push back. This is a deliberate framing; we emphasise the *pre-registration discipline* contribution, not new data."
+
+# Inter-bundle linkage discipline (for post-submission)
+post_submission_actions:
+  - "Replace [PENDING_C1_ARXIV_ID] in main.md §7 ref [1] after C1 arXiv ID is in hand"
+  - "Replace [PENDING_C4_ARXIV_ID] in main.md §7 ref [22] after C4 arXiv ID is in hand"
+  - "Both substitutions can be made *before* this note's arXiv submission, if C1 and C4 IDs are obtained first"
+  - "If the order is reversed (this note submitted first), use arXiv `replace` to inject the C1 and C4 IDs once they exist"

@@ -1,0 +1,159 @@
+{
+  "baseline_b_at_Mc_4_45_full_catalog": {
+    "Mc": 4.45,
+    "n_above_Mc": 37288,
+    "b_value": 1.0838191118375062,
+    "b_sigma_shi_bolt": 0.005145031180971719,
+    "b_95_CI_bootstrap": [
+      1.0740000339189584,
+      1.0939208986338016
+    ],
+    "tau_from_b": 1.7225460745583376
+  },
+  "P0_S1_declustering": {
+    "methods": [
+      "Gardner-Knopoff 1974 (L=10^(0.1238M+0.983) km; T piecewise-M days)",
+      "Uhrhammer 1986 (L=exp(-1.024+0.804M) km; T=exp(-2.87+1.235M) days)"
+    ],
+    "n_total": 84724,
+    "runs": {
+      "gardner_knopoff_1974": {
+        "n_main_shocks": 11206,
+        "n_aftershocks": 73518,
+        "aftershock_fraction": 0.867735234408196,
+        "fit_at_Mc_4_45": {
+          "Mc": 4.45,
+          "n_above_Mc": 6949,
+          "b_value": 0.7130983348655174,
+          "b_sigma_shi_bolt": 0.007379716641073719,
+          "b_95_CI_bootstrap": [
+            0.6983758803964862,
+            0.7277599781765414
+          ],
+          "tau_from_b": 1.475398889910345
+        },
+        "Mc_natural": 4.450000000000001,
+        "fit_at_Mc_natural": {
+          "Mc": 4.450000000000001,
+          "n_above_Mc": 6948,
+          "b_value": 0.7130041397613447,
+          "b_sigma_shi_bolt": 0.007378229169895115,
+          "b_95_CI_bootstrap": [
+            0.6990054008175223,
+            0.7267948748330719
+          ],
+          "tau_from_b": 1.4753360931742299
+        },
+        "b_diff_at_Mc_4_45": -0.3707207769719888
+      },
+      "uhrhammer_1986": {
+        "n_main_shocks": 52013,
+        "n_aftershocks": 32711,
+        "aftershock_fraction": 0.3860889476417544,
+        "fit_at_Mc_4_45": {
+          "Mc": 4.45,
+          "n_above_Mc": 21649,
+          "b_value": 1.0559828823314101,
+          "b_sigma_shi_bolt": 0.006824698576917315,
+          "b_95_CI_bootstrap": [
+            1.0432782097834108,
+            1.070781736710867
+          ],
+          "tau_from_b": 1.7039885882209402
+        },
+        "Mc_natural": 4.450000000000001,
+        "fit_at_Mc_natural": {
+          "Mc": 4.450000000000001,
+          "n_above_Mc": 21643,
+          "b_value": 1.055725789572227,
+          "b_sigma_shi_bolt": 0.006822461613437764,
+          "b_95_CI_bootstrap": [
+            1.0424752346843216,
+            1.0683191245726613
+          ],
+          "tau_from_b": 1.7038171930481512
+        },
+        "b_diff_at_Mc_4_45": -0.0278362295060961
+      }
+    },
+    "comment": "Standard seismological position (Reasenberg / Gardner-Knopoff): background b should be estimated on a declustered catalog; aftershock sequences analysed un-declustered for Omori. GK74 windows are calibrated on southern-California regional catalogs and are known to over-decluster on global catalogs (60-80% aftershock fraction is typical, vs ~30% under modern ETAS-stochastic methods). Uhrhammer86 windows are smaller and typically give 30-50% aftershock fraction, closer to ETAS. Cf. Hainzl 2022; van Stiphout et al. 2012."
+  },
+  "P0_S2_FMD_audit": {
+    "Mc_max_curvature_recomputed": 4.450000000000001,
+    "Mc_paper_value": 4.45,
+    "Mc_max_curvature_matches_paper": true,
+    "M_bin_centers_local": [
+      4.15,
+      4.250000000000001,
+      4.3500000000000005,
+      4.450000000000001,
+      4.550000000000001,
+      4.650000000000001
+    ],
+    "non_cumulative_counts_local": [
+      8793,
+      10456,
+      49,
+      20749,
+      7670,
+      4376
+    ],
+    "cumulative_N_at_M_4_35": 48310,
+    "cumulative_N_at_M_4_45": 48261,
+    "non_cum_count_in_bin_4_35_to_4_45": 49,
+    "non_cum_count_in_bin_4_45_to_4_55": 20749,
+    "comment": "Max-curvature method selects the magnitude bin with the highest non-cumulative count. If the recomputed Mc matches the paper's 4.45 to within bin-width (0.1), the published Mc is auditable."
+  },
+  "P0_S3_magtype_homogenisation": {
+    "n_mw_family": 9248,
+    "fraction_of_catalog": 0.10915443085784429,
+    "magtype_breakdown": {
+      "mww": 6096,
+      "mwr": 2560,
+      "mw": 557,
+      "mwb": 24,
+      "mwp": 9,
+      "mwc": 2
+    },
+    "fit_at_Mc_4_45": {
+      "Mc": 4.45,
+      "n_above_Mc": 7233,
+      "b_value": 0.49341006458603004,
+      "b_sigma_shi_bolt": 0.0032634315521459486,
+      "b_95_CI_bootstrap": [
+        0.48688631247276365,
+        0.4997844936640045
+      ],
+      "tau_from_b": 1.3289400430573535
+    },
+    "Mc_natural_on_Mw_subset": 5.150000000000001,
+    "fit_at_Mc_natural": {
+      "Mc": 5.150000000000001,
+      "n_above_Mc": 4129,
+      "b_value": 0.8882557946980775,
+      "b_sigma_shi_bolt": 0.011882817759601948,
+      "b_95_CI_bootstrap": [
+        0.8656650174591727,
+        0.9118919035711285
+      ],
+      "tau_from_b": 1.5921705297987183
+    },
+    "b_diff_vs_full_at_Mc_4_45": -0.5904090472514762,
+    "comment": "Mw-only subset re-fit at fixed Mc=4.45 enables direct comparison vs the un-homogenised baseline. A b-difference < 0.05 indicates the magnitude-type mixture is not biasing the headline b. Mw natural Mc may differ since Mw is harder to compute for small events."
+  },
+  "verdict_flags": {
+    "P0_S1_gardner_knopoff_1974_b_value": 0.7130983348655174,
+    "P0_S1_gardner_knopoff_1974_b_shift_abs": 0.3707207769719888,
+    "P0_S1_gardner_knopoff_1974_aftershock_fraction": 0.867735234408196,
+    "P0_S1_uhrhammer_1986_b_value": 1.0559828823314101,
+    "P0_S1_uhrhammer_1986_b_shift_abs": 0.0278362295060961,
+    "P0_S1_uhrhammer_1986_aftershock_fraction": 0.3860889476417544,
+    "P0_S2_Mc_max_curvature_matches_4_45": true,
+    "P0_S2_Mc_max_curvature_recomputed": 4.450000000000001,
+    "P0_S3_b_shift_under_0_05_at_Mc_4_45": false,
+    "P0_S3_b_shift_abs_Mw_only_at_Mc_4_45": 0.5904090472514762,
+    "P0_S3_Mw_only_b_value_at_Mc_4_45": 0.49341006458603004,
+    "P0_S3_Mw_only_b_value_at_Mc_natural": 0.8882557946980775,
+    "P0_S3_Mw_only_Mc_natural": 5.150000000000001
+  }
+}

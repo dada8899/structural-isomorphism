@@ -1,0 +1,100 @@
+{"rank": 1001, "verdict": "reject", "reject_reason": "trivially obvious: 同为大气科学内部的环流耦合机制，非跨域，结构相似是学科自带而非有洞察"}
+{"rank": 1002, "verdict": "reject", "reject_reason": "trivially obvious: 都是热力分层+混合翻转的扩散-对流过程，同为经典气象/水文教科书内容，known metaphor"}
+{"rank": 1003, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "kpatch的stop_machine检查调用栈再替换 vs TCP Fast Open用cookie验证身份再提前处理——都是'先安全验证再绕过常规流程'，对协议设计中的'快速路径安全门'有方法迁移价值"}
+{"rank": 1004, "verdict": "reject", "reject_reason": "no actionable insight: SEIR仓室流 vs 建成环境决定客流——仅'环境决定到达率'的松散类比，不构成可迁移的动力学结构"}
+{"rank": 1005, "verdict": "reject", "reject_reason": "trivially obvious: 裂缝宽度约束 vs 资金约束优化，都是'约束下最大化'的表面相似，结构上没有共享机制"}
+{"rank": 1006, "verdict": "reject", "reject_reason": "trivially obvious: 催化剂碱性位梯度 vs 冰芯粉尘指示风场，只是'都有梯度/分布'，无结构对应"}
+{"rank": 1007, "verdict": "pass", "value_type": "prediction", "potential": 3, "reason": "无常损失的幂次偏离惩罚 vs 趋肤效应频率的平方根依赖——都是幂律尺度律，可启发DeFi中'偏离-损失'是否存在类似电磁学中的'有效截面积'几何解释"}
+{"rank": 1008, "verdict": "reject", "reject_reason": "no actionable insight: 电子动量成像 vs Copula依赖建模，均涉'联合分布提取'但机制完全不同，无可迁移方法"}
+{"rank": 1009, "verdict": "reject", "reject_reason": "no actionable insight: 同为药理学/肿瘤学领域内机制，既非跨域也无共享结构，仅共享'生物系统'标签"}
+{"rank": 1010, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "订单簿斜率→市场冲击 vs 结构刚度→动载荷系数：两者都是'刚度（厚度）作为冲击放大器的倒数'。机械工程动载荷系数公式可能为市场冲击建模提供阻尼项设计启发"}
+{"rank": 1011, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "考古地震学延伸地震序列 vs 古气候代理延伸气候序列——都用'结构性破坏痕迹回补时间序列'，可借鉴漏检/幸存偏差校正方法互相交叉"}
+{"rank": 1012, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "肥大细胞IgE交联脱颗粒（阈值触发+自放大）vs 锂电池SEI分解热失控（温度阈值+正极放氧自放大）：都是'阈值后秒级级联'，对电池热管理的'过敏样抑制剂'设计（类似抗组胺）可能启发多级淬灭策略"}
+{"rank": 1013, "verdict": "reject", "reject_reason": "trivially obvious: 散斑统计 vs 泥沙浓度垂向分布，都是'随机场分布'的表面关联，无共享机制"}
+{"rank": 1014, "verdict": "reject", "reject_reason": "no actionable insight: 电子动量分布 vs 词嵌入语义近邻漂移，都是'高维空间轨迹分析'的最弱类比"}
+{"rank": 1015, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "莫比乌斯反演（因子和↔原函数）vs Girsanov测度变换（漂移↔无漂移）：都是通过配对结构完成'分布/函数'的可逆变换。两者形式迥异但概念框架相通，对研究离散/连续对偶变换可能有启发"}
+{"rank": 1016, "verdict": "reject", "reject_reason": "known metaphor: 生态系统临界点 vs 气候系统临界点，都是'tipping point'，已是教科书级类比"}
+{"rank": 1017, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "社交平台极端声放大边缘化温和用户 vs 做市商竞争压缩价差。两者是竞争演化的反向案例——一个向极端发散，一个向中位收敛。差异在反馈函数形状（凸vs凹），可为平台设计'凹反馈算法'抑制极化提供可验证假设"}
+{"rank": 1018, "verdict": "reject", "reject_reason": "known metaphor: 幂律集中 vs 长尾分布，都是Pareto/Zipf，是同一数学对象的两个侧面"}
+{"rank": 1019, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "量子误差零噪声外推 vs 扩散模型分类器引导：都是'不同强度下运行后外推/插值到目标点'。ZNE可能为扩散模型负样本引导策略提供外推强度校准方法"}
+{"rank": 1020, "verdict": "reject", "reject_reason": "no actionable insight: 格密码困难问题 vs 子博弈完美均衡，同属'可解性/可置信性'但机制上无共享结构"}
+{"rank": 1021, "verdict": "reject", "reject_reason": "trivially obvious: 振动指数衰减 vs 菲克扩散定律，都是扩散方程通解，教科书级"}
+{"rank": 1022, "verdict": "pass", "value_type": "prediction", "potential": 5, "reason": "量子-经典路径积分（d维量子↔(d+1)维经典，额外维=虚时间）vs 神经切线核无限宽度极限（宽度趋无穷↔核方法等价）：两者都是'通过某参数趋极限实现简化表达式的等价'。这暗示神经网络训练动力学可能有类似'虚时间'的辅助维度构造，具体可验证"}
+{"rank": 1023, "verdict": "pass", "value_type": "prediction", "potential": 3, "reason": "离子陷阱（pH差导致药物单向累积）vs 红树林根系硫化物解毒（局部氧化微区改变底物形态）：两者都用'局部微环境改造让毒性物质改变形态'。可启发药物递送研究'在靶点生成解毒微区'"}
+{"rank": 1024, "verdict": "reject", "reject_reason": "trivially obvious: 壤中流传输 vs 桩基荷载传递，都是'力/流沿介质扩散'，同为工程教材经典"}
+{"rank": 1025, "verdict": "reject", "reject_reason": "trivially obvious: 腌制渗透压 vs 混凝土碳化，都是经典扩散方程的一维解，known metaphor"}
+{"rank": 1026, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "激活扩散（节点激活→邻居阈值降低，启动效应加速）vs 清算瀑布（价格下跌→触发清算→进一步下跌）：都是'阈值降低型网络级联'。可借鉴认知心理学的启动衰减曲线对DeFi清算半径预测建模"}
+{"rank": 1027, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "密近双星质量转移（临界积累→Ia超新星爆发）vs Polycomb标记S型扩散（种子位点→自催化铺开→边界停止）：都是'种子事件+自催化放大+边界约束'三阶段结构。对表观遗传边界预测可借鉴天体物理吸积阈值判据"}
+{"rank": 1028, "verdict": "reject", "reject_reason": "trivially obvious: 同为海洋水文领域的对称破缺，非真正跨域"}
+{"rank": 1029, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "T-S波转捩（小扰动线性放大→二次不稳定→发卡涡→湍流，多阶段正反馈）vs 锂离子嵌脱阶段相变（平台区→相变→晶格突变→容量衰减）：都是'多阶段不可逆结构演化，每阶段有稳定平台但转换时机械/能量突变'。可借鉴转捩级联分析对电池寿命分阶段预测"}
+{"rank": 1030, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "非线性光学位相匹配（n(ω)=n(2ω)，读写'频率空间'满足守恒）vs Quorum R+W>N保证读写交集：都是'通过指标配对保证集合必有交叉'。这是一个漂亮的抽象结构映射，可能启发分布式一致性的'连续参数调谐'设计"}
+{"rank": 1031, "verdict": "reject", "reject_reason": "no actionable insight: 中性粒细胞多叶核 vs 量子比特路由，都涉'拓扑约束下的移动'但机制完全不同"}
+{"rank": 1032, "verdict": "pass", "value_type": "prediction", "potential": 3, "reason": "SEI膜生长指数衰减 vs 人民币国际化S曲线：都是'初期快、后期饱和'的扩展-饱和过程。可借鉴SEI的阻抗上升建模，将货币国际化阻抗看作制度/地缘阻尼"}
+{"rank": 1033, "verdict": "reject", "reject_reason": "no actionable insight: 主客体形状匹配 vs 光化学立体选择性，均属立体化学内部，非跨域"}
+{"rank": 1034, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "功能和声T-S-D-T循环（张力-准备-解决）vs 再保险层级风险转移（原保险-再保险-转分保）：都是'多级张力缓冲→最终承受者'。和声分析的张力量化或可为再保险链路容量模型提供节奏设计启发"}
+{"rank": 1035, "verdict": "reject", "reject_reason": "no actionable insight: CPU中断亲和力 vs 转座子CRISPR插入，都涉'定向固定位置'但机制无结构映射"}
+{"rank": 1036, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "国际法碎片化（多中心重叠，矛盾判例）vs 心理账户分割记账（账户互不替代）：两者都是'资源/权威的模块化隔离导致效率损失且难以合并'。国际法的judicial dialogue机制可反过来启发心理账户的'账户间对话'财务干预设计"}
+{"rank": 1037, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "KPZ界面粗糙化标度（β≈1/3）vs Cramér大偏差速率函数（Legendre变换）：两者都涉'涨落偏离典型值的尾部行为'，KPZ已知属于一个大偏差等价类。对非平衡统计物理+金融大偏差可能有未充分探索的速率函数桥梁"}
+{"rank": 1038, "verdict": "reject", "reject_reason": "known metaphor: 神经信号传导 vs 谣言传播，典型教科书级类比"}
+{"rank": 1039, "verdict": "reject", "reject_reason": "known metaphor: 癌症转移 vs 幽灵堵车，两者虽有差异但堵车波已是复杂系统经典示范"}
+{"rank": 1040, "verdict": "reject", "reject_reason": "trivially obvious: 西边界流 vs 壤中流，都是'横向定向流'的水文类比，结构平凡"}
+{"rank": 1041, "verdict": "pass", "value_type": "prediction", "potential": 3, "reason": "核苷类似物线粒体毒性（target酶与旁路酶同源导致意外抑制）vs 氧阻聚效应（氧与单体竞争链增长自由基）：都是'竞争底物导致主反应被悄然终止'。脱靶抑制诊断或可借鉴聚合化学的终止动力学建模"}
+{"rank": 1042, "verdict": "reject", "reject_reason": "known metaphor: 自由基链式传播 vs 渐进倒塌，典型的'链反应'隐喻"}
+{"rank": 1043, "verdict": "reject", "reject_reason": "trivially obvious: 规模经济递减 vs Orowan机制反比例，都是'1/x形式的递减'，无深层结构映射"}
+{"rank": 1044, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "脉冲星计时阵列用Hellings-Downs关联从相关矩阵中提取引力波信号 vs 海底沉积波记录古流向——都是'空间分布的相关结构反推驱动场'。可借鉴PTA的方向-相关曲线方法做古海洋环流的反演"}
+{"rank": 1045, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "漏斗图检测发表偏倚（效应大小-精度散点的对称性）vs 目标检测锚框偏差（锚框-真框分布匹配）：都是'样本分布与目标分布不匹配导致系统性偏移'。Egger检验的不对称性诊断或可迁移为目标检测锚框失配的定量指标"}
+{"rank": 1046, "verdict": "reject", "reject_reason": "no actionable insight: 发表偏倚 vs QAOA，两者都涉'噪声影响推断'但无共享方法论结构"}
+{"rank": 1047, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "社会调查ML补全缺失敏感项 vs 考古遗址预测建模：两者都是'从已知样本+环境协变量推断未观测'。考古的'勘察优先级'框架可直接迁移到调查中的'追问优先级'，指导主动学习式调查设计"}
+{"rank": 1048, "verdict": "reject", "reject_reason": "trivially obvious: 散热翅片温度梯度 vs Kolmogorov能量级串，都是'能量从源向汇的尺度传递'，结构相似但物理机制完全不同且都是教材内容"}
+{"rank": 1049, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "背压流控（消费者反向信号迫使生产者减速）vs ICMP Fragmentation Needed（路由器反向信号迫使发送方降包）：都是'下游状态反向广播强制上游适配'，且都有'信号被过滤导致黑洞'的失效模式。可互相借鉴黑洞检测与恢复策略"}
+{"rank": 1050, "verdict": "reject", "reject_reason": "trivially obvious: 锋面次级环流 vs 碳循环反馈，虽都是'反馈放大'但规模尺度无共享结构"}
+{"rank": 1051, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "阿尔芬波（磁冻结+张力恢复，沿磁力线传播）vs 神经管拉链闭合（丝状伪足+肌动蛋白张力，多起点推进）：都是'张力驱动的沿线传播，需要介质被锁定在拓扑结构中'。神经管闭合失败模式或可借鉴等离子体磁绳断裂的拓扑分析"}
+{"rank": 1052, "verdict": "reject", "reject_reason": "no actionable insight: 奶牛热应激 vs 气溶胶辐射冷却，都涉'热力负反馈'但规模和机制天差地别"}
+{"rank": 1053, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "SNSPD（单光子热点破坏超导态→电阻跳变→热扩散恢复）vs T细胞耗竭TOX锁定（持续抗原→TOX重塑染色质→耗竭程序锁定）：都是'单次刺激→状态翻转→恢复时间决定后续响应'。耗竭T细胞的恢复动力学可借鉴SNSPD的reset时间分析，为免疫检查点阻断时机提供预测"}
+{"rank": 1054, "verdict": "reject", "reject_reason": "no actionable insight: 漂移波 vs 桩基负摩阻力，均涉'梯度驱动'但结构映射薄弱"}
+{"rank": 1055, "verdict": "reject", "reject_reason": "trivially obvious: 齿轮传动比 vs 国际收支恒等，都是'输入=输出'的恒等式，平凡"}
+{"rank": 1056, "verdict": "pass", "value_type": "prediction", "potential": 5, "reason": "二级价格歧视（高类型无扭曲+低类型向下扭曲以减少信息租金）vs 差异化教学（统一目标下多条路径匹配学生准备度）：差异化教学本质是'隐藏类型的机制设计'，用合约理论框架重构教学策略，可预测'向下扭曲'对应哪些教学路径上的妥协，是mechanism design罕见的教育应用，有论文价值"}
+{"rank": 1057, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "免疫突触cSMAC的信号'刷新'（外围新簇强信号+中央降解旧TCR）vs ParABS染色体分离（ParA梯度+ParB棘轮+水解后破坏梯度）：都是'产生-消耗循环维持动态梯度实现定向运动/信号'。两个无膜结构的'动态结构化'机制有相同的数学本质，可为信号处理的自适应滤波器设计提供生物原型"}
+{"rank": 1058, "verdict": "reject", "reject_reason": "no actionable insight: 签到数据城市活力 vs Copula相关建模，仅都涉'时空关联'，无方法映射"}
+{"rank": 1059, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "电车难题双系统帕累托前沿 vs 负供给冲击政策两难：都是'两个目标函数的冲突无法同时最优'。行为经济的道德困境实验设计（迫使被试说出权衡系数）可迁移为央行的'双目标权重公开化'沟通策略，为前瞻指引提供新工具"}
+{"rank": 1060, "verdict": "reject", "reject_reason": "no actionable insight: 稀疏自编码特征分解 vs 犯罪热点预测，两者都用'稀疏化提取模式'但无结构层面映射"}
+{"rank": 1061, "verdict": "reject", "reject_reason": "no actionable insight: FBG波长位移 vs Hox基因共线性，都是'位置编码'，但一个是线性响应一个是拓扑映射，结构异质"}
+{"rank": 1062, "verdict": "reject", "reject_reason": "no actionable insight: 催化剂碱性位分布 vs 议会辩论词义漂移，只是'分布'的最浅关联"}
+{"rank": 1063, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "COW/vfork优化（避免无谓复制）vs QUIC连接迁移（连接ID解耦四元组）：都是'把状态绑定从低层抽象到高层标识符以避免浪费'。对系统设计'状态标识符层次'有相通启发"}
+{"rank": 1064, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "鞭毛III型分泌的严格组装顺序（基体→钩→触发底物切换→鞭毛素）vs DNSSEC链式信任（根→ZSK→KSK→记录，任一级失败即断链）：都是'序贯依赖的构建过程，前一步的完成触发后一步的开启'。组装失败模式分析可互相启发，生物自组装对加密信任链的'中途恢复'有可借鉴思路"}
+{"rank": 1065, "verdict": "reject", "reject_reason": "no actionable insight: E1-E2-E3级联 vs 鞭毛组装序列，都是'蛋白质级联'但机制异质，同域且无深映射"}
+{"rank": 1066, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "飞秒脉冲相干控制（相位时序设计→量子路径干涉→产物选择性）vs 人口数据库记录链接（字段相似度→概率配对→长时段轨迹）：都是'多候选路径的概率幅加权合并'。量子相干控制的最优脉冲整形算法（如OCT）可能为记录链接的优先级排序提供可微分优化框架"}
+{"rank": 1067, "verdict": "reject", "reject_reason": "trivially obvious: 凝胶点渗流 vs 相容窗口，都是高分子相变，同域"}
+{"rank": 1068, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "建筑能耗属性+气象推断 vs 历史人口记录概率链接：都是'属性向量+不确定性'的联合推断。城市能耗模型的'逐栋概率'思路可迁移到历史人口的'逐个体置信度'链接"}
+{"rank": 1069, "verdict": "reject", "reject_reason": "no actionable insight: Gamma挤压 vs 深部微生物岩石反应，完全无关联"}
+{"rank": 1070, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "量子-经典路径积分对应 vs 莫比乌斯反演公式：两者都是'通过特定构造在两种描述之间完成可逆互换'。反演公式的Dirichlet卷积结构是否能为路径积分配分函数的离散化提供数论级联结构？（连接数论与统计物理的尝试）"}
+{"rank": 1071, "verdict": "reject", "reject_reason": "trivially obvious: Girsanov vs 特征函数，都是概率论内部工具"}
+{"rank": 1072, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "费米接触项（s轨道电子密度在核位置非零→超精细分裂）vs 相关性制度切换（正常/压力两态突变）：都是'存在或不存在'的二态开关，通过波函数/概率密度在特定点的值决定。风险管理可借鉴费米接触项的'局部密度测量→全局谱分裂'思路设计'局部压力指标→全局制度识别'模型"}
+{"rank": 1073, "verdict": "pass", "value_type": "prediction", "potential": 3, "reason": "纹状体直接/间接通路（D1激活-D2抑制对立环路）vs 光动力治疗Type I/II（乏氧→Type I占优）：都是'两条路径依环境选择'。基底节环路的动态切换规则可为PDT在肿瘤异质缺氧区的路径选择建模提供参考"}
+{"rank": 1074, "verdict": "reject", "reject_reason": "known metaphor: 有效前沿 vs 霍曼转移，都是凸优化经典，已广为人知"}
+{"rank": 1075, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "推文语言特征推政治立场 vs 出租车轨迹推功能区：都是'低层行为痕迹→高层类别标签'的无监督/有监督映射。可借鉴彼此的标注策略和反事实验证方法"}
+{"rank": 1076, "verdict": "reject", "reject_reason": "no actionable insight: 晶界滑移蠕变 vs 季风系统位移，一个是微观塑性一个是大气环流，仅共享'漂移'字面"}
+{"rank": 1077, "verdict": "reject", "reject_reason": "trivially obvious: 信用利差期限结构 vs 变质温压梯度，都是'随某一维度分层'的普通映射"}
+{"rank": 1078, "verdict": "reject", "reject_reason": "no actionable insight: 共混界面浓度梯度 vs 趋肤效应，都是'边界层'但物理机制完全不同"}
+{"rank": 1079, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "CAC全通道真实口径（遗漏间接成本导致严重低估）vs ChIP-seq泊松峰检出（背景估计偏差导致假阳/假阴）：都是'背景/基线的正确刻画决定信号真伪'。ChIP-seq的IgG对照+泊松假设可启发CAC建模建立'无客户获取努力的空转基线'作为对照组"}
+{"rank": 1080, "verdict": "reject", "reject_reason": "no actionable insight: 议程设置 vs 议会话语分析，同属计算社会科学子领域，非跨域"}
+{"rank": 1081, "verdict": "reject", "reject_reason": "known metaphor: 高分子光氧化链式老化 vs 永冻土碳反馈，两者都已是'自催化反馈'经典隐喻"}
+{"rank": 1082, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "Merkle树分层哈希定位差异 vs ViT图像块嵌入+注意力：两者都是'切块→局部表征→层级合并'。将Merkle的差异定位策略迁移到ViT的增量训练/差异检测可能是一个新颖的continual learning方向"}
+{"rank": 1083, "verdict": "reject", "reject_reason": "no actionable insight: ARPES能带测量 vs 空间计量溢出模型，仅都涉'邻居/相邻态耦合'，无深层方法映射"}
+{"rank": 1084, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "代际间隔难直接观测需用序列间隔近似 vs 夜光作为GDP代理：都是'直接量无法观测→用可观测代理+校正'。流行病学序列间隔校正方法或可为夜光GDP代理的系统偏差校正提供统计框架"}
+{"rank": 1085, "verdict": "reject", "reject_reason": "trivially obvious: S-N曲线 vs 海平面热膨胀，一个是对数幂律一个是线性，并非同结构"}
+{"rank": 1086, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "国际规范内化三阶段（兴起-级联-内化）vs 蠕变三阶段（初始减速-稳态-加速断裂）：两者都是'三阶段非线性演化'但方向相反——规范从不稳定趋稳、蠕变从稳定趋失效。蠕变稳态速率与失效时间的幂律（Monkman-Grant）可启发'稳态期的规范遵守率'与'规范崩塌时间'的定量预测假设"}
+{"rank": 1087, "verdict": "reject", "reject_reason": "known metaphor: 贸易引力模型 vs 减速器级联效率，前者已是物理-经济经典类比"}
+{"rank": 1088, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "兴奋剂检测贝叶斯推理（先验低+高灵敏度仍多误判）vs 深度网络校准误差（置信度≠正确率）：都是'边际置信度的贝叶斯重校准'。温度缩放的后处理思路可启发体育药检的'可调阈值+群体先验'联合报告框架"}
+{"rank": 1089, "verdict": "reject", "reject_reason": "no actionable insight: 斯特林近似 vs 拥挤博弈势函数，两者都是'大N极限的简化'但机制无共享"}
+{"rank": 1090, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "中子星超流涡旋解钉→自转突跳 vs 蛋白质相分离临界浓度→液滴相变：都是'亚稳态缓慢积累→阈值触发瞬间释放'。解钉跳变的统计分布（周期+幅度分布）可迁移到细胞相分离事件的时间统计建模，预测应激颗粒形成的'glitch-like'事件率"}
+{"rank": 1091, "verdict": "reject", "reject_reason": "no actionable insight: 倾向评分 vs 飞秒相干控制，两者都'调整条件概率/振幅'但完全异质"}
+{"rank": 1092, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "压缩机喘振（低流量失稳→倒流振动）vs 控制阀粘连（低开度润滑胶化→阶梯响应）：都是'低负载工况下的失稳/失效'，都需'周期性全量冲刷'预防。化工与控制工程的'最低工况阈值设计'规则可互相交叉"}
+{"rank": 1093, "verdict": "reject", "reject_reason": "no actionable insight: 信号肽分泌 vs RCU读写同步，两者都涉'顺序访问'但机制异质"}
+{"rank": 1094, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "Nyquist压扁半圆解耦多弛豫过程 vs SEIR仓室分离潜伏/传染阶段：都是'将混合过程按时间常数解耦为可辨识的子过程'。阻抗谱的频域拟合技术（如DRT分布弛豫时间）可迁移到流行病学的'代际时间分布反演'，实现比SEIR更细的潜伏期分布估计"}
+{"rank": 1095, "verdict": "reject", "reject_reason": "no actionable insight: 片晶折叠生长 vs 城市热岛对流，都涉'对流+扩散'但物理规模异质"}
+{"rank": 1096, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "回归均值干扰（极端值入组自然回归）vs 系统辨识激励不充分（输入频谱窄→模型外推差）：都是'样本覆盖不足导致推断失真'。辨识领域的PRBS激励设计可启发流行病学'主动筛选策略'丰富入组人群的基线分布"}
+{"rank": 1097, "verdict": "pass", "value_type": "prediction", "potential": 4, "reason": "极性复合体互斥正反馈空间划分（Par顶端+Scribble基底相互磷酸化排斥）vs Th1/Th2极化（IL-12/IL-4相互抑制，双稳态）：都是'两个互斥模块通过相互抑制形成稳态空间/功能分区'。免疫极化的双稳态动力学框架可迁移到细胞极性的定量建模，预测极性逆转的滞回行为"}
+{"rank": 1098, "verdict": "reject", "reject_reason": "no actionable insight: ctDNA片段化特征 vs 路网分形维度，均用'尺度分析'但领域无实质映射"}
+{"rank": 1099, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "引力波啁啾匹配滤波（从噪声中提取已知波形）vs 社会网络模块度检测（从观测中提取已知聚类结构）：都是'与随机基准对比+最大化匹配分数'。LIGO匹配滤波的模板库+FAP统计控制思路可为社区检测的显著性评估提供更严格的虚警率控制方法"}
+{"rank": 1100, "verdict": "reject", "reject_reason": "trivially obvious: Paris律对数幂律 vs 热膨胀线性关系，两个完全不同的函数形式，无结构映射"}

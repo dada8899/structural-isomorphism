@@ -1,0 +1,12 @@
+{
+  "name": "@structural-isomorphism/types-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Locked json-schema-to-typescript runtime for API artifacts",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "json-schema-to-typescript": "15.0.4"
+  }
+}

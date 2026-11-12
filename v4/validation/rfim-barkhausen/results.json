@@ -1,0 +1,51 @@
+{
+  "system": "RFIM/Barkhausen mean-field \u2014 ABBM Langevin (SYNTHETIC)",
+  "data_provenance": "SYNTHETIC: Alessandro-Beatrice-Bertotti-Montorsi 1990 J Appl Phys 68 2901 Langevin model for domain-wall velocity. Recovers mean-field Barkhausen / RFIM avalanche tau=3/2 exactly (Dahmen-Sethna 1996 PRB 53 14872). Experimentally validated by Spasojevi\u0107 1996 PRE 54 2531 (Si-Fe Barkhausen tau \u2248 1.5\u00b10.05) and Sethna-Dahmen-Myers 2001 Nature 410 242 crackling-noise review.",
+  "predicted_class": "rfim_barkhausen_avalanche",
+  "exponents_predicted": {
+    "tau_size": 1.5,
+    "tau_duration": 2.0,
+    "gamma": 2.0
+  },
+  "summary": {
+    "n_avalanches": 80000,
+    "n_truncated": 0,
+    "tau_size_measured": 1.3433968201403517,
+    "tau_size_predicted": 1.5,
+    "tau_size_band": [
+      1.3,
+      1.7
+    ],
+    "T_vs_S_slope_measured": 0.5011555732655312,
+    "gamma_measured": 1.9953883651018727,
+    "gamma_predicted": 2.0,
+    "gamma_band": [
+      1.5,
+      2.5
+    ],
+    "in_rfim_band": true,
+    "powerlaw_fit": {
+      "name": "abbm_avalanche_size",
+      "alpha": 1.3433968201403517,
+      "sigma_alpha": 0.00153280769303899,
+      "xmin": 0.0010889419518342748,
+      "n_total": 79948,
+      "n_tail": 50190,
+      "vs_lognormal_R": -51.96144878739174,
+      "vs_lognormal_p": 0.0,
+      "vs_exponential_R": 110.33867575783367,
+      "vs_exponential_p": 0.0,
+      "vs_powerlaw_lognormal_winner": "lognormal",
+      "rejects_power_law": true,
+      "ks_statistic": 0.07945257298686276
+    },
+    "T_vs_S_fit": {
+      "slope": 0.5011555732655312,
+      "intercept": 0.015746518579911457,
+      "r2": 0.9325709678387676,
+      "n_bins": 24,
+      "n_events": 79948
+    },
+    "overall_verdict": "CONFIRMED"
+  }
+}

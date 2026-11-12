@@ -1,0 +1,53 @@
+{
+  "version": "0.2",
+  "mode": "walk_forward",
+  "snapshot_anchor": "2026-05-14",
+  "period_months": 6,
+  "n_snapshots": 54,
+  "n_near_critical": 3470,
+  "n_other": 23113,
+  "mean_return_nc": 0.06164963247491792,
+  "mean_return_other": 0.06432817499612638,
+  "std_nc": 0.3668697297158225,
+  "std_other": 0.28640705551723766,
+  "sharpe_nc": 0.2376476969873744,
+  "sharpe_other": 0.31763804616453106,
+  "t_stat": -0.4116058919639839,
+  "p_value": 0.6806496840661099,
+  "groups": {
+    "near_critical": {
+      "n": 3470,
+      "mean": 0.06164963247491792,
+      "std": 0.3668697297158225,
+      "sharpe": 0.2376476969873744
+    },
+    "other": {
+      "n": 23113,
+      "mean": 0.06432817499612638,
+      "std": 0.28640705551723766,
+      "sharpe": 0.31763804616453106
+    }
+  },
+  "ttest_welch": {
+    "t": -0.4116058919639839,
+    "p": 0.6806496840661099
+  },
+  "synthetic": false,
+  "prices_meta": {
+    "version": "0.2",
+    "yfinance_tickers": 497,
+    "stooq_tickers": 0,
+    "synthetic_tickers": 0,
+    "missing_tickers": 3,
+    "synthetic": false,
+    "all_synthetic": false,
+    "start": "2021-05-15",
+    "end": "2026-05-14",
+    "period": "5y",
+    "interval": "1mo",
+    "n_total_tickers": 500,
+    "n_rows": 29566,
+    "generated_at": "2026-05-14T13:29:45.934872+00:00"
+  },
+  "generated_at": "2026-05-14T13:31:48.933278+00:00"
+}

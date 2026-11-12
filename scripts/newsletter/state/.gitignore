@@ -1,0 +1,3 @@
+# Runtime newsletter state — last week's snapshot used for week-over-week diff.
+# Don't commit; recreated by send_weekly.py.
+last_week_state.json

@@ -1,0 +1,131 @@
+<!--
+  Structural Signals — weekly email template (MJML).
+
+  Rendering:
+      $ npm install -g mjml
+      $ mjml docs/community/newsletters/template.mjml -o /tmp/issue.html
+
+  The markdown sections (phase_flips_section, arxiv_section, etc.) are
+  rendered by scripts/generate-newsletter.py FIRST into markdown, then a
+  small build step (TBD W10) converts each section's markdown to HTML and
+  injects into this MJML shell.
+
+  Until W10, this file is a static template — Buttondown / Mailchimp /
+  Substack accept either MJML-compiled HTML or markdown directly.
+-->
+<mjml>
+  <mj-head>
+    <mj-title>Structural Signals — Week {{week_label}}</mj-title>
+    <mj-preview>{{preview_text}}</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="ui-serif, Georgia, 'Times New Roman', serif" />
+      <mj-text font-size="16px" line-height="1.55" color="#1a1a1a" />
+      <mj-section padding="20px 24px" />
+      <mj-button background-color="#1a1a1a" color="#ffffff" border-radius="2px" />
+    </mj-attributes>
+    <mj-style inline="inline">
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+      .muted { color: #6b6b6b; font-size: 14px; }
+      .eyebrow { letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; color: #8a8a8a; }
+      a { color: #1a1a1a; text-decoration: underline; text-underline-offset: 2px; }
+      blockquote { margin: 8px 0 8px 0; padding-left: 12px; border-left: 2px solid #d0d0d0; color: #4a4a4a; font-size: 15px; }
+      hr { border: 0; border-top: 1px solid #e5e5e5; margin: 0; }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#fafaf7" width="640px">
+
+    <!-- Masthead -->
+    <mj-section padding-top="32px" padding-bottom="8px">
+      <mj-column>
+        <mj-text css-class="eyebrow">Structural Signals · Week {{week_label}}</mj-text>
+        <mj-text font-size="28px" font-weight="600" line-height="1.2" padding-top="6px">
+          Daily structural signals from 1000+ public companies.
+        </mj-text>
+        <mj-text css-class="muted" padding-top="4px">
+          Same physics that describes earthquakes, neural avalanches, and power-grid cascades.
+          Issue covers {{week_start}} → {{week_end}}.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section><mj-column><mj-divider border-color="#1a1a1a" border-width="2px" padding="6px 0" /></mj-column></mj-section>
+
+    <!-- Phase flips -->
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" font-weight="600">🔄 This week's phase flips</mj-text>
+        <mj-text css-class="muted">
+          Companies whose critical-state classification changed since last week.
+          Both directions are flagged: entering near_critical and returning to subcritical.
+        </mj-text>
+        <mj-text>{{phase_flips_section_html}}</mj-text>
+        <mj-button href="https://phase.bytedance.city">Browse all 1000+ companies →</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-section><mj-column><mj-divider border-color="#e5e5e5" /></mj-column></mj-section>
+
+    <!-- Methodology spotlight -->
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" font-weight="600">📑 Methodology spotlight: {{spotlight_title}}</mj-text>
+        <mj-text>{{spotlight_body_html}}</mj-text>
+        <mj-text css-class="muted">Topic slug: <span class="mono">{{spotlight_id}}</span></mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section><mj-column><mj-divider border-color="#e5e5e5" /></mj-column></mj-section>
+
+    <!-- arXiv papers -->
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" font-weight="600">📰 Recent papers we're watching</mj-text>
+        <mj-text css-class="muted">
+          arXiv preprints published this week matching our cross-domain SOC / universality query.
+        </mj-text>
+        <mj-text>{{arxiv_section_html}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section><mj-column><mj-divider border-color="#e5e5e5" /></mj-column></mj-section>
+
+    <!-- Repo activity -->
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" font-weight="600">🛠️ Repo activity</mj-text>
+        <mj-text>{{github_section_html}}</mj-text>
+        <mj-button href="https://github.com/dada8899/structural-isomorphism">View on GitHub →</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-section><mj-column><mj-divider border-color="#e5e5e5" /></mj-column></mj-section>
+
+    <!-- Discussion CTA -->
+    <mj-section background-color="#f1efe8" padding="28px 24px">
+      <mj-column>
+        <mj-text font-size="18px" font-weight="600">💬 Tried this in your domain?</mj-text>
+        <mj-text>
+          Reply to this email, open a
+          <a href="https://github.com/dada8899/structural-isomorphism/discussions">GitHub Discussion</a>,
+          or DM us — we read every one and feature the most interesting cases
+          in next week's spotlight.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section padding-top="16px" padding-bottom="32px">
+      <mj-column>
+        <mj-text css-class="muted">
+          Research preview. Not investment advice. Methodology + raw data are open-source under Apache-2.0.
+        </mj-text>
+        <mj-text css-class="muted">
+          <a href="{{unsubscribe_url}}">Unsubscribe</a> ·
+          <a href="https://github.com/dada8899/structural-isomorphism/tree/main/docs/community/newsletters">Archive</a> ·
+          <a href="https://github.com/dada8899/structural-isomorphism">Open source</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

@@ -1,0 +1,30 @@
+A universality-class claim has empirical content only if a single
+fixed pipeline recovers the predicted scaling across systems from
+different domains AND fails to find it in matched non-class data. v0.3
+of this preprint assembled such a pipeline
+(Clauset-Shalizi-Newman 2009 MLE power-law with KS-driven x_min,
+likelihood-ratio tests vs lognormal and exponential, Omori-Utsu decay)
+and applied it unchanged to a five-system SOC deep core: USGS
+earthquakes, S&P 500 daily returns, three DeFi lending protocols,
+mouse-cortex neural avalanches, and four synthetic non-SOC nulls. The
+pipeline recovered canonical exponents on all four real systems
+(b = 1.084 +/- 0.005; alpha = 2.998 +/- 0.041; DeFi alpha in
+[1.567, 1.684]; neural gamma ~ 1.10 stable across 16-fold binning) and
+correctly rejected the power-law hypothesis on all four nulls.
+
+v0.4 adds the taxonomy-completion step: 18 additional candidate
+universality classes are closed against the project's B3 cross-judge
+priors using the same frozen pipeline. The empirical base now stands at
+45+ SOC validation systems and a KB of 4,888 + 445 pending entries
+(ceiling 5,333). Verdicts decompose as 10 PASS, 6 REJECT, 2
+INCONCLUSIVE, 5 SPLIT, 1 MERGE. A new methodological tool -- a
+generalised cross-domain scatter threshold -- emerges as a binary
+screen: max/min(median theta) > 10x AND >= 2 dynamical regimes spanned
+implies descriptor, not mechanism. All six REJECTs satisfy this screen
+(EVT, tail copula, delay-differential, damped oscillator, fractional
+Brownian, Markov). Honest limitations: 11 of 18 classes rest on
+synthetic anchors only; a public Layer-4 prediction backtest returned
+Sharpe = -0.23, reinforcing that v0.4 is a methodology contribution,
+not a prediction-validated claim. The result is a single-pipeline
+cross-domain test of SOC universality + an 18-class taxonomy
+classifier, conservative in its claims.

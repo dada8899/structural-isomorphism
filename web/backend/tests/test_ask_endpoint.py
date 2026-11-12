@@ -1,0 +1,487 @@
+"""Ask pure payload helpers and actual retired HTTP admission boundaries.
+
+Input limits, identity and rate limits remain live. Valid generation requests are
+explicitly unavailable before orchestrator/client construction or budget charge.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import re
+import sys
+import unittest
+from pathlib import Path
+from typing import List
+from unittest.mock import patch
+
+# Ensure `web/backend` is on sys.path when running directly so the
+# `services.*` imports resolve the same way as in production.
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
+
+from services.ask_orchestrator import AskOrchestrator  # noqa: E402
+from services.ask_schemas import AskAnswerPayload  # noqa: E402
+
+
+class _FakeSearch:
+    """Minimal stand-in for SearchService.search()."""
+
+    def __init__(self, results):
+        self._results = results
+        self.calls: List[str] = []
+
+    def search(self, query: str, top_k: int = 12):
+        self.calls.append(query)
+        return self._results[:top_k]
+
+
+_FIXED_KB = [
+    {
+        "id": "phen-1",
+        "name": "Bank run cascade",
+        "domain": "finance",
+        "type_id": "Network_cascade",
+        "description": "Depositors withdraw en masse once trust evaporates. Failures propagate through interbank exposures, producing a heavy-tailed distribution of insolvency events.",
+        "score": 0.91,
+    },
+    {
+        "id": "phen-2",
+        "name": "Forest fire spread",
+        "domain": "ecology",
+        "type_id": "Network_cascade",
+        "description": "A spark on a flammable patch triggers neighbors; cluster sizes follow a power law near the percolation threshold.",
+        "score": 0.84,
+    },
+    {
+        "id": "phen-3",
+        "name": "Power grid blackout",
+        "domain": "engineering",
+        "type_id": "Cascading_failure",
+        "description": "An overloaded line trips, redistributing load to neighbors that then trip in turn. The avalanche size depends on coupling strength.",
+        "score": 0.78,
+    },
+    {
+        "id": "phen-4",
+        "name": "Information cascade in social networks",
+        "domain": "sociology",
+        "type_id": "Network_cascade",
+        "description": "Once enough peers adopt a behavior, others follow based on observed signals rather than private evidence; minority can flip the majority.",
+        "score": 0.71,
+    },
+    {
+        "id": "phen-5",
+        "name": "Avalanches in sandpile models",
+        "domain": "physics",
+        "type_id": "Avalanche_dynamics",
+        "description": "Self-organized criticality: grains added one at a time produce avalanches whose sizes are power-law distributed.",
+        "score": 0.66,
+    },
+]
+
+
+_MOCK_LLM_JSON = json.dumps({
+    "answer": (
+        "你的问题本质上是一个网络级联问题 [1]。当节点间的耦合超过临界值，"
+        "局部扰动会沿着边自我放大，最终触发大规模重排。这种结构在生态、"
+        "工程、社会系统里都成立 [2][3]。"
+    ),
+    "citations": [
+        {"idx": 1, "kb_id": "phen-1", "label": "银行挤兑级联"},
+        {"idx": 2, "kb_id": "phen-2", "label": "森林火灾蔓延"},
+        {"idx": 3, "kb_id": "phen-3", "label": "电网级联停电"},
+    ],
+    "followups": [
+        "在什么耦合强度下会跨过临界点？",
+        "哪种干预最便宜——切边还是降载？",
+        "是否存在领先指标可以预警？",
+    ],
+}, ensure_ascii=False)
+
+
+def _parse_sse_events(chunks: List[str]):
+    """Convert raw SSE-formatted strings into a list of (event, data) tuples."""
+    out = []
+    text = "".join(chunks)
+    # Each event is "event: <name>\ndata: <json>\n\n"
+    for block in re.split(r"\n\n", text):
+        block = block.strip()
+        if not block:
+            continue
+        m = re.match(r"event:\s*(\S+)\s*\ndata:\s*(.+)$", block, re.DOTALL)
+        if not m:
+            continue
+        name, data = m.group(1), m.group(2)
+        try:
+            payload = json.loads(data)
+        except json.JSONDecodeError:
+            payload = {"_raw": data}
+        out.append((name, payload))
+    return out
+
+
+async def _collect(stream):
+    out = []
+    async for chunk in stream:
+        out.append(chunk)
+    return out
+
+
+async def _force_non_stream(*_args, **_kwargs):
+    """Force the orchestrator into its mocked non-stream fallback path."""
+    yield ("error", "test_non_stream")
+
+
+class AskOrchestratorTests(unittest.TestCase):
+    def test_pure_answer_schema_and_card_projection(self):
+        # SSE generation is retired; validate the surviving pure data contracts.
+        payload = AskAnswerPayload.model_validate_json(_MOCK_LLM_JSON)
+        self.assertEqual(len(payload.citations), 3)
+        self.assertEqual(len(payload.followups), 3)
+        orch = AskOrchestrator(search_service=None)
+        similar = orch._build_similar_phenomena(_FIXED_KB[:3])
+        self.assertEqual([x['kb_id'] for x in similar], [x['id'] for x in _FIXED_KB[:3]])
+        self.assertTrue(all(x['key_metric'] and x['domain'] for x in similar))
+
+    def test_pure_citation_idx_out_of_cards_range_dropped(self):
+        orch = AskOrchestrator(search_service=None)
+        result = orch._validate_citations([
+            {"idx":1,"kb_id":"forged","label":"ok"},
+            {"idx":8,"kb_id":"fake","label":"drop"},
+            {"idx":1,"kb_id":"duplicate","label":"drop"},
+        ], _FIXED_KB)
+        self.assertEqual(result, [{"idx":1,"kb_id":"phen-1","label":"ok"}])
+
+    def test_pydantic_schema_directly(self):
+        """Sanity-check the schema rejects too-short answers."""
+        with self.assertRaises(Exception):
+            AskAnswerPayload(
+                answer="short",  # < 20 chars → reject
+                citations=[{"idx": 1, "kb_id": "k", "label": "L"}],
+                followups=["a?", "b?"],
+            )
+
+
+## ---------------------------------------------------------------------
+## HTTP-level tests for POST /api/ask/stream
+##
+## The above suite covers the orchestrator's SSE generator in isolation.
+## This second block wires the FastAPI router into a TestClient + mocks
+## the orchestrator's network calls, so we exercise the actual request
+## shape that the frontend hits: pydantic body validation, auth/tier
+## flow, SSE response headers, abort cleanup, and the rate-limit decorator
+## wiring. We avoid importing main.py because it boots a sentence-encoder
+## at startup; instead we build a minimal FastAPI app inline.
+## ---------------------------------------------------------------------
+
+import importlib  # noqa: E402
+import os  # noqa: E402
+
+import pytest  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+
+class _FakeSearchService:
+    """Minimal stand-in for SearchService used by the ask router."""
+
+    kb_size = 5
+
+    def search(self, query: str, top_k: int = 12):
+        return _FIXED_KB[:top_k]
+
+
+@pytest.fixture
+def ask_app(monkeypatch):
+    """Build a minimal FastAPI app with just the /api/ask router wired up.
+
+    We bypass main.py's heavy startup (sentence-transformers, etc.) by
+    constructing the app ourselves and stuffing a fake SearchService into
+    the shared `app_state` dict that api.ask reaches into.
+    """
+    # Force the api.ask module to (re-)import cleanly and capture refs
+    # to the shared state it consumes.
+    main_mod = importlib.import_module("main")
+    monkeypatch.setitem(main_mod.app_state, "search", _FakeSearchService())
+
+    # Patch the orchestrator so no live LLM calls happen. Patching at the
+    # AskOrchestrator class level so any instance constructed by the
+    # endpoint picks it up.
+    monkeypatch.setattr(
+        "services.ask_orchestrator.AskOrchestrator._call_llm_once",
+        # _call_llm_once is async; return a coroutine that resolves to JSON.
+        lambda self, prompt: _async_value(_MOCK_LLM_JSON),
+        raising=True,
+    )
+    monkeypatch.setattr(
+        "services.ask_orchestrator.AskOrchestrator._call_llm_stream",
+        _force_non_stream,
+        raising=True,
+    )
+    monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0, raising=False)
+
+    # Build the app with rate-limit + ask router only.
+    from services.rate_limit import limiter
+    from api import ask as ask_module
+
+    app = FastAPI()
+    from errors import install_problem_handlers
+    install_problem_handlers(app)
+    if limiter is not None:
+        from slowapi import _rate_limit_exceeded_handler
+        from slowapi.errors import RateLimitExceeded
+        app.state.limiter = limiter
+        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+        # Reset slowapi's in-memory counters between tests so the rate-limit
+        # case starts from zero and unrelated tests aren't tripped.
+        try:
+            limiter.reset()
+        except Exception:
+            pass
+    from unittest.mock import Mock
+    preparation = [Mock(side_effect=AssertionError("retired ask preparation")) for _ in range(2)]
+    monkeypatch.setattr(ask_module, "_get_llm", preparation[0])
+    monkeypatch.setattr(ask_module, "AskOrchestrator", preparation[1])
+    app.include_router(ask_module.router, prefix="/api")
+    yield app
+    assert all(call.call_count == 0 for call in preparation)
+
+
+async def _async_value(v):
+    """Coroutine wrapper so monkeypatched _call_llm_once is awaitable."""
+    return v
+
+
+def _consume_sse(resp) -> list[str]:
+    """Read all SSE chunks out of a streaming response."""
+    out: list[str] = []
+    for line in resp.iter_text():
+        out.append(line)
+    return out
+
+
+@pytest.fixture(autouse=True)
+def _clear_token_env(monkeypatch):
+    """Every endpoint test starts with no API tokens configured.
+
+    Individual tests that need configured tokens (the tier test) set the
+    env themselves; this fixture stops cross-test contamination.
+    """
+    monkeypatch.delenv("STRUCTURAL_API_TOKENS", raising=False)
+    yield
+
+
+class TestAskStreamEndpoint:
+    """8 cases covering /api/ask/stream HTTP behavior."""
+
+    def test_retired_request_returns_http_problem_before_sse(self, ask_app):
+        with TestClient(ask_app) as client:
+            r = client.post('/api/ask/stream', json={'query':'Why do banks collapse'})
+        _assert_retired_response(r)
+
+    def test_empty_query_rejected_422(self, ask_app):
+        """Pydantic min_length=1 → empty string → 422."""
+        with TestClient(ask_app) as client:
+            r = client.post("/api/ask/stream", json={"query": ""})
+        assert r.status_code == 422
+
+    def test_oversize_query_rejected_422(self, ask_app):
+        """W6-D: 8001-char query → 422 with structured input_too_long body."""
+        with TestClient(ask_app) as client:
+            r = client.post("/api/ask/stream", json={"query": "x" * 8001})
+        assert r.status_code == 422
+        body = r.json()
+        # When the request fails the structural cap *exactly* at the boundary
+        # (8001 = MAX_QUERY_CHARS + 1), our handler still runs and shapes the
+        # error body. Beyond that (e.g. 9000) pydantic catches it first and
+        # surfaces its own 'detail' shape — both are acceptable 422 outcomes
+        # but for the boundary case we assert the friendly shape.
+        if "error" in body:
+            assert body["error"] == "input_too_long"
+            assert body["limit"] == 8000
+            assert body["received"] == 8001
+            assert "focus" in body["message"].lower() or "split" in body["message"].lower()
+
+    def test_within_new_cap_is_valid_but_generation_retired(self, ask_app):
+        query = 'Why ' + 'do banks collapse ' * 250
+        from api.ask import AskRequest
+        assert AskRequest(query=query).query == query.strip()
+        with TestClient(ask_app) as client:
+            r = client.post('/api/ask/stream', json={'query':query})
+        _assert_retired_response(r)
+
+    def test_structured_input_too_long_shape(self, ask_app):
+        """W6-D: pydantic-rejected oversize (way past cap) still 422.
+
+        We hit MAX_QUERY_CHARS + 1 chars directly — that is the exact
+        boundary the in-route handler owns (pydantic max_length is
+        MAX_QUERY_CHARS + 1). The handler must produce a structured JSON
+        body with `error`/`limit`/`received`.
+        """
+        with TestClient(ask_app) as client:
+            r = client.post("/api/ask/stream", json={"query": "x" * 8001})
+        assert r.status_code == 422
+        body = r.json()
+        assert body.get("error") == "input_too_long"
+        assert body.get("limit") == 8000
+        assert body.get("received") == 8001
+        assert isinstance(body.get("message"), str) and body["message"]
+
+    def test_missing_query_field_rejected_422(self, ask_app):
+        """Missing required field → 422 (no query key)."""
+        with TestClient(ask_app) as client:
+            r = client.post("/api/ask/stream", json={})
+        assert r.status_code == 422
+
+    def test_invalid_lang_rejected_422(self, ask_app):
+        """lang field is Literal['zh','en']; unknown value → 422.
+
+        Stands in for the 'invalid auth tier' case from the original spec:
+        the endpoint has no header-driven tier param — tier is derived
+        from the Authorization token — so the closest body-level enum
+        validation is the lang Literal. The auth-tier path is exercised
+        directly in test_invalid_bearer_token_returns_401 below.
+        """
+        with TestClient(ask_app) as client:
+            r = client.post(
+                "/api/ask/stream",
+                json={"query": "ok", "lang": "fr"},
+            )
+        assert r.status_code == 422
+
+    def test_invalid_bearer_token_returns_401(self, ask_app, monkeypatch):
+        """Token provided but not in allowlist → 401 (verify_api_token → None)."""
+        # Configure a single 'free' token; we send a different one.
+        monkeypatch.setenv("STRUCTURAL_API_TOKENS", "free:tok-real-one")
+        with TestClient(ask_app) as client:
+            r = client.post(
+                "/api/ask/stream",
+                json={"query": "Why do banks collapse"},
+                headers={"Authorization": "Bearer tok-not-in-allowlist"},
+            )
+        assert r.status_code == 401
+
+    def test_retired_request_does_not_depend_on_search_readiness(self, ask_app, monkeypatch):
+        main_mod = importlib.import_module('main')
+        monkeypatch.setitem(main_mod.app_state,'search',None)
+        with TestClient(ask_app) as client:
+            r = client.post('/api/ask/stream',json={'query':'Why do banks collapse'})
+        _assert_retired_response(r)
+
+    def test_rate_limit_still_bounds_retired_endpoint(self, ask_app):
+        # Rate protection remains a live route contract even though generation is closed.
+        with TestClient(ask_app) as client:
+            for _ in range(5):
+                _assert_retired_response(client.post('/api/ask/stream',json={'query':'Why do banks collapse'}))
+            r6 = client.post('/api/ask/stream',json={'query':'Why do banks collapse'})
+        assert r6.status_code == 429
+
+
+# --------------------------------------------------------------------------
+# Launch P0-2 — daily LLM budget circuit breaker on /api/ask/stream
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture
+def ask_app_with_problem_handler(ask_app):
+    """ask_app + production problem handlers for non-stream failures.
+
+    The ask budget is charged at the real provider boundary, after SSE
+    headers are committed, so budget exhaustion is reported in-stream.
+    """
+    from errors import install_problem_handlers
+    install_problem_handlers(ask_app)
+    return ask_app
+
+
+def test_retired_ask_does_not_charge_an_exhausted_budget(ask_app_with_problem_handler, monkeypatch):
+    monkeypatch.setenv('STRUCTURAL_LLM_DAILY_CALL_CAP','1')
+    from services.cost_ledger import ledger
+    ledger.reset()
+    ledger.charge(endpoint='/api/ask/stream')
+    before = ledger.snapshot()
+    try:
+        with TestClient(ask_app_with_problem_handler) as client:
+            for query in ('Why do banks collapse','Why do banks collapse again'):
+                _assert_retired_response(client.post('/api/ask/stream',json={'query':query}))
+        assert ledger.snapshot() == before
+    finally:
+        ledger.reset()
+
+
+def test_retired_ask_does_not_charge_an_available_budget(ask_app_with_problem_handler, monkeypatch):
+    monkeypatch.setenv('STRUCTURAL_LLM_DAILY_CALL_CAP','1000')
+    from services.cost_ledger import ledger
+    ledger.reset()
+    before = ledger.snapshot()
+    try:
+        with TestClient(ask_app_with_problem_handler) as client:
+            _assert_retired_response(client.post('/api/ask/stream',json={'query':'Why do banks collapse'}))
+        assert ledger.snapshot() == before
+    finally:
+        ledger.reset()
+
+
+# --------------------------------------------------------------------------
+# Launch P1-2 — LLM errors map to stable codes, never leak str(exc)
+# --------------------------------------------------------------------------
+
+
+def test_classify_upstream_error_maps_to_stable_codes():
+    """`_classify_upstream_error` returns a neutral code, never raw text."""
+    import httpx
+    from services.ask_orchestrator import _classify_upstream_error
+
+    assert _classify_upstream_error(httpx.TimeoutException("x")) == "upstream_timeout"
+    assert _classify_upstream_error(httpx.ConnectError("x")) == "upstream_unreachable"
+    # Unknown errors degrade to a generic, non-leaking code.
+    assert _classify_upstream_error(ValueError("secret-url-inside")) == "upstream_error"
+    # The code must NOT contain the original exception text.
+    for exc in (httpx.TimeoutException("https://internal:9000 timed out after 300s"),
+                RuntimeError("connection refused at 10.0.0.5")):
+        code = _classify_upstream_error(exc)
+        assert "internal" not in code and "10.0.0.5" not in code
+
+
+def test_classify_llm_error_maps_to_stable_codes():
+    """`_classify_llm_error` (llm_service) also returns neutral codes."""
+    import httpx
+    from services.llm_service import _classify_llm_error
+
+    assert _classify_llm_error(httpx.TimeoutException("x")) == "upstream_timeout"
+    assert _classify_llm_error(httpx.ConnectError("x")) == "upstream_unreachable"
+    assert _classify_llm_error(RuntimeError("boom")) == "upstream_error"
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+def _assert_retired_response(response):
+    assert response.status_code == 503, response.text
+    body = response.json()
+    assert body["code"] == "FEATURE_UNAVAILABLE" and body["retryable"] is False
+    assert body["canonical"] == "/research"
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert "event: meta" not in response.text and "event: done" not in response.text
+
+
+@pytest.mark.parametrize("module_name", ["api.ask", "web.backend.api.ask"])
+def test_retired_factory_is_closed_in_both_import_topologies(module_name, monkeypatch):
+    """Compatibility imports retain validation without allocating a legacy client."""
+    from unittest.mock import Mock
+    from errors import LegacyPaidUnavailable
+
+    module = importlib.import_module(module_name)
+    constructor = Mock(side_effect=AssertionError("retired client must not be constructed"))
+    monkeypatch.setattr(module, "LLMService", constructor)
+    with pytest.raises(LegacyPaidUnavailable) as stopped:
+        module._get_llm()
+    constructor.assert_not_called()
+    assert stopped.value.status == 503
+    assert stopped.value.extensions == {
+        "code": "FEATURE_UNAVAILABLE", "retryable": False, "canonical": "/research",
+    }
+    assert module.AskRequest(query="ｆｅｅｄｂａｃｋ　ｄｅｌａｙ").query == "feedback delay"
+    assert module.AskEventStreamResponse.media_type == "text/event-stream"
+    assert module.AskOrchestrator is AskOrchestrator

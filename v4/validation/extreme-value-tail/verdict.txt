@@ -1,0 +1,57 @@
+======================================================================
+VERDICT — extreme_value_tail_class
+======================================================================
+date         : 2026-05-25
+top_verdict  : REJECT-CONFIRMED
+reason       : xi spread 1.996 > 0.20 across 5 domains -> EVT does not even produce a shared universal exponent. REJECT as a unified class is even stronger; consider sub-classes by Frechet/Gumbel/Weibull domain of attraction.
+b3 a-priori  : REJECT (limit-theorem class, not mechanism)
+band (xi)    : [0.1, 0.6]
+band (alpha) : [1.7, 10.0]
+
+Per-dataset POT/GPD fits:
+  label                                      n  n_exc      xi   alpha   ks_p
+  D1_noaa_wind_knots                     27504   2635  -0.020    nan   0.000
+  D2_noaa_tornado_length_mi               2137    214   0.050  20.035  0.919
+  D3_noaa_hail_size_in                    8941    641  -0.171    nan   0.000
+  D4_noaa_damage_usd                     14260   1301   1.673   0.598  0.000
+  D5_usgs_peak_streamflow_cfs              509     51  -0.324    nan   0.962
+
+Universality summary across 5 datasets:
+  xi values           : [-0.02, 0.05, -0.171, 1.673, -0.324]
+  xi in pre-reg band  : 0/5
+  xi mean +/- std     : 0.241 +/- 0.813
+  xi spread (max-min) : 1.996
+  coherent_band       : False
+  mechanism_specific  : True
+  verdict_label       : REJECT-PRE-REGISTERED-BAND-MISSED
+
+Null controls:
+  gaussian_walk         alpha=2.999866679453076  rejected=True
+  exponential           alpha=2.9960359168428843  rejected=True
+  poisson_iat           alpha=2.9995200098261385  rejected=True
+  pareto_alpha3        POT xi=0.331 (expected 0.333)  -> recovered=True
+  lognormal_neg        clauset_flags_lognormal=True
+
+Null health:
+  soc_pipeline_nulls_all_rejected          True
+  pareto_positive_recovered                True
+  lognormal_negative_flagged               True
+
+elapsed: 179.8s
+======================================================================
+
+INTERPRETATION GUIDE
+----------------------------------------------------------------------
+REJECT-CONFIRMED (any flavour) is the EXPECTED outcome per the B3
+a-priori cross-judge call: EVT is a statistical descriptor, not a
+generative mechanism. Empirical confirmation strengthens the v0.4
+paper's 'mechanism vs descriptor' boundary (see plan doc).
+
+- REJECT-CONFIRMED-COHERENT : all xi cluster tight inside band ->
+  EVT IS universal-in-distribution, but only because Fisher-Tippett-
+  Gnedenko says ANY heavy-tail process with regularly-varying tail
+  has GPD limit. Not a mechanism.
+- REJECT-CONFIRMED-MECHANISM-SPECIFIC : xi varies by domain ->
+  EVT cannot even produce one universal number; the class should
+  be split (Frechet/Gumbel/Weibull sub-classes) if kept at all.
+

@@ -1,0 +1,87 @@
+{
+  "xllcorner": "-6662668.56", 
+  "yllcorner": "-333816.78", 
+  "cellsize": 231.656358264, 
+  "nrows": 1, 
+  "ncols": 1, 
+  "band": "250m_16_days_NDVI", 
+  "units": "NDVI ratio - No units", 
+  "scale": "0.0001", 
+  "latitude": -3.0, 
+  "longitude": -60.0, 
+  "header": "https://modisrest.ornl.gov/rst/api/v1/MOD13Q1/subset?latitude=-3.0&longitude=-60.0&startDate=A2016353&endDate=A2017113&kmAboveBelow=0&kmLeftRight=0&band=250m_16_days_NDVI", 
+  "subset": [
+    {
+      "modis_date": "A2016353", 
+      "calendar_date": "2016-12-18", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2021363151056", 
+      "data": [3024]
+    }, 
+    {
+      "modis_date": "A2017001", 
+      "calendar_date": "2017-01-01", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2021257161231", 
+      "data": [3796]
+    }, 
+    {
+      "modis_date": "A2017017", 
+      "calendar_date": "2017-01-17", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2021264152835", 
+      "data": [5486]
+    }, 
+    {
+      "modis_date": "A2017033", 
+      "calendar_date": "2017-02-02", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2021266145513", 
+      "data": [2222]
+    }, 
+    {
+      "modis_date": "A2017049", 
+      "calendar_date": "2017-02-18", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2021266233958", 
+      "data": [3328]
+    }, 
+    {
+      "modis_date": "A2017065", 
+      "calendar_date": "2017-03-06", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2021270101332", 
+      "data": [2400]
+    }, 
+    {
+      "modis_date": "A2017081", 
+      "calendar_date": "2017-03-22", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2021270102038", 
+      "data": [4300]
+    }, 
+    {
+      "modis_date": "A2017097", 
+      "calendar_date": "2017-04-07", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2021270183618", 
+      "data": [3361]
+    }, 
+    {
+      "modis_date": "A2017113", 
+      "calendar_date": "2017-04-23", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2021271171450", 
+      "data": [3401]
+    }
+  ]
+}

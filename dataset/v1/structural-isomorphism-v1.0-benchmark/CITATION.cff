@@ -1,0 +1,52 @@
+cff-version: 1.2.0
+title: "structural-isomorphism v1.0 cross-domain SOC + universality benchmark"
+abstract: >
+  A Zenodo-deposited reference benchmark for cross-domain self-organized
+  criticality (SOC), preferential attachment, and adjacent universality-class
+  validation. The bundle ships 13 independently fetched empirical systems
+  (USGS earthquakes, S&P 500 returns, three DeFi liquidation streams, mouse
+  ALM cortex avalanches from DANDI:000006, NIFC US wildfires, GOES X-ray
+  solar flares 2000-2016, FDIC bank failures 1934-2026, GitHub stargazer
+  counts, North-American power-grid cascades, English Wikipedia pageviews,
+  a Hawkes-Omori synthetic baseline, Fox River dissolved-oxygen for a
+  Scheffer fold-bifurcation reference, and the US-101 NGSIM q-rho hysteresis
+  panel) together with four synthetic null controls that the same fitting
+  pipeline correctly rejects. The bundle includes the frozen Clauset-MLE +
+  bootstrap-CI + b-value + Omori + universal-collapse pipeline as a
+  reusable PyPI-style Python package, a 35-class universality-class taxonomy
+  with two layers of LLM-critic curation (B1 single-Opus + B3 three-DeepSeek
+  ensemble), the full layer-3 critic and layer-4 prediction JSONL outputs,
+  a reproduce_all.py one-shot reproducibility entry point, and a tutorial
+  notebook reproducing the Phase 1 earthquake b-value in under 30 minutes
+  on a laptop.
+authors:
+  - family-names: dada8899
+    affiliation: Independent Research
+date-released: 2026-05-15
+license: CC-BY-4.0
+type: dataset
+version: 1.0.0
+doi: 10.5281/zenodo.PLACEHOLDER
+url: https://github.com/dada8899/structural-isomorphism
+repository-code: https://github.com/dada8899/structural-isomorphism
+keywords:
+  - self-organized criticality
+  - universality classes
+  - power-law
+  - Clauset MLE
+  - Omori law
+  - Gutenberg-Richter
+  - cross-domain validation
+  - LLM ensemble critic
+  - reproducibility benchmark
+  - synthetic null controls
+  - preferential attachment
+  - tail copula
+  - hysteresis
+  - Scheffer fold bifurcation
+identifiers:
+  - type: url
+    value: https://github.com/dada8899/structural-isomorphism
+  - type: other
+    value: "structural-isomorphism-zenodo-benchmark-v1"
+    description: dataset bundle schema id

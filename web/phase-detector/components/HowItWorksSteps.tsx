@@ -1,0 +1,92 @@
+// Research-preview landing: 3-step "How it works" explainer.
+//
+// Editorial restraint per CLAUDE.md design refs (Bear / Linear). Numbered
+// steps with serif step numbers as visual rhythm; body text in sans for
+// readability. No icons (visual noise), no hover state (pure exposition).
+
+import Link from "next/link";
+
+const STEPS = [
+  {
+    n: "01",
+    title: "Extract",
+    titleZh: "提取结构特征",
+    body: "A frozen 597-ticker demo snapshot of structural features. The current provenance is explicit and must not be read as live market coverage.",
+    bodyZh: "当前展示冻结的 597 个 demo ticker 结构特征快照；数据来源状态明确，不应视为实时市场覆盖。",
+  },
+  {
+    n: "02",
+    title: "Classify",
+    titleZh: "分类标记",
+    body: "A frozen Clauset-grade pipeline tags each company with one of 5 phases. Same math we use to explain bank runs, earthquakes, and grid blackouts — now applied to corporates.",
+    bodyZh: "Frozen Clauset 级别的 pipeline 给每家公司打一个 5 状态标签。同一套数学——解释过银行挤兑、地震、电网崩塌——现在套到上市公司上。",
+  },
+  {
+    n: "03",
+    title: "Inspect",
+    titleZh: "检查假设",
+    body: "Inspect the frozen labels and their evidence as a research snapshot. The published walk-forward backtest is NULL and does not establish predictive value.",
+    bodyZh: "把冻结标签和证据作为研究快照检查。公开 walk-forward 回测结论为 NULL，不支持预测价值。",
+  },
+];
+
+export function HowItWorksSteps() {
+  return (
+    <section
+      id="how-it-works"
+      aria-labelledby="how-it-works-heading"
+      className="mx-auto w-full max-w-5xl px-6 py-20 sm:py-24"
+    >
+      <div className="mb-12 max-w-2xl">
+        <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
+          How it works · 三步说清楚
+        </p>
+        <h2
+          id="how-it-works-heading"
+          className="text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl"
+          style={{ fontFamily: "var(--font-serif), 'Noto Serif SC', serif" }}
+        >
+          没有黑盒。<br className="hidden sm:inline" />方法、代码、回测全部公开。
+        </h2>
+      </div>
+      <ol className="space-y-12 sm:space-y-14">
+        {STEPS.map((s) => (
+          <li key={s.n} className="grid grid-cols-1 gap-6 sm:grid-cols-[140px_1fr]">
+            <div
+              // W12-A: bumped from text-indigo-300 (1.82:1) to text-indigo-500
+              // (#6366f1 → 4.62:1 on cream paper). Clears WCAG 1.4.3 for
+              // non-text UI (3:1) even though the numeral is aria-hidden.
+              className="select-none font-mono text-5xl font-light leading-none text-indigo-500 sm:text-6xl"
+              style={{ fontFeatureSettings: "'tnum'" }}
+              aria-hidden="true"
+            >
+              {s.n}
+            </div>
+            <div>
+              <div className="mb-1 text-sm font-semibold uppercase tracking-wider text-zinc-900">
+                {s.title}
+                <span className="ml-2 font-normal normal-case tracking-normal text-zinc-500">
+                  · {s.titleZh}
+                </span>
+              </div>
+              <p className="text-base leading-relaxed text-zinc-600 sm:text-lg">
+                {s.bodyZh}
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
+                {s.body}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-12 sm:mt-14">
+        <Link
+          href="/methodology"
+          className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-indigo-700 underline-offset-4 hover:underline"
+        >
+          完整方法说明 <span aria-hidden="true">→</span>
+        </Link>
+      </div>
+    </section>
+  );
+}

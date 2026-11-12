@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structural-isomorphism.local/schemas/stage1/problem-package-v1.schema.json",
+  "title": "Stage 1 frozen scientific problem package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "task_id", "evidence_class", "domain", "task_family", "t0", "information_boundary", "outcome_release", "contamination", "controls", "budget_id", "gold_status"],
+  "properties": {
+    "schema_version": {"const": "stage1.problem-package.v1"},
+    "task_id": {"type": "string", "pattern": "^st1_[a-z0-9_-]{3,64}$"},
+    "evidence_class": {"enum": ["historical", "synthetic"]},
+    "domain": {"type": "string", "minLength": 2, "maxLength": 80},
+    "task_family": {"enum": ["prediction", "experiment_design", "mechanism_discrimination"]},
+    "t0": {"type": "string", "format": "date-time"},
+    "information_boundary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["corpus_manifest_id", "latest_allowed_publication_at", "excluded_sources"],
+      "properties": {
+        "corpus_manifest_id": {"type": "string", "minLength": 3},
+        "latest_allowed_publication_at": {"type": "string", "format": "date-time"},
+        "excluded_sources": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    },
+    "outcome_release": {
+      "type": "object", "additionalProperties": false,
+      "required": ["available_after_t0", "sealed_locator", "sealed_sha256"],
+      "properties": {
+        "available_after_t0": {"type": "string", "format": "date-time"},
+        "sealed_locator": {"type": "string", "minLength": 1},
+        "sealed_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "contamination": {
+      "type": "object", "additionalProperties": false,
+      "required": ["near_duplicate_check", "target_revealing_text_check", "model_probe_status", "reviewed_by"],
+      "properties": {
+        "near_duplicate_check": {"enum": ["pass", "fail", "not_run"]},
+        "target_revealing_text_check": {"enum": ["pass", "fail", "not_run"]},
+        "model_probe_status": {"enum": ["pass", "fail", "inconclusive", "not_run"]},
+        "reviewed_by": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    },
+    "controls": {
+      "type": "object", "additionalProperties": false,
+      "required": ["matched_non_isomorph", "synthetic_null", "random_candidate"],
+      "properties": {
+        "matched_non_isomorph": {"type": "boolean"},
+        "synthetic_null": {"type": "boolean"},
+        "random_candidate": {"type": "boolean"}
+      }
+    },
+    "budget_id": {"type": "string", "pattern": "^budget_[a-z0-9_-]+$"},
+    "gold_status": {"enum": ["sealed", "adjudicated"]}
+  }
+}

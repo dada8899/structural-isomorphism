@@ -1,0 +1,100 @@
+{"rank": 2501, "verdict": "weak", "value_type": "contrast_pair", "potential": 2, "reason": "一正反馈一负反馈,都涉及拉伸与材料响应,但物理机制完全不同(角动量守恒vs构象熵)", "reject_reason": "no_actionable_insight: 对比结构过于表层,无法迁移任何具体推理"}
+{"rank": 2502, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是通过边界信号(Marker/填充错误)来推断内部状态的观察范式,一个是善意快照一个是恶意侧信道", "reject_reason": ""}
+{"rank": 2503, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "两类利益方通过同一通道(基因/平台)对立博弈,最优策略都是对一侧倾斜补贴/抑制。可启发进化冲突中的市场化分析", "reject_reason": ""}
+{"rank": 2504, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "仅共享频率相关概念,一个是阻尼控振一个是奈奎斯特定理", "reject_reason": "no_actionable_insight: 只在频域这个最抽象层级上相似"}
+{"rank": 2505, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是系统只响应变化率而非绝对量,但沙堆是SOC级联Piezo是单通道适应,机制不同", "reject_reason": ""}
+{"rank": 2506, "verdict": "reject", "value_type": "trivial", "potential": 1, "reason": "都是介质传递的扩散/波动,过于基础", "reject_reason": "trivially_obvious: 介质传力是物理学基础概念,无跨域价值"}
+{"rank": 2507, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "都是'就地转换类型',但语言学派生和细胞重编程的因果机制毫无共通", "reject_reason": "no_actionable_insight: 语义层面的巧合"}
+{"rank": 2508, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是强制树形层级的语法/资源约束系统,父级约束子级,值得作为层级强制系统的双范例", "reject_reason": ""}
+{"rank": 2509, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都涉及'新旧替换',但一个是分子转换一个是人口分析混淆因子,推理方向不同", "reject_reason": "no_actionable_insight: 太抽象的替换概念,无法迁移"}
+{"rank": 2510, "verdict": "weak", "value_type": "known_metaphor", "potential": 2, "reason": "对流+扩散的双机制应用于历史传播,属于常见比喻", "reject_reason": "known_metaphor: 文化扩散=物理扩散是人类学常见隐喻"}
+{"rank": 2511, "verdict": "reject", "value_type": "trivial", "potential": 1, "reason": "都是工程经验曲线,一个是幂律一个是线性", "reject_reason": "trivially_obvious: 工程回归曲线的通用性"}
+{"rank": 2512, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无实质共通结构", "reject_reason": "no_actionable_insight: 不同领域的独立现象并列"}
+{"rank": 2513, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是'力学量直接转化为功能状态'的被动机制:正确状态自动产生抑制/刚性,无需外部监督。张力->酶失活 vs 背屈->纵弓刚性化", "reject_reason": ""}
+{"rank": 2514, "verdict": "weak", "value_type": "same_domain", "potential": 2, "reason": "都是统计因果/空间异质方法论,同属计量工具箱", "reject_reason": "trivially_obvious: 都属统计方法学,非跨域同构"}
+{"rank": 2515, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是能量/动量在某个临界层/缺陷处集中释放,形成不均匀空间分布", "reject_reason": ""}
+{"rank": 2516, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "都是递推/递归化简,但斐波那契是加法递推弹簧是倒数求和", "reject_reason": "no_actionable_insight: 只共享'递归运算'最浅层"}
+{"rank": 2517, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "前置生物标志物/前置使用指标预测终局(治疗响应/续约),都是早期信号检测问题,可交换方法论", "reject_reason": ""}
+{"rank": 2518, "verdict": "weak", "value_type": "same_domain", "potential": 2, "reason": "都是计算辅助社科研究方法,但任务不同", "reject_reason": "trivially_obvious: 同属计算人文的方法论并列"}
+{"rank": 2519, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "前者是色散波扩散后者是冷空气下沉,无结构共性", "reject_reason": "no_actionable_insight: 共享'扩散'一词而已"}
+{"rank": 2520, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是通过'乐观执行+延迟一致性'换取性能:RCU宽限期后释放旧版本,0-RTT预先加密但不抗重放。性能与安全权衡的同构", "reject_reason": ""}
+{"rank": 2521, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是信息/利润驱动的周期性均衡振荡,属同构的市场动力学", "reject_reason": ""}
+{"rank": 2522, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "同属细胞生物学但机制独立", "reject_reason": "no_actionable_insight: 同域不同机制"}
+{"rank": 2523, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是相变/密度变化引发的突发性冲击,但尺度机制差异大", "reject_reason": "known_metaphor: 蒸发冷却驱动下沉是常见类比"}
+{"rank": 2524, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都在'通过协同稳定化/单调递增约束'保证罕见事件的可靠识别:重组靠延长接触时间筛选同源位点,HLC靠单调性保证因果顺序", "reject_reason": ""}
+{"rank": 2525, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是将'低毒性/低信息流'分离出主通道保护核心:IgA阻黏附不激活补体避免炎症;PFOF分离散户订单避免做市商被信息单伤害。都是通道隔离的稳态策略", "reject_reason": ""}
+{"rank": 2526, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都涉及尾部分布判读,但方法论完全不同", "reject_reason": "no_actionable_insight: 仅共享统计分布尾部的概念"}
+{"rank": 2527, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是极小区间内状态突变的相变,但一个是渗流一个是流体激波,物理类别不同", "reject_reason": ""}
+{"rank": 2528, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "两个都涉及比对,但任务结构不同", "reject_reason": "no_actionable_insight: 表面'比较差异'之外无共通"}
+{"rank": 2529, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "完全不同领域的守恒性质", "reject_reason": "no_actionable_insight: 只因'守恒'一词被匹配"}
+{"rank": 2530, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是幂律偏离响应,但物理/金融机制不同", "reject_reason": "no_actionable_insight: 幂律关系是通用数学形式"}
+{"rank": 2531, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是'外部强力扰动反而加速结构性后果':禁毒推升产品效力,瘟疫推升封建瓦解。非预期后果的同构推理", "reject_reason": ""}
+{"rank": 2532, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "完全无关", "reject_reason": "no_actionable_insight"}
+{"rank": 2533, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通结构", "reject_reason": "no_actionable_insight"}
+{"rank": 2534, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是按'累积获取量'公平分配稀缺资源(CPU时间/阅读难度),vruntime和分级级别都是让每个主体在其能力区间内被调度。教育与操作系统调度的公平性同构", "reject_reason": ""}
+{"rank": 2535, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是检测局部异常/控制,但领域机制完全不同", "reject_reason": "no_actionable_insight"}
+{"rank": 2536, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2537, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都用'线性操作+辅助维度'实现目标:KLM用测量诱导非线性,RoPE用旋转变换编码相对位置。级联/外推可扩展", "reject_reason": ""}
+{"rank": 2538, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是温度相关失效,但机制相反(正反馈升温vs瞬时温差)", "reject_reason": "trivially_obvious: 同属工程热失效常识"}
+{"rank": 2539, "verdict": "strong", "value_type": "deep_analogy", "potential": 5, "reason": "都是三阶段将难形式化的上游信号(磷酸化状态/人类偏好)通过中间代理(E3特异性/奖励模型)转为可执行的精确输出(定量降解/梯度信号)。级联代理学习深度同构,可启发对齐机制设计", "reject_reason": ""}
+{"rank": 2540, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "两者都是'中等干扰维持稳态'的U型/钟型响应:水蒸气太少积炭太多过氧化,干扰太少单一化太多灭绝。最优中间值原理", "reject_reason": ""}
+{"rank": 2541, "verdict": "weak", "value_type": "known_metaphor", "potential": 2, "reason": "'稀缺分散'的常见比喻", "reject_reason": "known_metaphor: 注意力稀疏已是行为经济学常用物理比喻"}
+{"rank": 2542, "verdict": "reject", "value_type": "trivial", "potential": 1, "reason": "都是周期现象", "reject_reason": "trivially_obvious: 周期性是通用数学特征"}
+{"rank": 2543, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是'利用他者缺失的空隙'的套利/储存,但物理意义相差太远", "reject_reason": "no_actionable_insight"}
+{"rank": 2544, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是Bellman式逐层递归求解的图形化方法", "reject_reason": ""}
+{"rank": 2545, "verdict": "reject", "value_type": "same_domain", "potential": 1, "reason": "同属细胞命运调控", "reject_reason": "trivially_obvious: 同域机制并列"}
+{"rank": 2546, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是多个并行通道承担不同功能类别,子空间专业化", "reject_reason": ""}
+{"rank": 2547, "verdict": "strong", "value_type": "deep_analogy", "potential": 5, "reason": "协同(单侧强化互相放大)与反协同(多者竞争一方削弱)精确对应于信息茧房的观点互相强化与异见过滤衰减。多给-受体/多用户-内容的耦合拓扑完全同构,可指导极化干预设计", "reject_reason": ""}
+{"rank": 2548, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是从间接观测反推底层结构(噪声源/氨基酸三维坐标),黑盒反演方法", "reject_reason": ""}
+{"rank": 2549, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都用单一曲线的斜率/平缓度刻画系统的'调节能力':水文调蓄能力和社会流动粘滞度。分位数统计作为系统诊断工具", "reject_reason": ""}
+{"rank": 2550, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是树形层级化减少全局耦合,父级约束/区域隔离", "reject_reason": ""}
+{"rank": 2551, "verdict": "strong", "value_type": "deep_analogy", "potential": 4, "reason": "都是'急性负反馈转为慢性病理':黑洞反馈抑制恒星形成导致红死,S6K反馈过度激活导致胰岛素抵抗。反馈机制的时间尺度转化普适规律", "reject_reason": ""}
+{"rank": 2552, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是利用外生/局部条件识别真信号:种子区严格匹配=外生性约束,容错区=局部处理效应。特异性-效率权衡可迁移", "reject_reason": ""}
+{"rank": 2553, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "只是都是三阶段", "reject_reason": "trivially_obvious: 任何过程都能分三阶段"}
+{"rank": 2554, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "交通瓶颈和台风正反馈机制无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2555, "verdict": "strong", "value_type": "deep_analogy", "potential": 4, "reason": "都是'状态感知驱动的弹性预算':溶酶体功能不足->TFEB入核扩容,道德资本积累->放松行为边界。内部状态感知触发资源再分配的同构", "reject_reason": ""}
+{"rank": 2556, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "同属计算社科工具", "reject_reason": "trivially_obvious: 同域方法并列"}
+{"rank": 2557, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是分仓/图结构建模", "reject_reason": "no_actionable_insight: 太泛"}
+{"rank": 2558, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2559, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是气候系统正反馈自强化", "reject_reason": "trivially_obvious: 同属气候正反馈已知案例"}
+{"rank": 2560, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2561, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是'意图先记录后执行'保证重试/崩溃时一致性", "reject_reason": ""}
+{"rank": 2562, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "都是规则系统,无结构共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2563, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2564, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2565, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是在一个约束下通过结构性再分配实现次优目标(期限结构/风险分担)", "reject_reason": ""}
+{"rank": 2566, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是机制设计的边际对齐:虚拟估值=真实估值减倒风险率,庇古税=边际外部损害。将私人激励对齐到社会最优的同构", "reject_reason": ""}
+{"rank": 2567, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2568, "verdict": "reject", "value_type": "trivial", "potential": 1, "reason": "两个基础物理常识的数学关系", "reject_reason": "trivially_obvious"}
+{"rank": 2569, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是系统稳态/双峰转换,但机制不共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2570, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是频域分解解耦多个并行过程:不同频段/不同阶次对应不同子过程。诊断工程通用的频域解耦", "reject_reason": ""}
+{"rank": 2571, "verdict": "strong", "value_type": "deep_analogy", "potential": 4, "reason": "都是通过'写入速率/初始剂量'绕开系统固有时滞(mRNA降解/半衰期)快速达到新稳态。动力学时滞弥补策略同构", "reject_reason": ""}
+{"rank": 2572, "verdict": "weak", "value_type": "same_domain", "potential": 2, "reason": "同属量子物理的标度律", "reject_reason": "trivially_obvious: 同域"}
+{"rank": 2573, "verdict": "weak", "value_type": "known_metaphor", "potential": 2, "reason": "都是网络传播", "reject_reason": "known_metaphor: 传染病=经济波动是常见比喻"}
+{"rank": 2574, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2575, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是拓扑/单点约束引入额外代价,去中心化=添加SWAP代价", "reject_reason": ""}
+{"rank": 2576, "verdict": "weak", "value_type": "known_metaphor", "potential": 2, "reason": "赢家通吃的幂律分布", "reject_reason": "known_metaphor: 幂律赢家通吃是陈词滥调"}
+{"rank": 2577, "verdict": "weak", "value_type": "same_domain", "potential": 2, "reason": "同属文本计算分析", "reject_reason": "trivially_obvious: 同域方法并列"}
+{"rank": 2578, "verdict": "reject", "value_type": "duplicate", "potential": 1, "reason": "两条描述的是同一现象,仅分属气候科学和古气候学", "reject_reason": "trivially_obvious: 完全重复同一现象"}
+{"rank": 2579, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "只是都有反比关系", "reject_reason": "trivially_obvious"}
+{"rank": 2580, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是绕开理论/规划用实测数据直接研究", "reject_reason": "no_actionable_insight"}
+{"rank": 2581, "verdict": "strong", "value_type": "deep_analogy", "potential": 4, "reason": "都是T^(1/2)的根号缩放定律:扩散位移和遗憾上界都随时间平方根增长。在线学习与随机过程的深刻数学同构", "reject_reason": ""}
+{"rank": 2582, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是两个独立机制(代谢+吸收/延迟发送+延迟确认)相遇造成意外的瓶颈,绕过瓶颈(舌下/TCP_NODELAY)才能恢复效能", "reject_reason": ""}
+{"rank": 2583, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "尺度和机制完全不同", "reject_reason": "no_actionable_insight"}
+{"rank": 2584, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2585, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是硬件拓扑约束迫使软件层引入额外迁移代价(SWAP/跨节点传输)。拓扑感知调度/编译的同构", "reject_reason": ""}
+{"rank": 2586, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是从个人/短暂状态转为可持续的规则化系统:合约将意图编码为确定性规则,卡里斯马转为制度权威。非确定权威->确定规则的转化", "reject_reason": ""}
+{"rank": 2587, "verdict": "weak", "value_type": "shallow", "potential": 2, "reason": "都是反复加载失效", "reject_reason": "trivially_obvious: 工程失效已知"}
+{"rank": 2588, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是正反馈几何放大,冲刷/融化与弯度/倾斜互激", "reject_reason": ""}
+{"rank": 2589, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "仅都有扩散", "reject_reason": "trivially_obvious"}
+{"rank": 2590, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都通过端点触发的控制消息(Marker/ICMP)探测链路/状态", "reject_reason": ""}
+{"rank": 2591, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无结构共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2592, "verdict": "moderate", "value_type": "deep_analogy", "potential": 3, "reason": "都是将异构对象投射到统一潜变量(市场制度/主观价值),不同信号用共同坐标", "reject_reason": ""}
+{"rank": 2593, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是序列特征比对+ML推断祖先/归属的方法论:信号肽特征vs传抄错误,序列相似度vs文本对齐。扩展到人工无法处理规模的同构", "reject_reason": ""}
+{"rank": 2594, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是双目标权衡的约束优化:固定费+按量/汇率稳定+货币主权", "reject_reason": ""}
+{"rank": 2595, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都是将观测量(价差/退相干)分解为多个独立子成本/子噪声来源,从而定位主导因素并针对性优化", "reject_reason": ""}
+{"rank": 2596, "verdict": "strong", "value_type": "deep_analogy", "potential": 4, "reason": "都是'满足短期适配=牺牲长期泛化/信用'的双重角色困境。拟合训练数据=提供流动性,泛化新数据=维持信用", "reject_reason": ""}
+{"rank": 2597, "verdict": "moderate", "value_type": "deep_analogy", "potential": 4, "reason": "都通过'差异成本/几何互补'选出分离均衡/正确客体。不合理类型被直觉准则/空腔形状淘汰", "reject_reason": ""}
+{"rank": 2598, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2599, "verdict": "reject", "value_type": "shallow", "potential": 1, "reason": "无共通", "reject_reason": "no_actionable_insight"}
+{"rank": 2600, "verdict": "moderate", "value_type": "structural_analogy", "potential": 3, "reason": "都是将复杂对象(无限宽网络/群作用)等价化简为可计算的经典结构(核回归/不动点统计)", "reject_reason": ""}

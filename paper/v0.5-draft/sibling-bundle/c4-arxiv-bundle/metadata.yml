@@ -1,0 +1,65 @@
+# arXiv submission metadata — C4 reject-aware pipeline preprint v0.4
+# Companion to C1 v0.4 (release/arxiv/c1-unified-preprint-v0.4/)
+# Date: 2026-05-25 (SESSION-25)
+
+title: "A reject-aware pipeline for cross-domain universality discovery"
+
+authors:
+  - name: "Wan Qinghui (万庆徽)"
+    affiliation: "Independent researcher, Structural Isomorphism Project"
+    orcid: ""  # populate if/when ORCID is linked
+    email: ""  # leave empty; arXiv form takes contact email separately
+
+abstract_file: abstract.txt   # 1900 chars, under arXiv 1920 limit
+                              # main.tex carries the full long abstract verbatim
+
+# arXiv classification
+primary_category: cs.LG
+cross_lists:
+  - stat.ME           # statistical methodology (verdict aggregation, plurality consensus)
+  - cond-mat.stat-mech  # universality classes, SOC framing
+  - physics.data-an   # the data-analysis pipeline framing
+  - q-bio.QM          # cross-domain biological applications (neural avalanches)
+
+msc_classification:
+  - "62-07"   # Data analysis
+  - "68T50"   # Natural language processing (LLM critic methodology)
+  - "82C99"   # Time-dependent statistical mechanics (universality)
+
+# Companion bundle members
+companion_preprints:
+  - id: c1-unified-preprint-v0.4
+    relation: "Empirical companion. This preprint references it as [13] for the 13-system + 4-null + A2 empirical validation downstream of the reject-aware pipeline."
+    location: "release/arxiv/c1-unified-preprint-v0.4/"
+  - id: methodology-short-note
+    relation: "Sibling. The 3 v0.5 methodology patterns ((s*, k) reparam, multilayer test, head-aware validator) are documented in a separate short note pre-registered alongside this submission."
+    location: "paper/v0.5-draft/sibling-bundle/methodology-short-note/"
+
+# Submission notes for arXiv moderators
+moderator_notes: |
+  Companion preprint to C1 (concurrent submission). The two papers split:
+  - C1: empirical validation of universality classes (positive discovery)
+  - C4 (this paper): adversarial critic methodology (false-positive control)
+
+  Both are part of the Structural Isomorphism Project (https://structural.bytedance.city).
+  Code and data: https://github.com/dada8899/structural-isomorphism.
+
+  No undisclosed conflicts of interest. AI-assisted drafting disclosed in §9 acknowledgments
+  (Claude Opus + DeepSeek as reviewers in B1 and B3; Claude Code as drafting tool; author
+  retains responsibility for all design decisions and conclusions).
+
+# Comments field (visible on arXiv abstract page)
+comments: "Methodology preprint; companion to arXiv:[PENDING_C1_ARXIV_ID] (empirical validation). 24 pages including 3 appendices. Code, prompts, and 21-class verdict matrix at github.com/dada8899/structural-isomorphism. Companion Zenodo deposit DOI:[PENDING_ZENODO_DOI]."
+
+# Build / source notes
+source_layout:
+  - main.tex            # 1844 lines, pandoc-generated from markdown source paper/c4-reject-aware-pipeline-2026-05-13.md
+  - references.bib      # 45 entries, exact bibliography of §10
+  - figures/fig_3layer_pipeline.pdf  # Figure 1, copied from paper/figures/c4/
+  # README.md, abstract.txt, metadata.yml are out-of-band — do NOT include in arXiv upload zip.
+
+# Known build caveats
+build_notes:
+  - "main.tex is pandoc-generated; one-shot conversion of a Markdown source. arXiv compiles with TeXLive; one round of pdflatex + bibtex + 2× pdflatex should resolve references."
+  - "Figure path inside main.tex points to figures/fig_3layer_pipeline.pdf relative to main.tex."
+  - "Pandoc preserved inline LaTeX (math, special chars); the dollar signs in cost figures use the escaped form \\$0.10 etc."

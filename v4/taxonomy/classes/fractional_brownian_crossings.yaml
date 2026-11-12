@@ -1,0 +1,163 @@
+class_id: fractional_brownian_crossings
+status: speculative
+display_name: Fractional Brownian motion level crossings
+display_name_zh: 分数布朗运动零交叉类
+hub_phenomenon: "Long-memory diffusion processes whose level-crossing (zero-crossing) inter-arrival times follow a power-law with exponent set by the Hurst parameter H ∈ (0, 1)."
+shared_equation: |
+  Fractional Brownian motion B_H(t) with covariance
+    E[B_H(t) B_H(s)] = (1/2)(|t|^{2H} + |s|^{2H} - |t-s|^{2H}),
+  H ∈ (0, 1). The Hurst exponent encodes long-range correlation:
+    H = 0.5 → standard Brownian motion (uncorrelated increments),
+    H > 0.5 → positively correlated / persistent,
+    H < 0.5 → negatively correlated / antipersistent.
+  Level-crossing return-time distribution (Ding & Yang 1995, Watkins 2017):
+    P(tau) ~ tau^{-(2 - H)}  for tau ≫ 1
+  → power-law exponent alpha = 2 - H ∈ (1, 2) for crossings of a constant
+  level by the increment process.
+  Equivalent forms used in the literature (Hansen et al. 1994, Maslov-Paczuski-Bak):
+    alpha = 1 + H for the *first-return* distribution in fBm noise,
+    alpha = 2 - H for the *inter-zero-crossing* distribution.
+  Both forms appear; we pre-register the inter-crossing band alpha ∈ [1.5, 2.0]
+  for H ∈ [0.5, 0.8] (typical financial / network / geophysical regime).
+key_invariants:
+  - "Long-range correlation: C(k) ~ k^{2H-2} for H ≠ 0.5, decays slower than exponential"
+  - "Inter-crossing power-law: P(tau) ∝ tau^{-(2 - H)} (alpha ∈ [1, 2] for H ∈ [0, 1])"
+  - "Hurst self-similarity: B_H(at) =_d a^H B_H(t)"
+  - "Variance of partial sums: Var[sum_{k=1}^n X_k] ~ n^{2H} for fGn increments"
+  - "Non-Markovian: future depends on full history weighted by long-memory kernel"
+positive_examples:
+  - phenomenon: Financial log-return zero crossings (Mandelbrot 1963)
+    evidence: |
+      Empirical Hurst H ≈ 0.55-0.65 reported for daily log-returns on S&P 500
+      and FX (Lo 1991, Cont 2001). Predicted inter-crossing alpha ∈ [1.35, 1.45]
+      from alpha = 2 - H. Literature has not yet validated the
+      inter-crossing exponent directly; this is a pre-registered prediction
+      derivable from the Hurst literature.
+    verified_at: candidate
+  - phenomenon: Network packet inter-arrival times (Willinger-Taqqu 1995)
+    evidence: |
+      Self-similar / long-range-dependent Ethernet traffic with H ≈ 0.7-0.9
+      reported (Leland-Taqqu-Willinger-Wilson 1993). Predicted inter-burst
+      alpha ∈ [1.1, 1.3]. Mapping is approximate; ON/OFF heavy-tail mixing
+      may dominate.
+    verified_at: candidate
+  - phenomenon: Hydrology / river-flow Hurst phenomenon (Hurst 1951)
+    evidence: |
+      H. E. Hurst's original Nile flood reservoir study reported H ≈ 0.72
+      across 800-year proxies (Mandelbrot-Wallis 1968). Predicted dry-spell
+      length alpha ≈ 1.28. The Joseph effect (persistent floods/droughts)
+      is the canonical empirical signature.
+    verified_at: candidate
+  - phenomenon: Wikipedia daily-pageview anomaly intervals
+    evidence: |
+      Phase 13 found Wikipedia pageview *cross-sectional* α = 2.03 inside
+      preferential-attachment band. Pageview *time-series* persistence
+      (H > 0.5) is a separate signature, untested. Predicted level-crossing
+      alpha ≈ 1.4 if H ≈ 0.6 (typical for viewership data).
+    verified_at: candidate
+  - phenomenon: Turbulent velocity dissipation rate intermittency
+    evidence: |
+      Kolmogorov K62 lognormal intermittency / She-Leveque hierarchy. The
+      multifractal turbulent velocity field has spectrum p(2)/2 ≈ 0.33;
+      "monofractal projection" gives effective H ≈ 0.33-0.40 (Frisch 1995).
+      Predicted alpha ≈ 1.6-1.67. Approximate map; turbulence is genuinely
+      multifractal not monofractal.
+    verified_at: candidate
+negative_examples:
+  - phenomenon: Poisson process inter-arrivals
+    reason: |
+      Markovian, no long-memory. Inter-arrival exponential, not power-law.
+      H = 0.5 corner case has inter-crossing density tail ~ tau^{-3/2} *only*
+      for Brownian-motion zero crossings (alpha = 2 - H = 1.5 *exactly*),
+      not for any Poisson process. Poisson is the wrong universality class.
+  - phenomenon: White noise (i.i.d.) sign flips
+    reason: |
+      Independent increments → run-length geometric distribution, not
+      power-law. H is undefined (process is not self-similar in fBm sense).
+      Geometric distribution at tail differs from power-law by exponentially
+      decaying factor.
+  - phenomenon: AR(1) autoregressive series
+    reason: |
+      Short-range (exponential) memory. Autocorrelation C(k) ∝ ρ^k decays
+      faster than any power. Inter-crossing distribution has exponentially
+      decaying tail. Distinct universality class from long-memory fBm.
+  - phenomenon: Ornstein-Uhlenbeck mean-reverting process
+    reason: |
+      Markovian, exponentially correlated, short-memory. Inter-crossing
+      distribution is exponential at tail. OU is the H = 0.5 standard
+      Brownian limit-cycle case but with mean reversion that breaks
+      self-similarity entirely.
+  - phenomenon: Geometric Brownian motion (Black-Scholes)
+    reason: |
+      Multiplicative Brownian → log-normal marginals. Long-tail visible in
+      *price* but the *log-return* is standard Brownian (H = 0.5), so
+      level-crossing inter-arrivals have alpha = 1.5 *exactly* — the
+      degenerate corner case, not the generic alpha = 2 - H signature with
+      H ≠ 0.5.
+edge_cases:
+  - phenomenon: Multifractal cascade processes (She-Leveque hierarchy)
+    debate: |
+      Generalisation of monofractal fBm to a continuous spectrum of local
+      Hurst exponents H(x); inter-crossing distribution may show
+      multiple power-law regimes rather than single alpha = 2 - H. We
+      retain such phenomena as edge cases until a clean monofractal
+      projection is identified.
+  - phenomenon: Fractional Gaussian noise (fGn) vs fractional Brownian motion
+    debate: |
+      fGn is the increment process B_H(t+1) - B_H(t); its zero-crossings
+      follow alpha = 2 - H. fBm itself crosses any fixed level infinitely
+      often by Hurst-Kolmogorov continuity; the *inter-crossing* statistic
+      requires careful regularisation (Berman 1962). Many empirical
+      datasets are ambiguous between fGn and fBm framing.
+  - phenomenon: Truncated long-memory processes (FARIMA(p,d,q))
+    debate: |
+      FARIMA introduces a fractional differencing parameter d = H - 0.5
+      and combines it with short-range AR/MA terms. Inter-crossing
+      asymptotic alpha is still 2 - H at long lag, but finite-sample
+      may show two regimes (short-range AR transient + long-range fBm tail).
+  - phenomenon: H > 1 / H < 0 extensions (Riemann-Liouville fractional integrals)
+    debate: |
+      Mathematical fBm requires H ∈ (0, 1). Datasets sometimes report
+      "H = 1.2" from R/S analysis; this typically reflects
+      non-stationarity or a trend rather than a genuine H > 1 process.
+  - phenomenon: Lévy walk / heavy-tailed step processes
+    debate: |
+      Lévy-stable noise has infinite variance and produces heavy-tailed
+      inter-event statistics by a different mechanism (stable distribution
+      jumps, not long memory of Gaussian increments). The two classes
+      overlap empirically: a process with both fBm correlation structure
+      *and* heavy-tailed increments cannot be cleanly assigned.
+notes: |
+  Pre-registered band: alpha ∈ [1.5, 2.0] for H ∈ [0.5, 0.8].
+  Equivalent form alpha = 1 + H gives [1.5, 1.8] for first-return density
+  (Hansen 1994); we adopt the alpha = 2 - H inter-crossing form here.
+
+  Falsifiability: a system claimed to belong to this class but exhibiting
+  (a) exponentially decaying inter-crossing tail, (b) inter-crossing alpha
+  outside [1.0, 2.0], or (c) H estimate inconsistent with the predicted
+  alpha relation, is rejected.
+
+  Relation to other classes:
+    - markov_chain_memory_fidelity_class: fBm crossings is the *long-memory*
+      complement; Markov chains are short-memory.
+    - soc_threshold_cascade: SOC produces alpha ∈ [1.5, 3.0] by stress
+      redistribution, not by Gaussian long-memory; distinct mechanism even
+      when alpha bands overlap.
+    - extreme_value_tail_class: GEV/POT covers the marginal distribution
+      of extreme magnitudes, not the inter-event time structure.
+
+references:
+  - "Ding & Yang 1995 Phys. Rev. E 52, 207 (return-time distribution for fBm)"
+  - "Hurst 1951 Trans. Am. Soc. Civ. Eng. 116, 770 (Nile floods)"
+  - "Mandelbrot & Van Ness 1968 SIAM Rev. 10, 422 (fBm definition)"
+  - "Hansen, Engø, Naess 1994 J. Stat. Phys. 76, 845 (first-return density)"
+  - "Watkins 2017 Geophys. Res. Lett. 44, 1066 (fBm crossings in geosciences)"
+  - "Leland-Taqqu-Willinger-Wilson 1993 ACM SIGCOMM, 183 (Ethernet self-similarity)"
+  - "Lo 1991 Econometrica 59, 1279 (long-memory in financial returns)"
+  - "Frisch 1995 Turbulence (intermittency / Kolmogorov K62)"
+last_curated: 2026-05-15
+last_curated_by: Wave 11 sub-agent E (session #10)
+last_curated_note: |
+  Initial draft. Cross-judge ensemble verification deferred — no API keys
+  configured in this worktree session. Recommended: dispatch GPT-4o + Kimi
+  K2 + DeepSeek R1 cross-judge before promoting status to "emerging".

@@ -1,0 +1,28 @@
+{
+  "timestamp_utc": "2026-05-24T16:14:47.948668+00:00",
+  "source": "https://github.com/mendsalbert/Youtube-trending-video-dataset-analysis (mirror of Kaggle datasnaek/youtube-new)",
+  "citation": "Bowden 2018 Kaggle YouTube Trending Video Dataset",
+  "region": "US",
+  "data_provenance": "GITHUB_MIRROR_LIVE",
+  "files": [
+    {
+      "name": "USvideos.csv.zip",
+      "bytes": 24698640
+    },
+    {
+      "name": "US_category_id.json",
+      "bytes": 8496
+    }
+  ],
+  "summary": {
+    "n_csv_rows": 40949,
+    "distinct_videos": 6351,
+    "date_range": [
+      "17.01.12",
+      "18.31.05"
+    ],
+    "max_views": 225211923,
+    "median_views": 518107,
+    "video_max_views_file": "raw/video_max_views.txt"
+  }
+}

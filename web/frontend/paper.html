@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title id="paper-title">历史研究材料 — Structural</title>
+  <meta name="description" data-i18n-meta="page.paper.meta_desc" content="历史内部研究材料；尚未与当前证据账本绑定，也不代表外部复核或独立复现。">
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260417e">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417e">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20261110-cjk1">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/paper.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/vendor/katex/katex.min.css?v=0.16.11">
+
+  <script defer src="/assets/vendor/katex/katex.min.js?v=0.16.11"></script>
+  <script defer src="/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
+</head>
+<body class="has-history-sidebar">
+  <header class="site-header"></header>
+
+  <main class="paper-page" id="paper-main">
+    <div class="paper-container">
+      <nav class="paper-breadcrumb" aria-label="面包屑">
+        <a href="/papers" data-i18n="page.paper.crumb_back">历史材料目录</a>
+        <span class="paper-breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="paper-breadcrumb__current" id="paper-breadcrumb-current" aria-current="page">正在校验…</span>
+      </nav>
+
+      <section class="paper-boundary" id="paper-boundary" aria-labelledby="paper-heading">
+        <div class="paper-boundary__topline">
+          <span class="paper-boundary__label" id="paper-boundary-label">历史内部材料</span>
+          <time id="paper-date"></time>
+        </div>
+        <h1 id="paper-heading">正在校验历史材料…</h1>
+        <p class="paper-boundary__review" id="paper-review-status"></p>
+        <dl class="paper-boundary__decision">
+          <div>
+            <dt data-i18n="page.paper.recorded_observation">记录了什么</dt>
+            <dd id="paper-observed"></dd>
+          </div>
+          <div>
+            <dt data-i18n="page.paper.not_established">不能推出什么</dt>
+            <dd id="paper-not-established"></dd>
+          </div>
+          <div>
+            <dt data-i18n="page.paper.next_validation">下一步检验</dt>
+            <dd id="paper-next-test"></dd>
+          </div>
+        </dl>
+        <div class="paper-boundary__meta">
+          <span data-i18n="page.paper.analysis_class">历史分类</span>
+          <strong id="paper-class">—</strong>
+        </div>
+      </section>
+
+      <div class="paper-primary-actions" aria-label="材料操作">
+        <a class="paper-action" id="paper-source" target="_blank" rel="noopener noreferrer"><span id="paper-source-label">源码与数据</span><span aria-hidden="true">↗</span></a>
+        <a class="paper-action" id="paper-download-md" download><span id="paper-download-label">下载历史 Markdown</span><span aria-hidden="true">↓</span></a>
+        <a class="paper-action" href="/papers" data-i18n="page.paper.back_to_list">返回历史材料目录</a>
+      </div>
+
+      <details class="paper-legacy" id="paper-legacy-record">
+        <summary id="paper-legacy-summary">查看未经当前证据标准化的历史 Markdown 原文</summary>
+        <p class="paper-legacy__warning" data-i18n="page.paper.legacy_warning">以下内容按原始历史记录呈现，其中标题和论断可能强于当前公开证据边界；请以上方边界卡为准。</p>
+        <article class="paper-article" id="paper-article" lang="en" aria-busy="true">
+          <div class="paper-skeleton" role="status" aria-label="正在加载历史 Markdown">
+            <div class="paper-skeleton__line paper-skeleton__line--title"></div>
+            <div class="paper-skeleton__line"></div>
+            <div class="paper-skeleton__line"></div>
+            <div class="paper-skeleton__line paper-skeleton__line--short"></div>
+          </div>
+        </article>
+      </details>
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
+  <script src="/assets/js/product-switcher.js?v=20260417e"></script>
+  <script src="/assets/js/papers-catalog.js?v=20260714n2"></script>
+  <script src="/assets/js/markdown-safe.js?v=20260714n2"></script>
+  <script src="/assets/js/paper.js?v=20260714n2"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
+</body>
+</html>

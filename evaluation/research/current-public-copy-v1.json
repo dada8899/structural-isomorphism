@@ -1,0 +1,296 @@
+{
+  "schema_version": "current-public-copy-v1",
+  "scope": {
+    "runtime_pages": [
+      "web/frontend/start-here.html",
+      "web/frontend/analyze.html",
+      "web/frontend/search.html",
+      "web/frontend/learn.html",
+      "web/frontend/connections.html",
+      "web/frontend/taxonomy-v2.html",
+      "web/frontend/thank-you.html",
+      "web/frontend/discoveries.html",
+      "web/frontend/whitespace.html",
+      "web/frontend/classes.html",
+      "web/frontend/papers.html",
+      "web/frontend/methods.html",
+      "web/frontend/about.html",
+      "web/frontend/tools.html",
+      "web/frontend/insights.html",
+      "web/frontend/index.html",
+      "web/frontend/assets/js/discoveries.js",
+      "web/frontend/assets/js/whitespace.js",
+      "web/frontend/assets/js/classes.js",
+      "web/frontend/assets/js/insights.js",
+      "web/frontend/assets/js/home.js",
+      "web/frontend/assets/data/i18n/content.json",
+      "web/phase-detector/app/universality/page.tsx",
+      "web/phase-detector/app/universality/[class_id]/page.tsx"
+    ],
+    "current_documents": [
+      "README.md",
+      "model_card.md",
+      "dataset_card.md",
+      "docs/index.md",
+      "docs/getting-started.md",
+      "docs/phase-detector.md"
+    ],
+    "excluded_contexts": [
+      "docs/sessions/** and explicit archive/legacy files are historical records",
+      "CSS dimensions, test fixtures, source comments and sitemap changeFrequency are not user claims"
+    ]
+  },
+  "forbidden_patterns": [
+    "arXiv:XXXX",
+    "XXXX.XXXXX",
+    "26 verified classes",
+    "13 verified systems",
+    "Every claimed universality class declares",
+    "what it lets us predict",
+    "Why bank runs, earthquakes, and neural avalanches are the same thing",
+    "About a third of the time the match is genuinely useful",
+    "下次发刊是<strong>本周日",
+    "本周新进入「崩盘边缘」",
+    "100 public companies, phase-tagged",
+    "可以直接拿去写论文",
+    "A 级精选发现",
+    "39 个已验证",
+    "39个已验证",
+    "39 个经多模型 AI 评审通过",
+    "已验证同构库",
+    "同一个数学结构在三个独立系统中独立涌现",
+    "每个领域接入真实开源数据，不调参",
+    "13 个独立领域已实证验证",
+    "13 个验证系统",
+    "所有预测信号都落入预测带",
+    "Every predicted signal lands inside the predicted band",
+    "所有跨领域同构的结构模式",
+    "经过验证或候选的实例",
+    "实证系统（跨领域类比）"
+  ],
+  "forbidden_regex": [
+    "跨协议(?:级)?(?:普适|通用)(?:性)?",
+    "(?:同一个|相同的?)(?:数学)?结构.{0,24}(?:独立涌现|独立出现)",
+    "independent(?:ly)?\\s+(?:emerg(?:e|es|ed)|emergence)",
+    "empirically\\s+(?:validated|verified)\\s+across",
+    "(?:five|5)\\s+(?:companion\\s+)?papers?\\s+(?:on|in)\\s+arxiv",
+    "(?:5|五)\\s*篇(?:配套)?(?:论文|稿件).{0,16}arxiv",
+    "(?:从不|绝不)(?:修改|改动).{0,24}(?:不|从不)(?:调参|调参数|调整参数)",
+    "never\\s+(?:modified|changed).{0,40}never\\s+(?:tuned|given\\s+priors)",
+    "(?:all|every).{0,40}(?:follow|follows|obey|obeys).{0,16}(?:a\\s+)?power[- ]law",
+    "(?:全部|所有).{0,24}(?:服从|符合|呈现|都是).{0,12}幂律",
+    "(?:the\\s+)?same\\s+law\\s+governs",
+    "(?:obey|obeys|follow|follows|run|runs)\\s+(?:on\\s+)?(?:the\\s+)?same\\s+(?:law|math(?:ematics)?)",
+    "(?:共用|遵循).{0,12}(?:同一|一)条规律",
+    "(?:规律.{0,24}(?:管着|支配)|跑的?是同一套数学|同一个数学结构)",
+    "(?:放射性|药物|RLC|磁铁|湖泊|生态).{0,48}都是它",
+    "share(?:s|d|ing)?\\s+(?:the\\s+)?same\\s+(?:mathematical\\s+)?skeleton.{0,80}transfer",
+    "(?:validated|verified)\\s+on\\s+(?:the\\s+)?NGSIM",
+    "(?:subclasses?|analog(?:y|ies)).{0,80}all\\s+stand",
+    "corroborat(?:e|es|ed|ing)\\s+(?:the\\s+)?(?:hypothesis|mechanism|theory)",
+    "(?:to|we)\\s+rule(?:d|s|ing)?\\s+out.{0,100}(?:artifact|bias|explanation)",
+    "(?:印证|证实).{0,60}(?:假说|机制|理论)",
+    "(?<!不能)(?<!无法)排除.{0,80}(?:方法学产物|方法偏差)",
+    "说明.{0,60}(?:不是|并非)方法学(?:的)?产物",
+    "(?:mathematical\\s+structure|structural(?:ly)?).{0,48}(?:the\\s+same\\s+thing|equivalent\\s+solutions?)",
+    "数学结构.{0,24}(?:同一件事|结构相同的解法)",
+    "(?:already\\s+(?:been\\s+)?solved|mature\\s+tools?.{0,40}solved)",
+    "(?:已经|早就).{0,20}(?:解过|解决|研究透)|成熟工具.{0,24}解决",
+    "骨子里.{0,16}(?:同一套|同一个?)规律",
+    "同一条规律.{0,24}(?:横跨|跨越).{0,16}领域",
+    "(?:same|one)\\s+SIR\\s+model",
+    "同一个?\\s*SIR\\s*模型",
+    "same.{0,12}cusp[- ]catastrophe\\s+surface",
+    "同一个?.{0,8}尖点灾变曲面",
+    "(?:63|sixty-three)\\s+independent\\s+top[- ]tier",
+    "63\\s*个独立的?顶级",
+    "pairwise\\s+isomorphic",
+    "两两.{0,8}同构",
+    "single\\s+deeper\\s+mathematical",
+    "同一个?更底层的?数学",
+    "every\\s+discovery.{0,40}(?:equation|methods section)",
+    "每个发现.{0,32}(?:带方程|论文的方法论段落)",
+    "(?:8|eight)\\s+named\\s+physical\\s+universality\\s+classes",
+    "8\\s*个已命名的?物理学普适类",
+    "(?:8|eight).{0,48}manually\\s+matched.{0,48}(?:known|named)\\s+physical\\s+universality\\s+classes?",
+    "8\\s*(?:个|类).{0,32}人工匹配.{0,32}(?:已知|命名的?)物理(?:学)?普适类",
+    "(?:established|known)\\s+physical\\s+laws?.{0,48}(?:translated?|converted?).{0,48}cross-domain",
+    "(?:翻译|转换).{0,24}(?:已知|既有)的?物理(?:学)?定律.{0,32}跨域",
+    "(?:three|3)\\s+independent\\s+AI\\s+(?:reviewers?|review\\s+models?)",
+    "3\\s*个独立\\s*AI\\s*(?:审稿|评审)模型",
+    "(?<!不是)(?<!并非)(?:三|3)\\s*个独立(?:的)?(?:审稿|评审)(?:模型|者)",
+    "(?<!not\\s)(?:three|3)\\s+independent\\s+(?:reviewer\\s+models?|reviewers?|review\\s+models?)",
+    "(?:correctly\\s+rejected\\s+(?:all\\s+)?four|(?:全部|所有)?四个.{0,16}(?:均|都)?(?:被)?正确拒绝)",
+    "turns?\\s+[\"“']?interesting[\"”']?\\s+into\\s+[\"“']?trustworthy",
+    "(?:就是|构成|证明).{0,16}(?:非平凡的?)?方法论验证|non[- ]trivial\\s+(?:methodological|methodology)\\s+validation",
+    "(?:各领域)?子类.{0,32}(?:仍然|依然|全部|都)(?:成立|有效).{0,48}真实物理机制|subclasses?.{0,48}(?:still|all)\\s+(?:stand|hold).{0,48}real\\s+physical\\s+mechanism",
+    "(?:已经|早已)?成熟的?(?:工具|解法|方法)(?:已经|足以|可以)?(?:解决|解答|迁移)?",
+    "theoretically\\s+(?:should|must)\\s+(?:hold|work|exist)|理论上(?:应当|应该|该)成立",
+    "(?:结构上)?(?:几乎)?必然存在|大概率成立",
+    "大概率存在.{0,80}(?:目前|至今).{0,24}(?:没人|没有人).{0,16}(?:验证|研究)",
+    "(?:discoveries?|发现).{0,100}(?:some\\s+(?:are\\s+)?verified|部分(?:已经|已)?验证)",
+    "(?:精选发现|curated discoveries?).{0,180}(?:综合(?:得分|评分).{0,32}0\\s*[-–]\\s*10|composite.{0,32}scores?.{0,24}0\\s*[-–]\\s*10)",
+    "(?:精选发现|curated discoveries?).{0,220}(?:由\\s*(?:Opus|独立\\s*AI)|independently\\s+assessed\\s+by\\s+Opus)",
+    "真正的跨学科迁移力",
+    "(?:超级模式|同一套数学结构连接)"
+  ],
+  "adjacent_context_rules": [
+    {
+      "claim_regex": "(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|(?:同一|相同|共同|共享)(?:的)?机制|机制(?:已经)?(?:成立|确认|验证)",
+      "caveat_regex": "(?:(?:does|do)\\s+not|cannot)\\s+(?:establish|prove|confirm|validate|show|demonstrate|guarantee).{0,64}(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|not\\s+(?:proof|validation|confirmation)\\s+of.{0,48}(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|(?:shared|common)\\s+mechanism.{0,24}(?:still\\s+requires|requires\\s+validation|has\\s+not\\s+been\\s+(?:proved|confirmed|validated))|(?:不能|无法|不足以)(?:据此|单凭[^，。；;]{0,20})?(?:证明|确认|验证|推出|说明).{0,40}(?:同一|相同|共同|共享)机制|不能.{0,24}(?:合并|视为|当作).{0,16}同一机制|不(?:等于|代表|意味着).{0,24}(?:(?:同一|相同|共同|共享)机制|机制确认|机制验证)|不自动证明.{0,24}共享机制|不是.{0,32}(?:机制确认|机制验证|机制已经成立的证明)|不会把.{0,32}(?:写成|当作|视为).{0,16}机制验证|(?:同一|相同|共同|共享)机制.{0,16}(?:尚未|没有|未被)(?:成立|确认|验证|证明)",
+      "window": 220
+    },
+    {
+      "claim_regex": "real[- ]time\\s+(?:structural\\s+)?phase\\s+detection|实时.{0,12}(?:结构相位|状态)检测",
+      "caveat_regex": "(?:is|this\\s+is)\\s+not\\s+(?:a\\s+)?real[- ]time.{0,24}(?:phase|state)\\s+detection|(?:这|它)?不是实时.{0,12}(?:结构相位|状态)检测",
+      "window": 220
+    }
+  ],
+  "required_context": [
+    {
+      "path": "README.md",
+      "patterns": [
+        "not a validated universality map or investment system",
+        "submission-blocked",
+        "No paper DOI or arXiv identifier has been assigned"
+      ]
+    },
+    {
+      "path": "model_card.md",
+      "patterns": ["Historical card; not a current generalization claim"]
+    },
+    {
+      "path": "dataset_card.md",
+      "patterns": ["checksum-verified", "historical/staged research assets"]
+    },
+    {
+      "path": "web/frontend/start-here.html",
+      "patterns": [
+        "mixed PASS / FAIL / INCONCLUSIVE evidence",
+        "These are retrieval candidates, not verified evidence",
+        "three same-vendor configurations",
+        "not independent peer review",
+        "per-domain audit",
+        "cannot exclude other generators",
+        "not a list of verified matches"
+      ]
+    },
+    {
+      "path": "web/frontend/analyze.html",
+      "patterns": ["研究草案", "方法线索、证据缺口与适用边界", "可检验的下一步"]
+    },
+    {
+      "path": "web/frontend/taxonomy-v2.html",
+      "patterns": ["同一厂商模型家族", "不是独立同行评审或分类方法验证", "不确认真实机制", "独立复现"]
+    },
+    {
+      "path": "web/frontend/thank-you.html",
+      "patterns": ["597-ticker 冻结研究 demo", "不是实时信号"]
+    },
+    {
+      "path": "web/frontend/index.html",
+      "patterns": ["23 组候选跨域模式", "39 个优先核查候选", "等待来源复核和实证检验"]
+    },
+    {
+      "path": "web/frontend/search.html",
+      "patterns": ["可比较的候选联系、方法线索和待验证边界"]
+    },
+    {
+      "path": "web/frontend/tools.html",
+      "patterns": ["是否存在值得比较的变量关系", "候选发现"]
+    },
+    {
+      "path": "web/frontend/connections.html",
+      "patterns": ["结构指纹相近、但领域不同", "不能证明双方具有同一机制"]
+    },
+    {
+      "path": "web/frontend/learn.html",
+      "patterns": ["自组织临界（SOC）候选类", "一阶指数衰减候选", "双稳态 / 磁滞候选"]
+    },
+    {
+      "path": "web/frontend/discoveries.html",
+      "patterns": ["不是发现清单或同行评审", "当前所有条目都停留在候选层", "先补来源、数据、比较方法、主指标和失败条件"]
+    },
+    {
+      "path": "web/frontend/whitespace.html",
+      "patterns": ["候选模式", "不代表已经证明同一机制", "先点选一个格子"]
+    },
+    {
+      "path": "docs/index.md",
+      "patterns": ["frozen 597-ticker research demo", "does not establish live signals"]
+    },
+    {
+      "path": "web/frontend/classes.html",
+      "patterns": ["候选模式", "不是已经证明的普适机制", "NULL、FAIL、PARTIAL"]
+    },
+    {
+      "path": "web/frontend/papers.html",
+      "patterns": ["历史内部材料", "14 份结果记录、5 份研究草稿与 1 份复现教程", "不代表外部同行评审"]
+    },
+    {
+      "path": "web/frontend/methods.html",
+      "patterns": ["共享代码只能保证分析步骤可比较", "NULL、PARTIAL"]
+    },
+    {
+      "path": "web/frontend/about.html",
+      "patterns": ["结构同构", "不等于它们已经具有同一机制", "内部 AI 筛查", "不能算作 13 次独立机制复现", "证据账本 v1（2026-07-12）"]
+    },
+    {
+      "path": "web/frontend/tools.html",
+      "patterns": ["39 条待验证联系", "证据账本 v1"]
+    },
+    {
+      "path": "web/frontend/insights.html",
+      "patterns": ["公开结果聚合当前暂停", "不会把用户反馈写成机制验证", "用户记录不替代对照实验或独立复现"]
+    },
+    {
+      "path": "web/phase-detector/app/universality/page.tsx",
+      "patterns": ["待检验的跨领域结构候选", "不代表不同系统已经共享同一机制", "内部状态也不是外部复现结论"]
+    },
+    {
+      "path": "web/phase-detector/app/universality/[class_id]/page.tsx",
+      "patterns": ["候选实例按所属领域聚合", "不代表系统共享同一机制", "不等于机制证明或外部复现"]
+    }
+  ],
+  "context_rules": [
+    {
+      "term": "verified",
+      "allowed": "checksum/schema verification, user-recorded terminal outcome, or an explicitly historical claim with caveat",
+      "forbidden": "class/mechanism/retrieval usefulness presented as independently established"
+    },
+    {
+      "term": "universal / universality",
+      "allowed": "name of a scientific concept, candidate taxonomy, or bounded historical result",
+      "forbidden": "unqualified cross-matter or cross-domain confirmation"
+    },
+    {
+      "term": "predict / signal / weekly / real-time",
+      "allowed": "pre-registered hypothesis, newsletter cadence, or explicit NULL/non-live context",
+      "forbidden": "current company signal, alpha, guaranteed outcome, or stale scheduled promise"
+    },
+    {
+      "term": "paper / arXiv / citation",
+      "allowed": "internal/reviewer-readable draft and assigned identifiers",
+      "forbidden": "placeholder identifier, direct-write/submission promise, or implied external review"
+    }
+  ],
+  "readability_contract": {
+    "first_use": "A specialist term must receive a plain-language explanation on first meaningful use.",
+    "two_layers": "Show a decision summary first; retain precise scientific terminology and evidence in the next layer.",
+    "actionable_states": "Error, empty, loading and blocked states must say what happened and what the user can do next.",
+    "buttons": "Buttons use user actions, never internal pipeline/version codes.",
+    "restatement_test": "A non-specialist should be able to restate what is known, what is uncertain, and the next action without claiming proof."
+  },
+  "deferred_surfaces": [
+    {
+      "surface": "classes and paper-detail historical research pages",
+      "reason": "dated result prose remains in the dynamic public dependency closure but is quarantined behind an enforced, closed-by-default historical boundary",
+      "required_action": "complete domain-by-domain ledger binding before promoting any historical Markdown statement into current public evidence"
+    },
+    {
+      "surface": "Phase landing and shared navigation",
+      "reason": "owned by concurrent mobile/navigation work",
+      "required_action": "retain frozen demo, NULL backtest, non-live and non-investment context in the owning validation pass"
+    }
+  ]
+}

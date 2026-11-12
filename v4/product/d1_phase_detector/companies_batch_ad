@@ -1,0 +1,20 @@
+{"ticker": "RBLX", "company_name": "Roblox Corporation", "sector": "tech_software_gaming", "market_cap_bn_usd": 30, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "PLTR", "company_name": "Palantir Technologies", "sector": "tech_software_data", "market_cap_bn_usd": 180, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "MRNA", "company_name": "Moderna Inc.", "sector": "biotech", "market_cap_bn_usd": 18, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "BNTX", "company_name": "BioNTech SE", "sector": "biotech", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "REGN", "company_name": "Regeneron Pharmaceuticals", "sector": "biotech", "market_cap_bn_usd": 90, "expected_dynamics_family_a_priori": null}
+{"ticker": "BIIB", "company_name": "Biogen Inc.", "sector": "biotech", "market_cap_bn_usd": 25, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "GILD", "company_name": "Gilead Sciences Inc.", "sector": "biotech", "market_cap_bn_usd": 100, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "ILMN", "company_name": "Illumina Inc.", "sector": "biotech_tools", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "ENPH", "company_name": "Enphase Energy Inc.", "sector": "energy_solar", "market_cap_bn_usd": 14, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "SEDG", "company_name": "SolarEdge Technologies", "sector": "energy_solar", "market_cap_bn_usd": 2, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "FSLR", "company_name": "First Solar Inc.", "sector": "energy_solar", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "PLUG", "company_name": "Plug Power Inc.", "sector": "energy_hydrogen", "market_cap_bn_usd": 2, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "BLDP", "company_name": "Ballard Power Systems", "sector": "energy_hydrogen", "market_cap_bn_usd": 1, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "RIVN", "company_name": "Rivian Automotive", "sector": "tech_auto_ev", "market_cap_bn_usd": 12, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "LCID", "company_name": "Lucid Group Inc.", "sector": "tech_auto_ev", "market_cap_bn_usd": 6, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "NIO", "company_name": "NIO Inc.", "sector": "tech_auto_ev", "market_cap_bn_usd": 9, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "COIN", "company_name": "Coinbase Global Inc.", "sector": "financials_crypto", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "HOOD", "company_name": "Robinhood Markets", "sector": "financials_retail_broker", "market_cap_bn_usd": 18, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "AFRM", "company_name": "Affirm Holdings", "sector": "financials_fintech", "market_cap_bn_usd": 14, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "UPST", "company_name": "Upstart Holdings", "sector": "financials_fintech", "market_cap_bn_usd": 3, "expected_dynamics_family_a_priori": "scheffer_fold"}

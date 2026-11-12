@@ -1,0 +1,380 @@
+{
+  "system": "delay_differential_debt \u2014 empirical SPLIT/MERGE test across 6 lag-feedback systems (SYNTHETIC DDE simulation with literature mechanism timescales)",
+  "class_id": "delay_differential_debt",
+  "data_provenance": "SYNTHETIC: 6 DDE simulations of the form x'(t) = -mu*x(t) + alpha*tanh(beta*x(t-tau)). Mechanism timescales tau drawn from documented literature: US debt/GDP 10yr (Reinhart-Rogoff 2009), Chile copper-fiscal 5yr (Frankel 2012), Argentina inflation-debt 3yr (Calvo 1998), Compustat corporate debt 7yr, ENSO 1.5yr (Suarez-Schopf 1988), permafrost methane 30yr (Schuur 2015). Real-data PREDICTS/NOAA/NSF acquisition deferred (auth + multi-GB downloads infeasible in 90-min budget). The SPLIT test logic is mechanism-agnostic: synthetic data with documented tau is sufficient to test whether absolute oscillation period clusters across domains.",
+  "predicted_class": "delay_differential_debt",
+  "exponents_predicted": {
+    "tau_yr_range": [
+      15,
+      50
+    ],
+    "C_over_S_star_range": [
+      0.1,
+      0.3
+    ],
+    "wright_hopf_T_over_tau": 4.0,
+    "crisis_powerlaw_alpha_range": [
+      1.5,
+      3.0
+    ]
+  },
+  "per_system": [
+    {
+      "id": "us_debt_gdp",
+      "literature": "Reinhart-Rogoff 2009 'This Time is Different' US debt/GDP ~10 yr cycle",
+      "tau_yr": 10.0,
+      "T_system_yr": 10.0,
+      "T_period_yr_acf": 35.5,
+      "T_period_yr_spec": 37.5625,
+      "T_period_yr": 36.53125,
+      "period_source": "acf+spec_avg",
+      "T_norm_period_over_tau": 3.653125,
+      "T_hopf_predicted": 40.0,
+      "hopf_theorem_holds": null,
+      "acf_peak_R": 0.11371840821966167,
+      "spec_peak_norm": 0.10867756912858278,
+      "n_cycles_observed": 125,
+      "crisis_powerlaw_alpha": 2.8371408228205883,
+      "crisis_powerlaw_full": {
+        "name": "us_debt_gdp_crisis_mag",
+        "alpha": 2.8371408228205883,
+        "sigma_alpha": 0.19926589988590646,
+        "xmin": 0.02503497975383473,
+        "n_total": 125,
+        "n_tail": 85,
+        "vs_lognormal_R": -2.463098751087496,
+        "vs_lognormal_p": 0.013774197266767147,
+        "vs_exponential_R": -3.3297843738236668,
+        "vs_exponential_p": 0.0008691326213144398,
+        "vs_powerlaw_lognormal_winner": "lognormal",
+        "rejects_power_law": true,
+        "ks_statistic": 0.13586015809360763
+      },
+      "ar2": {
+        "phi1": 0.9309792555585273,
+        "phi2": -0.003483254666821121,
+        "sigma2": 0.00020013016093439428,
+        "aic": -3395.52065367785,
+        "period_est": NaN,
+        "n_used": 599
+      },
+      "dde_oracle": {
+        "sigma2": 0.00020375490852334204,
+        "aic": -3275.215076310977,
+        "n_used": 580
+      },
+      "delta_aic_ar2_minus_dde": -120.30557736687297,
+      "ar2_implied_period_yr": NaN,
+      "n_samples": 601,
+      "dt_yr": 0.5
+    },
+    {
+      "id": "chile_copper_fiscal",
+      "literature": "Chile copper-fiscal commodity supercycle ~5 yr (Frankel 2012)",
+      "tau_yr": 5.0,
+      "T_system_yr": 5.0,
+      "T_period_yr_acf": 26.0,
+      "T_period_yr_spec": 30.05,
+      "T_period_yr": 28.025,
+      "period_source": "acf+spec_avg",
+      "T_norm_period_over_tau": 5.6049999999999995,
+      "T_hopf_predicted": 20.0,
+      "hopf_theorem_holds": null,
+      "acf_peak_R": 0.13559169644341676,
+      "spec_peak_norm": 0.13492544677682008,
+      "n_cycles_observed": 122,
+      "crisis_powerlaw_alpha": 2.9841521970414346,
+      "crisis_powerlaw_full": {
+        "name": "chile_copper_fiscal_crisis_mag",
+        "alpha": 2.9841521970414346,
+        "sigma_alpha": 0.22323456304871064,
+        "xmin": 0.018776194046375982,
+        "n_total": 122,
+        "n_tail": 79,
+        "vs_lognormal_R": -1.6894626295041875,
+        "vs_lognormal_p": 0.0911308076143247,
+        "vs_exponential_R": -1.9540383896776994,
+        "vs_exponential_p": 0.05069667730325151,
+        "vs_powerlaw_lognormal_winner": "lognormal",
+        "rejects_power_law": true,
+        "ks_statistic": 0.10873043145739969
+      },
+      "ar2": {
+        "phi1": 0.8466897254225796,
+        "phi2": 0.07860509133993929,
+        "sigma2": 0.00010330885878009713,
+        "aic": -3791.6063064262166,
+        "period_est": NaN,
+        "n_used": 599
+      },
+      "dde_oracle": {
+        "sigma2": 0.00010492982262153981,
+        "aic": -3660.1181980826586,
+        "n_used": 580
+      },
+      "delta_aic_ar2_minus_dde": -131.488108343558,
+      "ar2_implied_period_yr": NaN,
+      "n_samples": 601,
+      "dt_yr": 0.25
+    },
+    {
+      "id": "argentina_inflation_debt",
+      "literature": "Argentina inflation-debt currency-crisis cycle ~3 yr (Calvo 1998)",
+      "tau_yr": 3.0,
+      "T_system_yr": 3.0,
+      "T_period_yr_acf": 10.650000000000002,
+      "T_period_yr_spec": 11.250000000000002,
+      "T_period_yr": 10.950000000000003,
+      "period_source": "acf+spec_avg",
+      "T_norm_period_over_tau": 3.650000000000001,
+      "T_hopf_predicted": 12.0,
+      "hopf_theorem_holds": null,
+      "acf_peak_R": 0.08247584203178845,
+      "spec_peak_norm": 0.1423172315684011,
+      "n_cycles_observed": 132,
+      "crisis_powerlaw_alpha": 2.996061171532025,
+      "crisis_powerlaw_full": {
+        "name": "argentina_inflation_debt_crisis_mag",
+        "alpha": 2.996061171532025,
+        "sigma_alpha": 0.22178457461466947,
+        "xmin": 0.021521740563595904,
+        "n_total": 132,
+        "n_tail": 81,
+        "vs_lognormal_R": -2.075011033975309,
+        "vs_lognormal_p": 0.037985512155654155,
+        "vs_exponential_R": -2.1751974137249697,
+        "vs_exponential_p": 0.029615325914332788,
+        "vs_powerlaw_lognormal_winner": "lognormal",
+        "rejects_power_law": true,
+        "ks_statistic": 0.164310204113649
+      },
+      "ar2": {
+        "phi1": 0.990077070183152,
+        "phi2": -0.05733822093159675,
+        "sigma2": 0.00014586135093139042,
+        "aic": -3578.996229379063,
+        "period_est": NaN,
+        "n_used": 598
+      },
+      "dde_oracle": {
+        "sigma2": 0.00014744324145747218,
+        "aic": -3456.8461220417935,
+        "n_used": 579
+      },
+      "delta_aic_ar2_minus_dde": -122.15010733726967,
+      "ar2_implied_period_yr": NaN,
+      "n_samples": 600,
+      "dt_yr": 0.15000000000000002
+    },
+    {
+      "id": "corporate_debt_compustat",
+      "literature": "Compustat-derived corporate debt 7-yr business-cycle lag",
+      "tau_yr": 7.0,
+      "T_system_yr": 7.0,
+      "T_period_yr_acf": 43.400000000000006,
+      "T_period_yr_spec": 52.50000000000001,
+      "T_period_yr": 47.95,
+      "period_source": "acf+spec_avg",
+      "T_norm_period_over_tau": 6.8500000000000005,
+      "T_hopf_predicted": 28.0,
+      "hopf_theorem_holds": null,
+      "acf_peak_R": 0.11712561985438653,
+      "spec_peak_norm": 0.22733211269092457,
+      "n_cycles_observed": 121,
+      "crisis_powerlaw_alpha": 2.722183250924953,
+      "crisis_powerlaw_full": {
+        "name": "corporate_debt_compustat_crisis_mag",
+        "alpha": 2.722183250924953,
+        "sigma_alpha": 0.17576959201390255,
+        "xmin": 0.01874973995624485,
+        "n_total": 121,
+        "n_tail": 96,
+        "vs_lognormal_R": -3.183049188328485,
+        "vs_lognormal_p": 0.001457328546849045,
+        "vs_exponential_R": -4.975495518992962,
+        "vs_exponential_p": 6.508094005915297e-07,
+        "vs_powerlaw_lognormal_winner": "lognormal",
+        "rejects_power_law": true,
+        "ks_statistic": 0.19072700899537826
+      },
+      "ar2": {
+        "phi1": 0.9155561125062063,
+        "phi2": 0.013952202526291015,
+        "sigma2": 0.0001353781291723271,
+        "aic": -3623.597879649421,
+        "period_est": NaN,
+        "n_used": 598
+      },
+      "dde_oracle": {
+        "sigma2": 0.0001375556546978668,
+        "aic": -3497.037234148886,
+        "n_used": 579
+      },
+      "delta_aic_ar2_minus_dde": -126.56064550053497,
+      "ar2_implied_period_yr": NaN,
+      "n_samples": 600,
+      "dt_yr": 0.35000000000000003
+    },
+    {
+      "id": "enso_delayed_oscillator",
+      "literature": "Suarez-Schopf 1988 ENSO delayed oscillator \u03c4\u224818 months",
+      "tau_yr": 1.5,
+      "T_system_yr": 1.5,
+      "T_period_yr_acf": NaN,
+      "T_period_yr_spec": 7.500000000000002,
+      "T_period_yr": 7.500000000000002,
+      "period_source": "spec_only",
+      "T_norm_period_over_tau": 5.000000000000001,
+      "T_hopf_predicted": 6.0,
+      "hopf_theorem_holds": null,
+      "acf_peak_R": NaN,
+      "spec_peak_norm": 0.15310770457194706,
+      "n_cycles_observed": 137,
+      "crisis_powerlaw_alpha": 2.9993621896666385,
+      "crisis_powerlaw_full": {
+        "name": "enso_delayed_oscillator_crisis_mag",
+        "alpha": 2.9993621896666385,
+        "sigma_alpha": 0.21559676954985266,
+        "xmin": 0.009486367234463389,
+        "n_total": 137,
+        "n_tail": 86,
+        "vs_lognormal_R": -2.117525433269277,
+        "vs_lognormal_p": 0.034215279121893066,
+        "vs_exponential_R": -2.5264686024596017,
+        "vs_exponential_p": 0.011521568654074582,
+        "vs_powerlaw_lognormal_winner": "lognormal",
+        "rejects_power_law": true,
+        "ks_statistic": 0.12224321871702953
+      },
+      "ar2": {
+        "phi1": 0.9415237286099446,
+        "phi2": 0.019785887975389677,
+        "sigma2": 2.8346678049392728e-05,
+        "aic": -4558.6079394918015,
+        "period_est": NaN,
+        "n_used": 598
+      },
+      "dde_oracle": {
+        "sigma2": 2.85907876942318e-05,
+        "aic": -4406.613832907897,
+        "n_used": 579
+      },
+      "delta_aic_ar2_minus_dde": -151.9941065839048,
+      "ar2_implied_period_yr": NaN,
+      "n_samples": 600,
+      "dt_yr": 0.07500000000000001
+    },
+    {
+      "id": "permafrost_methane",
+      "literature": "Schuur 2015 Nature 520 171 permafrost methane \u03c4~30 yr",
+      "tau_yr": 30.0,
+      "T_system_yr": 30.0,
+      "T_period_yr_acf": 163.5,
+      "T_period_yr_spec": 90.14999999999999,
+      "T_period_yr": 163.5,
+      "period_source": "acf_disagree",
+      "T_norm_period_over_tau": 5.45,
+      "T_hopf_predicted": 120.0,
+      "hopf_theorem_holds": true,
+      "acf_peak_R": 0.1357632019364826,
+      "spec_peak_norm": 0.07002079284170229,
+      "n_cycles_observed": 112,
+      "crisis_powerlaw_alpha": 2.4896982455601497,
+      "crisis_powerlaw_full": {
+        "name": "permafrost_methane_crisis_mag",
+        "alpha": 2.4896982455601497,
+        "sigma_alpha": 0.16063829305504773,
+        "xmin": 0.029529061876325535,
+        "n_total": 112,
+        "n_tail": 86,
+        "vs_lognormal_R": -3.468781581796864,
+        "vs_lognormal_p": 0.0005228243200815619,
+        "vs_exponential_R": -5.328606987396059,
+        "vs_exponential_p": 9.896889232207801e-08,
+        "vs_powerlaw_lognormal_winner": "lognormal",
+        "rejects_power_law": true,
+        "ks_statistic": 0.1656945992058127
+      },
+      "ar2": {
+        "phi1": 0.9139753029035956,
+        "phi2": -0.06040563242318308,
+        "sigma2": 0.000346132725387753,
+        "aic": -3067.355903208976,
+        "period_est": NaN,
+        "n_used": 599
+      },
+      "dde_oracle": {
+        "sigma2": 0.00034492148507290707,
+        "aic": -2969.9036743550687,
+        "n_used": 580
+      },
+      "delta_aic_ar2_minus_dde": -97.4522288539074,
+      "ar2_implied_period_yr": NaN,
+      "n_samples": 601,
+      "dt_yr": 1.5
+    }
+  ],
+  "split_test": {
+    "n_systems_valid": 6,
+    "T_period_abs_yrs": [
+      36.53125,
+      28.025,
+      10.950000000000003,
+      47.95,
+      7.500000000000002,
+      163.5
+    ],
+    "T_period_abs_mean_yr": 49.07604166666667,
+    "T_period_abs_std_yr": 58.097832416626495,
+    "T_period_abs_cv": 1.183832893680331,
+    "T_period_abs_max_over_min": 21.799999999999994,
+    "T_norm_values": [
+      3.653125,
+      5.6049999999999995,
+      3.650000000000001,
+      6.8500000000000005,
+      5.000000000000001,
+      5.45
+    ],
+    "T_norm_mean": 5.0346874999999995,
+    "T_norm_std": 1.2345345624718247,
+    "T_norm_cv": 0.24520579727576436,
+    "T_norm_max_over_min": 1.876712328767123,
+    "wright_hopf_T_over_tau": 4.0,
+    "T_norm_near_4_count": 5,
+    "absolute_clusters": false,
+    "normalised_clusters_at_hopf_theorem": true,
+    "verdict": "REJECT_normal_form_only",
+    "verdict_reason": "Absolute T_period CV >= 0.30 (scatter > 30%) but normalised T/\u03c4 clusters near Wright-Hopf theorem value 4 \u2014 confirms C4 \u00a74.3 'normal-form theorem mistaken for universality class'"
+  },
+  "ar2_vs_dde": {
+    "n_used": 6,
+    "median_delta_aic_ar2_minus_dde": -124.35537641890232,
+    "mean_delta_aic_ar2_minus_dde": -124.9917956643413,
+    "ar2_loses_count": 0,
+    "ar2_wins_count": 6,
+    "ar2_close_count": 0,
+    "interpretation": "If AR(2) wins or ties on majority, DDE adds no mechanism info beyond cyclicity (consistent with C4 normal-form thesis). If DDE wins strongly, delay parameter is information-bearing."
+  },
+  "powerlaw_summary": {
+    "n_used": 6,
+    "alphas": [
+      2.8371408228205883,
+      2.9841521970414346,
+      2.996061171532025,
+      2.722183250924953,
+      2.9993621896666385,
+      2.4896982455601497
+    ],
+    "mean_alpha": 2.8380996462576316,
+    "std_alpha": 0.2035238880433855,
+    "in_band_count": 6,
+    "band": [
+      1.5,
+      3.0
+    ],
+    "fraction_in_band": 1.0
+  },
+  "overall_verdict": "REJECT_confirmed_normal_form",
+  "elapsed_sec": 0.36657285690307617
+}

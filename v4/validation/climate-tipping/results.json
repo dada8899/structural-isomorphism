@@ -1,0 +1,246 @@
+{
+  "started_at": "2026-05-24T16:48:26.637346Z",
+  "systems": [
+    {
+      "system": "amoc_rapid_26n",
+      "data_path": "raw/amoc_timeseries.jsonl",
+      "synthetic": false,
+      "n_raw": 14579,
+      "n_months": 240,
+      "first_date": "2004-04",
+      "last_date": "2024-03",
+      "ews": {
+        "window_months": 48,
+        "ar1_trend": {
+          "tau": -0.23145724258289704,
+          "p": 1.8674122315163256e-06,
+          "n": 192
+        },
+        "var_trend": {
+          "tau": -0.3195898778359511,
+          "p": 4.625602479983084e-11,
+          "n": 192
+        },
+        "skew_trend": {
+          "tau": 0.31140924956369986,
+          "p": 1.4173225644292877e-10,
+          "n": 192
+        },
+        "classical_csd_signature": false
+      },
+      "powerlaw_tail": {
+        "alpha": 3.1377515995378658,
+        "ks": 0.07936271318574487,
+        "xmin": 2.5794024144273218,
+        "n_tail": 74,
+        "ok": true,
+        "n_total": 240
+      },
+      "iso_distance_to_scheffer_lake": 0.7564112120887598,
+      "verdict": "INCONCLUSIVE",
+      "ok": true,
+      "plot_path": "panel_amoc_rapid_26n.png"
+    },
+    {
+      "system": "amazon_ndvi_central_amazonas",
+      "data_path": "raw/amazon_ndvi_central_amazonas.jsonl",
+      "synthetic": false,
+      "n_raw": 572,
+      "n_months": 299,
+      "first_date": "2000-02",
+      "last_date": "2024-12",
+      "ews": {
+        "window_months": 48,
+        "ar1_trend": {
+          "tau": -0.2797450199203187,
+          "p": 4.058145486701525e-11,
+          "n": 251
+        },
+        "var_trend": {
+          "tau": -0.6192509960159363,
+          "p": 2.279258199456162e-48,
+          "n": 251
+        },
+        "skew_trend": {
+          "tau": 0.31767330677290834,
+          "p": 6.527473741364815e-14,
+          "n": 251
+        },
+        "classical_csd_signature": false
+      },
+      "powerlaw_tail": {
+        "alpha": 4.8614385722557545,
+        "ks": 0.08602627650358396,
+        "xmin": 0.1109599310344828,
+        "n_tail": 39,
+        "ok": true,
+        "n_total": 299
+      },
+      "iso_distance_to_scheffer_lake": 1.0226659814852295,
+      "verdict": "INCONCLUSIVE",
+      "ok": true,
+      "plot_path": "panel_amazon_ndvi_central_amazonas.png"
+    },
+    {
+      "system": "amazon_ndvi_para_central",
+      "data_path": "raw/amazon_ndvi_para_central.jsonl",
+      "synthetic": false,
+      "n_raw": 572,
+      "n_months": 299,
+      "first_date": "2000-02",
+      "last_date": "2024-12",
+      "ews": {
+        "window_months": 48,
+        "ar1_trend": {
+          "tau": 0.15850199203187249,
+          "p": 0.0001835651449185832,
+          "n": 251
+        },
+        "var_trend": {
+          "tau": -0.2631075697211155,
+          "p": 5.322189946787054e-10,
+          "n": 251
+        },
+        "skew_trend": {
+          "tau": -0.49577689243027884,
+          "p": 1.2706719125701711e-31,
+          "n": 251
+        },
+        "classical_csd_signature": false
+      },
+      "powerlaw_tail": {
+        "alpha": 5.345369475700931,
+        "ks": 0.07077597320672013,
+        "xmin": 0.2018400275862068,
+        "n_tail": 39,
+        "ok": true,
+        "n_total": 299
+      },
+      "iso_distance_to_scheffer_lake": 0.5127042869705712,
+      "verdict": "QUALIFIED",
+      "ok": true,
+      "plot_path": "panel_amazon_ndvi_para_central.png"
+    },
+    {
+      "system": "amazon_ndvi_rondonia_arc",
+      "data_path": "raw/amazon_ndvi_rondonia_arc.jsonl",
+      "synthetic": false,
+      "n_raw": 572,
+      "n_months": 299,
+      "first_date": "2000-02",
+      "last_date": "2024-12",
+      "ews": {
+        "window_months": 48,
+        "ar1_trend": {
+          "tau": 0.1380398406374502,
+          "p": 0.0011231164636334378,
+          "n": 251
+        },
+        "var_trend": {
+          "tau": -0.5817689243027888,
+          "p": 6.7452849897954025e-43,
+          "n": 251
+        },
+        "skew_trend": {
+          "tau": 0.3617211155378486,
+          "p": 1.3827438342131088e-17,
+          "n": 251
+        },
+        "classical_csd_signature": false
+      },
+      "powerlaw_tail": {
+        "alpha": 3.329700119294812,
+        "ks": 0.07986354889393821,
+        "xmin": 0.0979303172413794,
+        "n_tail": 116,
+        "ok": true,
+        "n_total": 299
+      },
+      "iso_distance_to_scheffer_lake": 0.8287239021406768,
+      "verdict": "QUALIFIED",
+      "ok": true,
+      "plot_path": "panel_amazon_ndvi_rondonia_arc.png"
+    },
+    {
+      "system": "amazon_ndvi_western_acre",
+      "data_path": "raw/amazon_ndvi_western_acre.jsonl",
+      "synthetic": false,
+      "n_raw": 572,
+      "n_months": 299,
+      "first_date": "2000-02",
+      "last_date": "2024-12",
+      "ews": {
+        "window_months": 48,
+        "ar1_trend": {
+          "tau": 0.26865338645418324,
+          "p": 2.2949961861255928e-10,
+          "n": 251
+        },
+        "var_trend": {
+          "tau": -0.013482071713147411,
+          "p": 0.7503523495158002,
+          "n": 251
+        },
+        "skew_trend": {
+          "tau": 0.13918725099601592,
+          "p": 0.0010205569688250386,
+          "n": 251
+        },
+        "classical_csd_signature": false
+      },
+      "powerlaw_tail": {
+        "alpha": 3.65547090346494,
+        "ks": 0.07433675438487852,
+        "xmin": 0.1279131862068965,
+        "n_tail": 54,
+        "ok": true,
+        "n_total": 299
+      },
+      "iso_distance_to_scheffer_lake": 0.2479574446689514,
+      "verdict": "QUALIFIED",
+      "ok": true,
+      "plot_path": "panel_amazon_ndvi_western_acre.png"
+    },
+    {
+      "system": "amazon_ndvi_xingu_park",
+      "data_path": "raw/amazon_ndvi_xingu_park.jsonl",
+      "synthetic": false,
+      "n_raw": 572,
+      "n_months": 299,
+      "first_date": "2000-02",
+      "last_date": "2024-12",
+      "ews": {
+        "window_months": 48,
+        "ar1_trend": {
+          "tau": -0.2164462151394422,
+          "p": 3.2541953938333903e-07,
+          "n": 251
+        },
+        "var_trend": {
+          "tau": -0.19330677290836654,
+          "p": 5.066628399039435e-06,
+          "n": 251
+        },
+        "skew_trend": {
+          "tau": 0.2742629482071713,
+          "p": 9.635436097199815e-11,
+          "n": 251
+        },
+        "classical_csd_signature": false
+      },
+      "powerlaw_tail": {
+        "alpha": 2.9079956097195323,
+        "ks": 0.08324125655437742,
+        "xmin": 0.09334987126436796,
+        "n_tail": 39,
+        "ok": true,
+        "n_total": 299
+      },
+      "iso_distance_to_scheffer_lake": 0.658055842934895,
+      "verdict": "INCONCLUSIVE",
+      "ok": true,
+      "plot_path": "panel_amazon_ndvi_xingu_park.png"
+    }
+  ],
+  "finished_at": "2026-05-24T16:48:27.586652Z"
+}

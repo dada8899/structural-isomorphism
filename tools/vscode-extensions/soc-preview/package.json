@@ -1,0 +1,22 @@
+{
+  "name": "soc-preview",
+  "displayName": "SOC Preview",
+  "description": "Status-bar preview of Clauset 2009 power-law fit for CSV files matching soc:*.csv",
+  "version": "0.1.0",
+  "publisher": "structural-isomorphism",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Data Science", "Other"],
+  "activationEvents": [
+    "onLanguage:csv",
+    "workspaceContains:**/soc:*.csv"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "socPreview.fit", "title": "SOC: Fit current CSV" }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "echo 'skeleton only — no build step'"
+  }
+}

@@ -1,0 +1,397 @@
+# V4 Physics Universality Class Taxonomy (seed)
+# 每条普适类含: 名字 / 定义 / 共享方程 / 不变量 / 典型成员 / 诊断关键词
+# 用于 Layer 3 taxonomy match
+# 版本: 0.1 (2026-04-15 初版)
+
+classes:
+  - id: soc_threshold_cascade
+    name: 阈值级联自组织临界类
+    name_en: Self-Organized Criticality (threshold cascade)
+    definition: >
+      一组耦合的阈值元件, 每个元件局部独立积累压力,
+      当一个元件跨越阈值就触发破裂, 破裂通过耦合把压力转移给邻居,
+      邻居的阈值也可能被跨过. 当平均分支因子 ξ → 1 时,
+      系统处于分支过程临界点, 雪崩规模服从幂律分布.
+    master_equation: |
+      ∑_j K_ij · δ_j > threshold_i → failure_i
+      Δs_i redistributed to neighbors via K_ij
+      Critical condition: <∑_j K_ij> → 1
+    invariants:
+      - gutenberg_richter_power_law  # P(s) ∝ s^(-τ), τ ≈ 1.5 (mean-field)
+      - omori_aftershock_decay       # n(t) ∝ 1/t^p, p ≈ 1
+      - branching_process_criticality
+      - scale_invariance_no_characteristic_size
+      - waiting_time_pareto_tail
+    prototypes:
+      - Bak-Tang-Wiesenfeld sandpile (1987)
+      - Olami-Feder-Christensen earthquake model
+      - Forest fire model
+    known_members:
+      - earthquake_coulomb_triggering
+      - forest_fire_spread
+      - solar_flare_energy_distribution
+      - neural_avalanches_cortex
+      - pink_noise_1/f
+    diagnostic_keywords:
+      - 级联
+      - 清算
+      - 地震
+      - 余震
+      - 雪崩
+      - 瀑布
+      - 传染
+      - 挤兑
+      - 触发
+      - 阈值
+      - cascade
+      - avalanche
+      - threshold
+      - trigger
+
+  - id: multistable_self_fulfilling
+    name: 多重均衡与自我实现预期类
+    name_en: Multiple Equilibria Self-Fulfilling Expectations
+    definition: >
+      系统存在多个稳定均衡, 参与者的预期通过协调博弈选择均衡,
+      预期可以自我实现——相信崩溃→采取行动→崩溃成真.
+    master_equation: |
+      Two or more Nash equilibria; global game selects on threshold of
+      信念 θ vs. fundamental x. Diamond-Dybvig 1983 original formulation.
+    invariants:
+      - multiple_stable_equilibria
+      - coordination_game_threshold
+      - jump_discontinuity_in_expectations
+      - fundamental_vs_panic_indistinguishable_ex_ante
+    prototypes:
+      - Diamond-Dybvig bank run model
+      - Morris-Shin global games
+      - Goldstein-Pauzner 2005
+    known_members:
+      - bank_run
+      - currency_crisis
+      - speculative_attack
+      - social_norm_tipping
+    diagnostic_keywords:
+      - 挤兑
+      - 多重均衡
+      - 恐慌
+      - 预期
+      - 脱锚
+      - 危机
+      - bank run
+      - self-fulfilling
+
+  - id: equilibrium_critical_ising
+    name: 平衡态临界普适类 (Ising)
+    name_en: Equilibrium Critical Phenomena (Ising)
+    definition: >
+      短程相互作用的自旋系统, 对称破缺二阶相变,
+      临界指数由对称群和维数决定, 与微观细节无关.
+    master_equation: |
+      H = -J ∑_<i,j> s_i·s_j - h ∑_i s_i
+      At T_c, correlation length ξ → ∞, scaling law χ ∝ |T-T_c|^(-γ)
+    invariants:
+      - critical_exponents_alpha_beta_gamma_delta_nu_eta
+      - diverging_correlation_length
+      - symmetry_breaking_order_parameter
+      - universal_scaling_functions
+      - hyperscaling_relation
+    prototypes:
+      - 2D Ising (Onsager)
+      - 3D Ising (conformal bootstrap)
+    known_members:
+      - ferromagnetic_transition
+      - liquid_gas_critical_point
+      - binary_alloy_ordering
+    diagnostic_keywords:
+      - 相变
+      - 临界
+      - 对称破缺
+      - Ising
+      - 铁磁
+      - phase transition
+      - critical exponent
+
+  - id: reaction_diffusion_turing
+    name: 反应扩散 Turing 图案类
+    name_en: Reaction-Diffusion Turing Patterns
+    definition: >
+      活化剂-抑制剂两组分非平衡系统,
+      当扩散系数比越过临界值, 均匀稳态对某些波数失稳,
+      自发形成稳定空间图案.
+    master_equation: |
+      ∂u/∂t = D_u ∇²u + f(u,v)
+      ∂v/∂t = D_v ∇²v + g(u,v)
+      Turing instability: D_v/D_u > critical_ratio
+    invariants:
+      - wavelength_selection
+      - hexagonal_or_stripe_morphology
+      - linear_stability_dispersion_relation
+      - activator_inhibitor_asymmetry
+    prototypes:
+      - Turing 1952 morphogens
+      - Gray-Scott model
+      - Belousov-Zhabotinsky
+    known_members:
+      - animal_coat_patterns
+      - vegetation_pattern_dryland
+      - chemical_oscillating_reactions
+    diagnostic_keywords:
+      - 图案
+      - 斑图
+      - 自组织
+      - 反应扩散
+      - Turing
+      - pattern formation
+
+  - id: delay_differential_debt
+    name: 延迟反馈与债务累积类
+    name_en: Delay Differential Equations and Accumulated Debt
+    definition: >
+      系统对当前状态的响应依赖于过去的输入,
+      时滞造成"承诺但未现"的债务, 可触发振荡或崩溃.
+    master_equation: |
+      dx/dt = f(x(t-τ)) - μ·x(t)
+      Committed debt: C = ∫[x*(t) - x(t)] dt
+    invariants:
+      - hopf_bifurcation_at_critical_delay
+      - committed_future_change
+      - delayed_oscillation_amplification
+      - decision_window_closed_but_symptoms_hidden
+    prototypes:
+      - Mackey-Glass equation
+      - Wright's equation
+    known_members:
+      - permafrost_methane_release
+      - extinction_debt
+      - climate_commitment
+      - pension_debt
+    diagnostic_keywords:
+      - 延迟
+      - 时滞
+      - 承诺
+      - 债务
+      - 延时
+      - delay
+      - committed
+
+  - id: kuramoto_sync
+    name: Kuramoto 相位同步类
+    name_en: Kuramoto Phase Synchronization
+    definition: >
+      一群具有自然频率分布的振子,
+      通过相位耦合产生集体同步, 存在临界耦合强度.
+    master_equation: |
+      dθ_i/dt = ω_i + (K/N) ∑_j sin(θ_j - θ_i)
+      Order parameter: r·e^(iψ) = (1/N) ∑_j e^(iθ_j)
+    invariants:
+      - order_parameter_r
+      - critical_coupling_K_c
+      - synchronization_transition
+      - partial_sync_frequency_locking
+    prototypes:
+      - Kuramoto 1975
+      - Winfree 1967
+    known_members:
+      - firefly_synchronization
+      - neural_oscillator_networks
+      - power_grid_frequency_lock
+      - circadian_rhythms
+      - clapping_audience
+    diagnostic_keywords:
+      - 同步
+      - 相位锁
+      - 振荡
+      - 耦合振子
+      - synchronization
+      - phase lock
+
+  - id: preferential_attachment
+    name: 偏好连接幂律网络类
+    name_en: Preferential Attachment Scale-Free Networks
+    definition: >
+      网络演化时新节点倾向于连接度数大的节点,
+      产生幂律度分布和无尺度拓扑.
+    master_equation: |
+      P(attach to i) ∝ k_i^α
+      Degree distribution: P(k) ∝ k^(-γ), γ ≈ 3 (BA model)
+    invariants:
+      - power_law_degree_distribution
+      - small_world_short_paths
+      - hub_dominated_topology
+      - scale_free_property
+    prototypes:
+      - Barabási-Albert 1999
+      - Yule 1925
+      - Simon 1955
+    known_members:
+      - www_link_network
+      - citation_network
+      - protein_interaction_network
+      - airport_network
+    diagnostic_keywords:
+      - 幂律
+      - 无尺度
+      - 偏好连接
+      - 度分布
+      - power law
+      - scale-free
+      - hub
+
+  - id: lotka_volterra_predator_prey
+    name: Lotka-Volterra 捕食共生类
+    name_en: Lotka-Volterra Predator-Prey Dynamics
+    definition: >
+      两种或多种具有相互作用的种群, 产生振荡或共存,
+      可推广到任意竞争/共生网络.
+    master_equation: |
+      dx/dt = αx - βxy
+      dy/dt = δxy - γy
+    invariants:
+      - closed_orbit_conservation_law
+      - hopf_cycle
+      - population_oscillation
+      - competitive_exclusion_principle
+    prototypes:
+      - Lotka 1925
+      - Volterra 1926
+    known_members:
+      - lynx_hare_cycle
+      - resource_firm_market_dynamics
+      - host_parasite_cycle
+      - ecosystem_food_web
+    diagnostic_keywords:
+      - 捕食
+      - 种群
+      - 振荡
+      - 周期
+      - predator
+      - prey
+      - population
+
+  - id: kpz_surface_growth
+    name: KPZ 标度生长类
+    name_en: KPZ (Kardar-Parisi-Zhang) Surface Growth
+    definition: >
+      非线性扩散表面生长, 标度指数 α=1/2, β=1/3, z=3/2 (1D),
+      是非平衡统计物理的核心普适类.
+    master_equation: |
+      ∂h/∂t = ν ∇²h + (λ/2)(∇h)² + η
+    invariants:
+      - kpz_exponents_alpha_beta_z
+      - tracy_widom_distribution
+      - directed_polymer_equivalence
+    prototypes:
+      - Kardar-Parisi-Zhang 1986
+    known_members:
+      - fire_front_propagation
+      - bacterial_colony_edge
+      - paper_wetting_front
+    diagnostic_keywords:
+      - 生长
+      - 粗糙
+      - 表面
+      - interface
+      - KPZ
+      - roughness
+
+  - id: information_bottleneck_capacity
+    name: 信息容量与信道瓶颈类
+    name_en: Information Bottleneck / Channel Capacity
+    definition: >
+      受限通道的最大信息传输率由信息论上界决定,
+      任何超过容量的传输必然产生误差.
+    master_equation: |
+      C = max_{p(x)} I(X;Y)
+      R < C possible; R > C impossible
+    invariants:
+      - shannon_channel_capacity
+      - maximum_entropy_principle
+      - rate_distortion_tradeoff
+    prototypes:
+      - Shannon 1948
+      - Tishby information bottleneck
+    known_members:
+      - biological_neural_coding
+      - dunbar_number_cognitive_limit
+      - attention_bottleneck
+    diagnostic_keywords:
+      - 信道
+      - 容量
+      - 瓶颈
+      - 信息论
+      - channel capacity
+      - information bottleneck
+
+  - id: second_order_damped_oscillator
+    name: 二阶阻尼振子类
+    name_en: Second-Order Damped Oscillator
+    definition: >
+      最基础的线性动力学系统, 弹性恢复力+粘滞阻尼,
+      是简谐振动+指数衰减的统一描述.
+    master_equation: |
+      m·ẍ + c·ẋ + k·x = F(t)
+      Natural frequency ω_0 = √(k/m), damping ratio ζ = c/(2√(mk))
+    invariants:
+      - resonance_peak_at_omega_0
+      - quality_factor_Q
+      - exponential_envelope
+      - phase_lag_pi_at_resonance
+    prototypes:
+      - Hooke spring + Newton
+      - LCR circuit
+    known_members:
+      - mechanical_spring_mass_damper
+      - LC_oscillator
+      - molecular_vibration
+      - pendulum_small_angle
+      - bridge_wind_induced_vibration
+    diagnostic_keywords:
+      - 振子
+      - 阻尼
+      - 简谐
+      - 共振
+      - oscillator
+      - resonance
+      - damping
+
+  - id: percolation_connectivity
+    name: 渗流连通性相变类
+    name_en: Percolation Connectivity Transition
+    definition: >
+      在随机占据的格点/键上, 存在临界占据概率 p_c,
+      当 p > p_c 出现横跨整个系统的连通簇.
+    master_equation: |
+      Order parameter: P_∞(p) ∝ (p - p_c)^β
+      Correlation length: ξ ∝ |p - p_c|^(-ν)
+    invariants:
+      - critical_probability_p_c
+      - cluster_size_distribution_power_law
+      - fractal_dimension_at_criticality
+      - percolation_exponents_beta_nu_gamma
+    prototypes:
+      - Broadbent-Hammersley 1957
+    known_members:
+      - porous_media_flow
+      - epidemic_threshold
+      - forest_fire_connectivity
+      - network_robustness_to_attack
+    diagnostic_keywords:
+      - 渗流
+      - 连通
+      - 占据
+      - percolation
+      - connectivity
+      - epidemic
+
+meta:
+  version: "0.1"
+  created: "2026-04-15"
+  coverage_assessment: >
+    这 12 个普适类覆盖了 V3 A 级里能看到的大部分候选.
+    明显缺的: Fokker-Planck / Langevin 类, 演化博弈类,
+    贝叶斯更新/Kalman 滤波类, 变分优化类 (这些在 V1/V2/V3
+    的候选里出现较少, 留待 P3 扩展).
+  next_steps:
+    - P3 Layer 3 用这个库作为 taxonomy match 的目标池
+    - 实际跑 pipeline 后,看哪些 V3 hub 匹配不到任何现有类 → 可能是新普适类信号

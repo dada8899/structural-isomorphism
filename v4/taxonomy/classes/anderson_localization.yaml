@@ -1,0 +1,166 @@
+class_id: anderson_localization
+status: speculative
+display_name: Anderson localization (metal-insulator transition)
+display_name_zh: Anderson 局域化 (金属-绝缘体相变)
+hub_phenomenon: "Disorder-driven phase transition in random Hamiltonians from extended (metallic) to spatially localized (insulating) eigenstates, with critical exponent nu ≈ 1.57 in 3D and characteristic conductance fluctuations."
+shared_equation: |
+  Anderson tight-binding Hamiltonian:
+    H = sum_i epsilon_i |i><i| + t sum_{<ij>} (|i><j| + h.c.),
+  with random on-site energies epsilon_i drawn from a uniform distribution
+  on [-W/2, W/2] and hopping t = 1.
+
+  Localization length scaling near critical disorder W_c (3D orthogonal class):
+    xi(W) ~ |W - W_c|^{-nu},  nu ≈ 1.571 ± 0.008  (Slevin-Ohtsuki 2014)
+  Conductance scaling:
+    sigma(W < W_c) ~ (W_c - W)^s,  s = nu(d - 2) ≈ 1.57 in 3D
+  Critical conductance distribution P(g) is universal, multi-fractal, and
+  distinguishes the Anderson critical point from clean metal (Gaussian g)
+  and insulator (lognormal g).
+
+  Inverse participation ratio (IPR) for eigenstate psi at site i:
+    P_q = sum_i |psi_i|^{2q}
+  Multifractal scaling at criticality: <P_q> ~ L^{-(q-1) D_q},
+  where D_q is the multifractal spectrum. The anomaly D_2 ≈ 1.30 in 3D
+  separates the Anderson critical point from a clean Fermi liquid (D_2 = 3)
+  or a localized insulator (D_2 = 0).
+key_invariants:
+  - "Disorder-driven transition at W = W_c without external symmetry breaking"
+  - "Localization length divergence: xi ~ |W - W_c|^{-nu}, nu ≈ 1.571 (3D)"
+  - "Universal conductance distribution P(g) at the critical point"
+  - "Multifractal eigenstate spectrum D_q with anomalous D_2 < d"
+  - "Symmetry-class dependence: orthogonal (nu ≈ 1.57), unitary (≈ 1.43), symplectic (≈ 1.38)"
+  - "Dimension-dependent transition existence: no 1D / 2D transition at W → 0 (orthogonal); 3D has finite W_c"
+positive_examples:
+  - phenomenon: 3D Anderson tight-binding model
+    evidence: |
+      Canonical reference system. Slevin & Ohtsuki 2014 (Phys. Rev. Lett.
+      112, 026403) report nu = 1.571 ± 0.008 via transfer-matrix scaling
+      on cubic Anderson model with box disorder.
+    verified_at: candidate
+  - phenomenon: Disordered photonic crystals
+    evidence: |
+      Schwartz, Bartal, Fishman, Segev 2007 (Nature 446, 52) demonstrated
+      Anderson localization of light in 2D disordered photonic lattices.
+      Light intensity profiles match localized eigenstate predictions.
+      Photonic class is *orthogonal* (time-reversal symmetric).
+    verified_at: candidate
+  - phenomenon: Cold atom matter-wave localization
+    evidence: |
+      Billy et al. 2008 (Nature 453, 891) localized non-interacting BEC
+      in 1D speckle potential; exponentially decaying density profile
+      consistent with Anderson localization length. 1D + bounded support
+      special case; not the 3D transition itself but a clean realisation.
+    verified_at: candidate
+  - phenomenon: Disordered electronic transport in doped Si:P
+    evidence: |
+      Rosenbaum et al. 1980 (Phys. Rev. Lett. 45, 1723) measured sigma → 0
+      conductance scaling at the metal-insulator transition in P-doped Si.
+      Critical exponent s ≈ 1 reported initially; later experiments give
+      s ≈ 1.5 consistent with orthogonal Anderson class prediction.
+    verified_at: candidate
+  - phenomenon: Random neural network capacity collapse
+    evidence: |
+      Speculative analogy. Random feed-forward networks with disordered
+      weights show a phase transition from "trainable" to "untrainable"
+      regimes (Poole et al. 2016, Schoenholz et al. 2017) with diverging
+      correlation length; whether this maps to Anderson universality class
+      is open. Pre-registered as a candidate cross-domain analogue.
+    verified_at: candidate
+negative_examples:
+  - phenomenon: Ising model at critical temperature
+    reason: |
+      Equilibrium thermal phase transition with order parameter; Anderson
+      transition has *no* local order parameter, no symmetry breaking,
+      and is disorder-driven not temperature-driven. Critical exponents
+      are dimensionally different (Ising 3D: nu ≈ 0.63; Anderson 3D:
+      nu ≈ 1.57).
+  - phenomenon: BCS superconductor critical point
+    reason: |
+      Cooper pair condensation breaks gauge symmetry; Anderson localization
+      is single-particle disorder physics with no gauge structure. Distinct
+      universality classes despite both showing critical fluctuations.
+  - phenomenon: Mott metal-insulator transition
+    reason: |
+      Interaction-driven (Hubbard U) transition rather than disorder-driven;
+      different universality class. Hybrid Anderson-Mott transitions exist
+      but are not the pure Anderson class.
+  - phenomenon: Percolation transition
+    reason: |
+      Geometric / topological transition (cluster connectivity) with
+      classical exponents (3D percolation: nu ≈ 0.876). Anderson is a
+      quantum interference / wave-function transition; different mechanism
+      even when "localization" terminology overlaps.
+  - phenomenon: Many-body localization (MBL)
+    reason: |
+      Interacting many-body analogue, distinct universality class
+      (Basko-Aleiner-Altshuler 2006). Different critical exponents and
+      multifractal structure; MBL transition class is currently considered
+      genuinely separate from single-particle Anderson.
+edge_cases:
+  - phenomenon: 2D weak localization (orthogonal class)
+    debate: |
+      Pure 2D orthogonal class has W_c → 0 (Abrahams-Anderson-Licciardello-
+      Ramakrishnan 1979 scaling): all states are localized for any disorder.
+      Yet at finite system size or finite T, behavior mimics a transition.
+      Whether 2D weak localization "belongs" to the Anderson universality
+      class is interpretation-dependent.
+  - phenomenon: Quantum Hall plateau transition
+    debate: |
+      Unitary-class Anderson transition with broken time-reversal symmetry;
+      nu_QHE ≈ 2.6 differs from 3D orthogonal nu = 1.57. Is this a sub-class
+      of Anderson or a sibling class? Field-theoretic mapping (Pruisken)
+      treats it as Anderson unitary; modern numerical results suggest the
+      QHE exponent may be larger than canonical unitary nu, debate ongoing.
+  - phenomenon: Symplectic class (spin-orbit coupling)
+    debate: |
+      Topological insulator surface states; nu_sympl ≈ 1.38 < orthogonal.
+      Topological protection may prevent full localization, making the
+      transition observable only in specific geometries.
+  - phenomenon: Random matrix theory crossover
+    debate: |
+      Anderson critical statistics (level repulsion, P(g) shape) are
+      hybrid between Wigner-Dyson (metallic, gaussian ensemble) and Poisson
+      (localized). Whether the crossover *is* the Anderson class or merely
+      a finite-size signature of it is technically subtle.
+  - phenomenon: Nonlinear Anderson localization
+    debate: |
+      Adding weak nonlinearity (Gross-Pitaevskii) destroys strict
+      localization (subdiffusion replaces frozen localization). Whether
+      the *transition* survives nonlinearity is an active research question.
+notes: |
+  Pre-registered bands:
+    - 3D orthogonal localization-length exponent nu ∈ [1.55, 1.60] (Slevin-Ohtsuki)
+    - 3D orthogonal conductance exponent s = nu (d - 2) ∈ [1.5, 1.65]
+    - Critical conductance fluctuation distribution P(g) shape parameters
+      should match Markos-Kramer 1999 universal curves.
+
+  Falsifiability: a system claimed to belong to this class but exhibiting
+  (a) nu < 1.3 or nu > 1.9 in the relevant symmetry class, (b) no
+  divergence of correlation length as disorder → critical value, (c) order
+  parameter with broken symmetry, is rejected.
+
+  Domain analogues we treat as in-class candidates: disordered electronic
+  systems (Anderson 1958 original), photonic crystals (Wiersma 1997),
+  acoustic localization (Hu 2008), cold atom speckle potentials (Billy
+  2008), some neural-network capacity transitions (speculative).
+
+  Not in class: classical percolation, thermal phase transitions, Mott
+  transition, MBL transition (sibling class).
+
+references:
+  - "Anderson 1958 Phys. Rev. 109, 1492 (original Anderson localization)"
+  - "Abrahams, Anderson, Licciardello, Ramakrishnan 1979 PRL 42, 673 (gang of four scaling theory)"
+  - "Evers & Mirlin 2008 Rev. Mod. Phys. 80, 1355 (definitive review)"
+  - "Slevin & Ohtsuki 2014 Phys. Rev. Lett. 112, 026403 (nu = 1.571 ± 0.008)"
+  - "Markos & Kramer 1999 Phil. Mag. B 79, 1813 (universal P(g))"
+  - "Schwartz et al. 2007 Nature 446, 52 (photonic Anderson localization)"
+  - "Billy et al. 2008 Nature 453, 891 (cold-atom 1D localization)"
+  - "Rosenbaum et al. 1980 PRL 45, 1723 (Si:P metal-insulator transition)"
+  - "Basko, Aleiner, Altshuler 2006 Ann. Phys. 321, 1126 (MBL distinction)"
+last_curated: 2026-05-15
+last_curated_by: Wave 11 sub-agent E (session #10)
+last_curated_note: |
+  Initial draft. Cross-judge ensemble verification deferred — no API keys
+  configured in this worktree session. Class is well-established in
+  physics; cross-domain candidate phenomena (neural-network capacity
+  collapse) need scrutiny before promotion.

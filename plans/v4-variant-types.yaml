@@ -1,0 +1,125 @@
+# V3 变形预测器 — 8 种变形基元
+# machine-readable definitions, 用于训练数据标注和模型输出 schema
+# 新基元按需扩展，但每次扩展要回归测试现有案例覆盖率
+#
+# v2 变更：把过于宽泛的 dim_subst 拆成 variable_rename 和 concept_transfer
+# 原因：第一次覆盖率测试显示 dim_subst 在 9/9 发现里 100% 出现，失去区分度
+
+version: 2
+total_types: 8
+
+types:
+  - id: variable_rename
+    name: 变量重命名
+    name_en: Variable Rename
+    description: >
+      把源领域的变量、常数、单位换成目标领域的同角色替代品，
+      变量在方程中的角色、语义、因果位置完全不变，只是换个名字。
+      这是"底层默认操作"——任何跨域映射都至少包含这一步。
+      它出现不代表变形有深度，关键看它是否是唯一的变形。
+    signature: "f(x,y,z) → f(a,b,c)  where role(x)=role(a)"
+    examples:
+      - source: "热力学熵 S = -k·Σp·ln(p)"
+        target: "Shannon 熵 H = -Σp·log₂(p)"
+        mapping: "k → 1/ln(2)（仅单位转换，语义不变）"
+
+  - id: concept_transfer
+    name: 概念迁移
+    name_en: Concept Transfer
+    description: >
+      把源领域一个有明确物理/生物/经济含义的概念，替换成目标领域中
+      结构同位但语义完全不同的概念。不是简单换名字，是建立一个
+      "跨越本体的等价关系"（例如质量 ↔ 电感 ↔ 信息惯性）。
+      这是大部分经典跨域迁移的核心操作。
+    signature: "X(concept_A) → X(concept_B)  where meaning(A) ≠ meaning(B)"
+    examples:
+      - source: "F=ma (经典力学)"
+        target: "LC 振荡中 L·Q̈ + (1/C)·Q = 0"
+        mapping: "机械质量 m ↔ 电感 L（物理意义不同但结构位置相同）"
+      - source: "Fick 扩散 ∂C/∂t = D·∇²C"
+        target: "Black-Scholes ∂V/∂t = (σ²S²/2)·∂²V/∂S²"
+        mapping: "浓度场 C ↔ 期权价值 V"
+
+  - id: continuity_toggle
+    name: 连续-离散切换
+    name_en: Continuity Toggle
+    description: >
+      在连续方程（微分方程、积分）和离散方程（差分方程、求和、元胞自动机）
+      之间切换，通常伴随时间或空间的采样/极限
+    signature: "∂X/∂t = f(X) ⇌ X_{t+1} - X_t = f(X_t)"
+    examples:
+      - source: "扩散方程 ∂u/∂t = D∇²u"
+        target: "元胞自动机格点扩散"
+        mapping: "连续空间 → 离散格点，微分算子 → 局部邻居和"
+      - source: "Black-Scholes 连续期权定价"
+        target: "二叉树定价模型"
+
+  - id: causal_inversion
+    name: 因果方向翻转
+    name_en: Causal Inversion
+    description: >
+      保留变量和函数关系，但把因果箭头反转。A→B 变成 B→A，
+      用于发现"原本作为结果的变量反过来也能驱动系统"的结构
+    signature: "A → B  becomes  B → A (same relation, inverted causality)"
+    examples:
+      - source: "供给决定价格 (供需经济学)"
+        target: "价格决定供给 (激励经济学)"
+      - source: "波函数决定测量 (量子力学)"
+        target: "测量改变波函数 (哥本哈根诠释)"
+
+  - id: boundary_rewrite
+    name: 边界条件改写
+    name_en: Boundary Rewrite
+    description: >
+      保留方程主体，改变系统边界。开放↔封闭、初值↔稳态、周期↔吸收、
+      单一边界↔多边界
+    signature: "same ODE/PDE, different BC/IC"
+    examples:
+      - source: "开放系统热力学"
+        target: "封闭系统版本（加上守恒约束）"
+      - source: "无限域薛定谔方程"
+        target: "势阱中的束缚态（加硬边界）"
+
+  - id: dim_shift
+    name: 维度升降
+    name_en: Dimension Shift
+    description: >
+      把系统从 n 维升到 n+k 维（或降到 n-k 维），结构关系保持但
+      自由度数量改变。常伴随对称性获得或丢失
+    signature: "X ∈ ℝⁿ → X ∈ ℝⁿ⁺ᵏ"
+    examples:
+      - source: "2D 伊辛模型（有相变）"
+        target: "3D 伊辛模型（相变温度变化）"
+      - source: "1D 随机游走（必回原点）"
+        target: "3D 随机游走（不必回原点）"
+
+  - id: stochastic_toggle
+    name: 随机性注入-移除
+    name_en: Stochasticity Toggle
+    description: >
+      在确定性方程和随机方程之间切换：加噪声项、用分布替换点值、
+      用期望值替换实例。通常用于从微观到宏观或反向
+    signature: "dX/dt = f(X)  ⇌  dX = f(X)dt + σdW"
+    examples:
+      - source: "Lotka-Volterra 确定性 ODE"
+        target: "Gillespie 随机模拟（个体级反应）"
+      - source: "Black-Scholes 确定性版本"
+        target: "Ito 随机微分方程"
+
+  - id: time_scaling
+    name: 时间尺度缩放
+    name_en: Time Scaling
+    description: >
+      把系统从一个时间尺度拉到另一个（比如从平衡态拉到非平衡态，
+      从长时间极限拉到瞬态）。常与快慢变量分离相关
+    signature: "t → ετ (slow) or t → t/ε (fast)"
+    examples:
+      - source: "热力学平衡态"
+        target: "非平衡稳态（保持驱动力）"
+      - source: "化学反应的速率方程（慢）"
+        target: "激发态动力学（快）"
+
+# coverage validation:
+#   运行 scripts/v4_coverage_check.py 对 24 个 tier-1 发现做回归测试
+#   每个发现的"变形路径"必须能被这 7 种之一（或组合）覆盖
+#   若覆盖率 < 80% → 扩展基元集合（如"拓扑保持变形"、"对偶转换"等）

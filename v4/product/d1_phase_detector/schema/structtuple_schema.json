@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StructTuple",
+  "description": "Structural-dynamics fingerprint of a company at a point in time. Maps a company to one of the V4 universality classes plus critical-point state, supporting evidence, and early-warning indicators. Used by the Phase Detector product to drive screener / report / projections.",
+  "type": "object",
+  "required": [
+    "ticker",
+    "as_of_date",
+    "dynamics_family",
+    "critical_point_state",
+    "structural_summary",
+    "confidence",
+    "evidence_anchors"
+  ],
+  "properties": {
+    "ticker": {
+      "type": "string",
+      "description": "Stock ticker symbol, e.g. AAPL. Uppercase. Exchange-prefix optional (e.g. NYSE:JPM)."
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Legal or common name. Optional but recommended."
+    },
+    "as_of_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Snapshot date in YYYY-MM-DD. A StructTuple is point-in-time; multiple snapshots track structural drift."
+    },
+    "dynamics_family": {
+      "type": "string",
+      "enum": [
+        "preferential_attachment",
+        "hysteresis_preisach",
+        "scheffer_fold",
+        "motter_lai_cascade",
+        "soc_threshold_cascade",
+        "reflexive_fixed_point",
+        "extreme_value_tail",
+        "linear_quasi_equilibrium",
+        "mixed_or_unclear"
+      ],
+      "description": "Which V4 universality class best describes this company's growth/risk dynamics."
+    },
+    "critical_point_state": {
+      "type": "string",
+      "enum": [
+        "far_from_critical",
+        "approaching_critical",
+        "at_critical",
+        "post_critical_transition",
+        "unknown"
+      ],
+      "description": "Where the company sits relative to its phase-transition / bifurcation point right now."
+    },
+    "structural_summary": {
+      "type": "string",
+      "maxLength": 600,
+      "description": "30-second TL;DR for end users. Plain English. No jargon explosions."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Model self-reported confidence that this StructTuple is correct. Calibrated downstream."
+    },
+    "evidence_anchors": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 5,
+      "description": "Public facts grounding the dynamics_family + critical_point_state assignments. Each anchor is a concrete fact that an analyst could verify.",
+      "items": {
+        "type": "object",
+        "required": ["fact", "source"],
+        "properties": {
+          "fact": {
+            "type": "string",
+            "description": "Concrete claim, e.g. 'iOS app store revenue grew 15% CAGR 2020-2025'."
+          },
+          "source": {
+            "type": "string",
+            "description": "Where this fact is verifiable, e.g. '10-K 2025 segment breakdown' or 'Statista 2025'."
+          },
+          "metric_value": {
+            "type": "string",
+            "description": "Optional numeric anchor, e.g. '15% CAGR' or '$394B 2025 revenue'."
+          }
+        }
+      }
+    },
+    "early_warning_indicators": {
+      "type": "object",
+      "description": "Critical Slowing Down (CSD) and related early-warning signals. From Scheffer et al. 2009 'Early-warning signals for critical transitions'.",
+      "properties": {
+        "ar1_trend": {
+          "type": "string",
+          "enum": ["rising", "stable", "falling", "n/a"],
+          "description": "Trend in lag-1 autocorrelation of a relevant time series. Rising = CSD positive."
+        },
+        "variance_trend": {
+          "type": "string",
+          "enum": ["rising", "stable", "falling", "n/a"],
+          "description": "Trend in rolling variance. Rising = approach to bifurcation."
+        },
+        "tail_exponent_drift": {
+          "type": "string",
+          "enum": ["heavy_tail_steepening", "stable", "heavy_tail_thinning", "n/a"],
+          "description": "Whether the return / cashflow tail is getting heavier (more critical) or thinner."
+        }
+      }
+    },
+    "v4_class_alignment": {
+      "type": "object",
+      "description": "Mapping to V4 taxonomy v2 classes (from B3 ensemble). Key = class_id, value = membership probability 0-1. Filled in by next-session pipeline.",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0
+      }
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "earthquake": {
+    "status": "ok",
+    "n": 37298,
+    "alpha_known": 1.79,
+    "s_star_99pctl": 1995262314.9688828,
+    "value_range": [
+      4731512.589614812,
+      1995262314968.8748
+    ],
+    "ccdf_points": 120
+  },
+  "stockmarket": {
+    "status": "ok",
+    "n": 9060,
+    "alpha_known": 3.0,
+    "s_star_99pctl": 0.039271393434312435,
+    "value_range": [
+      3.286108348987682e-06,
+      0.12765219747281709
+    ],
+    "ccdf_points": 120
+  },
+  "wildfire": {
+    "status": "ok",
+    "n": 21022,
+    "alpha_known": 1.66,
+    "s_star_99pctl": 25839.986300000066,
+    "value_range": [
+      0.000630467857042374,
+      1032648.0
+    ],
+    "ccdf_points": 120
+  },
+  "solar": {
+    "status": "ok",
+    "n": 29907,
+    "alpha_known": 2.19,
+    "s_star_99pctl": 5.6e-05,
+    "value_range": [
+      6.3e-08,
+      0.0009000000000000001
+    ],
+    "ccdf_points": 120
+  },
+  "bank_failure": {
+    "status": "ok",
+    "n": 3960,
+    "alpha_known": 1.9,
+    "s_star_99pctl": 7301312079.999968,
+    "value_range": [
+      14000.0,
+      1471631047000.0
+    ],
+    "ccdf_points": 120
+  },
+  "github_stars": {
+    "status": "ok",
+    "n": 8398,
+    "alpha_known": 2.87,
+    "s_star_99pctl": 110633.97000000006,
+    "value_range": [
+      248.0,
+      500996.0
+    ],
+    "ccdf_points": 120
+  },
+  "defi_aave": {
+    "status": "ok",
+    "n": 28943,
+    "alpha_known": 1.68,
+    "s_star_99pctl": 2.244161622221753e+23,
+    "value_range": [
+      1.0,
+      5.257619333213992e+24
+    ],
+    "ccdf_points": 120
+  }
+}

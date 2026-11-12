@@ -1,0 +1,1165 @@
+/* =============================================================
+ * /assets/css/ask.css — Perplexity-like ask UI (W2-A)
+ *
+ * Two states share the same <main class="ask-main">:
+ *   .ask-empty   — pre-submit landing (huge brand + searchbox + chips)
+ *   .ask-thread  — post-submit stream (one or more thread items + sticky followup)
+ *
+ * Tokens come from shared-tokens.css:
+ *   --brand-ink, --brand-paper, --brand-accent, --brand-line, --brand-muted
+ *   --brand-paper-card, --brand-paper-soft, --brand-ink-soft,
+ *   --brand-accent-hover, --brand-accent-soft, --brand-accent-ring
+ * ============================================================= */
+
+/* ---- container ------------------------------------------------ */
+
+.ask-main {
+  min-height: calc(100vh - 64px - 80px); /* header 64 + footer ~80 */
+  background: var(--brand-paper);
+  padding: 0 20px;
+}
+
+/* SESSION-25 Variant B: homepage (body.is-home) gets the warm ink-tinted
+ * hero background — Bear/Anthropic "good paper" feel without going beige.
+ * The /ask conversation page keeps the cold-neutral var(--brand-paper). */
+body.is-home .ask-main {
+  background:
+    radial-gradient(ellipse 1200px 600px at 50% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+    linear-gradient(180deg, #F7F4ED 0%, #F4F0E6 100%);
+  background-attachment: fixed;
+}
+
+/* ============================================================
+ * Empty state
+ * ============================================================ */
+
+.ask-empty {
+  /* SESSION-25 Variant B: widened to host the 768px Perplexity-form box. */
+  max-width: 808px;
+  margin: 0 auto;
+  padding: 96px 0 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* SESSION-17: the hero headline is now a sentence (copy proposal D),
+   not the "Structural" wordmark — sized as an editorial headline, not a
+   72px logotype. The brand wordmark lives in the site-header. */
+.ask-empty__brand {
+  font-family: "Noto Serif SC", serif;
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: var(--brand-ink);
+  margin: 0 0 18px;
+  line-height: 1.32;
+  max-width: 16em;
+}
+
+.ask-empty__tagline {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--brand-ink-soft);
+  margin: 0 0 32px;
+  max-width: 580px;
+}
+
+/* Wait-time expectation line under the search box (fixes the "no wait
+   expectation" P0 — a 2-3 min report must not feel like a hang). */
+.ask-empty__hint {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--brand-muted);
+}
+
+/* ---- searchbox (empty state, large) — SESSION-25 Variant B Perplexity-form ---- */
+/* Perplexity-scale (768px max-width) on a pure white card, sitting on the
+ * warm ink-tinted hero background (see body.is-home in home.css). The card
+ * needs less shadow because the contrast against the off-white background
+ * already separates it. All transitions use the cubic-bezier "Apple ease". */
+
+.ask-searchbox {
+  position: relative;
+  width: 100%;
+  max-width: 768px;
+  background: var(--brand-paper-card);
+  border: 1px solid #E8E2D5;          /* warm hairline to harmonise with hero */
+  border-radius: 20px;
+  padding: 24px 28px 20px;
+  /* Warm-tinted soft elevation — same depth as Perplexity but tuned to
+     the ink-warm hero, not cold neutral. */
+  box-shadow:
+    0 1px 2px rgba(58, 50, 30, 0.04),
+    0 6px 20px rgba(58, 50, 30, 0.06);
+  transition:
+    border-color 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Inner top-edge highlight — letterpress depth in good light. */
+.ask-searchbox::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.ask-searchbox:focus-within {
+  border-color: #D8D1C0;
+  box-shadow:
+    0 2px 4px rgba(58, 50, 30, 0.05),
+    0 14px 36px rgba(58, 50, 30, 0.10),
+    0 4px 10px rgba(58, 50, 30, 0.05);
+  transform: translateY(-1px);
+}
+
+.ask-searchbox__input {
+  position: relative;     /* sit above the ::before highlight */
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--brand-ink);
+  resize: none;
+  /* Scheme A: starts at one row, JS auto-grow expands on input. */
+  min-height: 60px;
+  max-height: 240px;
+  overflow-y: hidden;
+  padding: 0;
+  letter-spacing: -0.005em;
+}
+.ask-searchbox__input::placeholder {
+  color: #A6A19A;         /* warm muted to match hero */
+  font-weight: 400;
+}
+
+.ask-searchbox__footer {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 0;
+}
+
+.ask-searchbox__hint {
+  font-size: 12px;
+  color: var(--brand-muted);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  /* Variant B: always visible (Perplexity does NOT hide its shortcut hint
+     until focus — the always-on cue teaches keyboard users on first paint). */
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+.ask-searchbox:focus-within .ask-searchbox__hint {
+  opacity: 1;
+}
+
+/* W6-D (session #7 P1 backlog): live char counter.
+ * Default: muted gray, only visible when typing.
+ * Warn (data-state="warn"): orange at ≥75% of cap.
+ * Stop (data-state="stop"): red at ≥100% (8000); paired with maxlength
+ * attr on the textarea so the browser also enforces the hard stop. */
+.ask-searchbox__counter {
+  font-size: 12px;
+  color: var(--brand-muted);
+  margin: 0 12px;
+  font-variant-numeric: tabular-nums;
+  font-family: "JetBrains Mono", monospace;
+  transition: color 0.15s;
+}
+.ask-searchbox__counter[data-state="warn"] {
+  color: #c97a18;
+}
+.ask-searchbox__counter[data-state="stop"] {
+  color: #c03030;
+  font-weight: 500;
+}
+.ask-searchbox__counter[data-state="stop"]::after {
+  content: " — 已达上限";
+  font-weight: 400;
+}
+.ask-followup-box__counter {
+  margin: 4px 0 0 4px;
+  display: block;
+  text-align: right;
+}
+.ask-searchbox__hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  background: rgba(58, 50, 30, 0.05);
+  border: 1px solid #E8E2D5;
+  border-bottom-width: 1.5px;       /* Variant B: faint physical key depth */
+  border-radius: 5px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--brand-ink-soft);
+  margin: 0 1px;
+  line-height: 1.4;
+}
+
+/* Variant B (SESSION-25 v2): 48×48 rounded-square submit. NO BLUE.
+ * Empty/inert state: warm-ink-tinted soft fill. Filled/hover state:
+ * solid ink-dark (#27272A) — Bear/Notion tool feel that stays in
+ * the warm paper colour family. Per user feedback "去掉蓝色". */
+.ask-searchbox__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  background: rgba(58, 50, 30, 0.06);
+  color: #71717A;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition:
+    background 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ask-searchbox__submit:hover:not(:disabled) {
+  background: #27272A;
+  color: #fff;
+  transform: translateY(-1px);
+  /* Warm-ink shadow (not blue) to stay inside the paper colour family. */
+  box-shadow:
+    0 4px 14px rgba(58, 50, 30, 0.18),
+    0 1px 2px rgba(58, 50, 30, 0.14);
+}
+.ask-searchbox__submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(58, 50, 30, 0.14);
+}
+.ask-searchbox__submit:disabled {
+  background: rgba(58, 50, 30, 0.04);
+  color: #C9C2B5;
+  cursor: not-allowed;
+}
+/* When form has text, the submit goes solid ink-dark (the "ready-to-fire"
+ * affordance from Variant B — but ink instead of accent blue). */
+.ask-searchbox.is-filled .ask-searchbox__submit:not(:disabled) {
+  background: #27272A;
+  color: #fff;
+}
+.ask-searchbox.is-filled .ask-searchbox__submit:not(:disabled):hover {
+  background: #18181B;
+}
+/* While submitting the button is disabled but should stay accent
+   blue so the white spinner reads clearly. */
+.ask-searchbox__submit.is-loading:disabled {
+  background: var(--brand-accent);
+  cursor: progress;
+}
+
+/* Spinner shown only while a submit is in flight (.is-loading). */
+.ask-searchbox__submit-spinner {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ask-spin 0.6s linear infinite;
+}
+.ask-searchbox__submit.is-loading .ask-searchbox__submit-arrow {
+  display: none;
+}
+.ask-searchbox__submit.is-loading .ask-searchbox__submit-spinner {
+  display: block;
+}
+@keyframes ask-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- examples chips ---- */
+
+.ask-empty__examples {
+  /* Scheme A: tuck the chips close under the search box. */
+  margin-top: 16px;
+  width: 100%;
+  max-width: 660px;
+}
+.ask-empty__examples-label {
+  /* Scheme A: drop the uppercase heading down to one quiet gray line. */
+  font-size: 12px;
+  color: var(--brand-muted);
+  margin-bottom: 10px;
+}
+.ask-empty__examples-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* SESSION-27 Variant B color extension: chips drop blue accent and join
+ * the warm-ink paper family (matches hero searchbox + ink-dark submit).
+ * Inert state: warm-ink soft fill on warm hairline. Hover: solid ink-dark
+ * background like the submit button, white text. Geometry tuned for the
+ * "克制留白" PM aesthetic — 12px radius (squarer than the old 999px pill),
+ * 8×14 padding, 14px text. */
+.ask-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgba(58, 50, 30, 0.05);
+  border: 1px solid #E8E2D5;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #3F3F46;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.05s;
+}
+.ask-chip:hover {
+  background: #27272A;
+  border-color: #27272A;
+  color: #FFFFFF;
+}
+.ask-chip:active { transform: scale(0.97); }
+
+/* ---- empty state footer links ---- */
+
+.ask-empty__footer {
+  margin-top: 56px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--brand-muted);
+}
+.ask-empty__link {
+  color: var(--brand-ink-soft);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.ask-empty__link:hover { color: var(--brand-accent); }
+.ask-empty__sep { color: var(--brand-line-strong); }
+
+/* ============================================================
+ * Thread state
+ * ============================================================ */
+
+.ask-thread {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 0 160px;
+}
+.ask-thread__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.ask-thread-item {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--brand-line);
+}
+.ask-thread-item:last-of-type {
+  border-bottom: none;
+}
+
+/* ---- query header ---- */
+
+.ask-thread-item__query {
+  font-family: "Noto Serif SC", serif;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--brand-ink);
+  margin: 0;
+}
+
+.ask-thread-item__meta {
+  font-size: 12px;
+  color: var(--brand-muted);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.ask-thread-item__meta-rewritten {
+  font-style: italic;
+}
+
+/* ---- section labels ---- */
+
+.ask-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--brand-muted);
+  font-weight: 600;
+  margin: 4px 0 10px;
+}
+.ask-section-label svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+/* ---- KB cards (horizontal scroll, top-5) ---- */
+
+.ask-thread-item__cards {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+.ask-thread-item__cards::-webkit-scrollbar { height: 6px; }
+.ask-thread-item__cards::-webkit-scrollbar-thumb {
+  background: var(--brand-line-strong);
+  border-radius: 3px;
+}
+
+.ask-kb-card {
+  flex: 0 0 220px;
+  scroll-snap-align: start;
+  padding: 12px 14px;
+  background: var(--brand-paper-card);
+  border: 1px solid var(--brand-line);
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s;
+}
+
+.ask-kb-card--candidate {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ask-kb-card__select {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: inherit;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.ask-kb-card--candidate:focus-visible {
+  outline: 2px solid var(--accent, #4f46e5);
+  outline-offset: 2px;
+}
+
+.ask-kb-card--selected {
+  border-color: var(--accent, #4f46e5);
+  background: color-mix(in srgb, var(--accent, #4f46e5) 7%, white);
+  box-shadow: 0 0 0 1px var(--accent, #4f46e5);
+}
+
+.ask-kb-card__body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ask-kb-card__basis {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.ask-kb-card__source {
+  flex: none;
+  color: var(--accent, #4f46e5);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.ask-kb-card__source:hover { text-decoration: underline; }
+
+.ask-kb-card__evidence {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 8px;
+  width: 100%;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #e4e4e7);
+}
+
+.ask-kb-card__evidence div { display: grid; gap: 2px; }
+.ask-kb-card__evidence dt { color: var(--text-tertiary); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.ask-kb-card__evidence dd { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+
+.ask-thread-item__candidate-prompt {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ask-thread-item__save-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 620px;
+  color: var(--color-text-secondary, #52525b);
+  font-size: 13px;
+  line-height: 1.55;
+  cursor: pointer;
+}
+
+.ask-thread-item__save-choice input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--color-accent, #18181b);
+}
+
+.ask-thread-item__save-choice strong {
+  color: var(--color-text, #18181b);
+  font-weight: 600;
+}
+
+.ask-fingerprint {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid var(--border, #e4e4e7);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 40px -28px rgba(24, 24, 27, 0.4);
+}
+
+.ask-fingerprint__head,
+.ask-fingerprint__actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ask-fingerprint__head h2 { margin: 2px 0 16px; font-size: 18px; }
+.ask-fingerprint__eyebrow { margin: 0; color: var(--text-tertiary); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.ask-fingerprint__intro { margin: -8px 0 18px; color: var(--text-secondary); font-size: 13px; line-height: 1.55; }
+.ask-fingerprint__close { display: grid; width: 44px; height: 44px; place-items: center; border: 0; background: transparent; color: var(--text-tertiary); font-size: 24px; cursor: pointer; }
+.ask-fingerprint__close:focus-visible { outline: 2px solid var(--accent, #4f46e5); outline-offset: 1px; }
+.ask-fingerprint__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ask-fingerprint__field { display: grid; gap: 6px; margin-bottom: 12px; color: var(--text-secondary); font-size: 13px; font-weight: 600; }
+.ask-fingerprint__field small { color: var(--text-tertiary); font-weight: 400; }
+.ask-fingerprint__status { display: inline-flex; margin-left: 4px; padding: 2px 6px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-size: 10px; font-style: normal; font-weight: 700; }
+.ask-fingerprint__status--unknown { background: #f4f4f5; color: #52525b; }
+.ask-fingerprint__field input,
+.ask-fingerprint__field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border, #d4d4d8); border-radius: 8px; background: #fff; color: var(--text-primary); font: inherit; font-weight: 400; }
+.ask-fingerprint__field input:focus,
+.ask-fingerprint__field textarea:focus { outline: 2px solid var(--accent, #4f46e5); outline-offset: 1px; }
+#ask-fingerprint-error { color: #b91c1c; font-size: 12px; }
+.ask-fingerprint__buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+.ask-thread-item__fingerprint { display: grid; gap: 5px; margin: 12px 0 18px; padding: 14px; border-left: 3px solid var(--accent, #4f46e5); background: #fafafa; color: var(--text-secondary); font-size: 12px; }
+.ask-thread-item__fingerprint p { margin: 0; color: var(--text-primary); font-size: 14px; }
+
+@media (max-width: 640px) {
+  .ask-fingerprint { padding: 16px; }
+  .ask-fingerprint__grid { grid-template-columns: 1fr; gap: 0; }
+  .ask-fingerprint__actions { align-items: stretch; flex-direction: column; }
+  .ask-fingerprint__buttons { display: grid; }
+  .ask-fingerprint__actions .btn { min-height: 44px; width: 100%; }
+}
+.ask-kb-card:hover {
+  border-color: var(--brand-accent);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
+  transform: translateY(-1px);
+}
+
+.ask-kb-card__idx {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  background: var(--brand-accent-soft);
+  color: var(--brand-accent);
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+}
+.ask-kb-card__domain {
+  font-size: 11px;
+  color: var(--brand-muted);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.ask-kb-card__name {
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--brand-ink);
+}
+.ask-kb-card__score {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--brand-ink-soft);
+  margin-top: auto;
+}
+
+/* ---- answer area (typewriter) ---- */
+
+.ask-thread-item__answer {
+  font-size: 15.5px;
+  line-height: 1.78;
+  color: var(--brand-ink);
+  background: var(--brand-paper-card);
+  border: 1px solid var(--brand-line);
+  border-radius: 12px;
+  padding: 22px 26px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ask-thread-item__answer p {
+  margin: 0 0 12px;
+}
+.ask-thread-item__answer p:last-child {
+  margin-bottom: 0;
+}
+
+.ask-citation {
+  display: inline-block;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  margin: 0 1px;
+  padding: 0 5px;
+  background: var(--brand-accent-soft);
+  color: var(--brand-accent);
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  vertical-align: 2px;
+  transition: background 0.15s;
+}
+.ask-citation:hover {
+  background: var(--brand-accent);
+  color: var(--brand-paper-card);
+}
+
+.ask-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  background: var(--brand-accent);
+  vertical-align: -3px;
+  margin-left: 2px;
+  animation: ask-caret-blink 1s steps(2) infinite;
+}
+@keyframes ask-caret-blink {
+  to { opacity: 0; }
+}
+
+.ask-thread-item__answer-empty {
+  color: var(--brand-muted);
+  font-style: italic;
+}
+
+/* ---- citations bar (after answer) ---- */
+
+.ask-thread-item__citations-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.ask-citation-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--brand-paper-soft);
+  border: 1px solid var(--brand-line);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--brand-ink-soft);
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.ask-citation-link:hover {
+  border-color: var(--brand-accent);
+  color: var(--brand-accent);
+  background: var(--brand-accent-soft);
+}
+.ask-citation-link__idx {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--brand-accent);
+}
+
+/* ---- similar phenomena (horizontal, 3 cards) ---- */
+
+.ask-thread-item__similar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.ask-similar-card {
+  padding: 12px 14px;
+  background: var(--brand-paper-card);
+  border: 1px solid var(--brand-line);
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s;
+}
+.ask-similar-card:hover {
+  border-color: var(--brand-accent);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
+  transform: translateY(-1px);
+}
+.ask-similar-card__domain {
+  font-size: 11px;
+  color: var(--brand-muted);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.ask-similar-card__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--brand-ink);
+  line-height: 1.4;
+}
+.ask-similar-card__metric {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--brand-ink-soft);
+  margin-top: auto;
+}
+
+/* ---- followups (3 vertical buttons) ---- */
+
+.ask-thread-item__followups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ask-followup-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--brand-paper-card);
+  border: 1px solid var(--brand-line);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--brand-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.05s;
+}
+.ask-followup-btn:hover {
+  border-color: var(--brand-accent);
+  background: var(--brand-accent-soft);
+  color: var(--brand-accent);
+}
+.ask-followup-btn:active { transform: scale(0.99); }
+.ask-followup-btn__arrow {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+}
+
+/* ---- deep analysis CTA (primary button) ---- */
+
+.ask-thread-item__deep-cta {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--brand-ink);
+  color: var(--brand-paper-card);
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.ask-thread-item__deep-cta:hover {
+  background: #000;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.ask-thread-item__deep-cta:active { transform: scale(0.98); }
+
+/* ---- error state ---- */
+
+.ask-thread-item__error {
+  padding: 16px 20px;
+  background: #FFF7ED;
+  border: 1px solid #FDBA74;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #9A3412;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.ask-thread-item__error-retry {
+  padding: 6px 14px;
+  background: #9A3412;
+  color: #FFF;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ask-thread-item__error-retry:hover { background: #7C2D12; }
+
+/* ---- loading skeleton ---- */
+
+.ask-skeleton {
+  height: 14px;
+  background: linear-gradient(90deg, var(--brand-paper-soft) 0%, var(--brand-line) 50%, var(--brand-paper-soft) 100%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: ask-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes ask-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.ask-skeleton--line { margin-bottom: 8px; }
+.ask-skeleton--w-90 { width: 90%; }
+.ask-skeleton--w-75 { width: 75%; }
+.ask-skeleton--w-60 { width: 60%; }
+
+/* ---- followup sticky box (bottom) ---- */
+
+.ask-followup-box {
+  position: sticky;
+  bottom: 16px;
+  margin-top: 8px;
+  background: var(--brand-paper-card);
+  border: 1.5px solid var(--brand-line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ask-followup-box:focus-within {
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 0 4px var(--brand-accent-ring), 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.ask-followup-box__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--brand-ink);
+  resize: none;
+  min-height: 42px;
+}
+.ask-followup-box__input::placeholder {
+  color: var(--brand-muted);
+}
+.ask-followup-box__submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--brand-ink);
+  color: var(--brand-paper-card);
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.05s;
+}
+.ask-followup-box__submit:hover { background: #000; }
+.ask-followup-box__submit:active { transform: scale(0.96); }
+.ask-followup-box__submit:disabled {
+  background: var(--brand-line-strong);
+  cursor: not-allowed;
+}
+
+/* ============================================================
+ * Mobile (< 768px)
+ * ============================================================ */
+
+@media (max-width: 768px) {
+  .ask-main {
+    padding: 0 14px;
+  }
+  .ask-empty {
+    padding: 48px 0 40px;
+  }
+  .ask-empty__brand {
+    font-size: 31px;
+  }
+  .ask-empty__tagline {
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+  .ask-searchbox {
+    padding: 14px 14px 10px;
+  }
+  .ask-searchbox__input {
+    font-size: 16px;
+    min-height: 60px;
+  }
+  .ask-empty__examples {
+    margin-top: 28px;
+  }
+  .ask-empty__examples-chips {
+    justify-content: flex-start;
+  }
+  .ask-chip {
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+  .ask-empty__footer {
+    margin-top: 36px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .ask-thread {
+    padding: 20px 0 140px;
+  }
+  .ask-thread-item__query {
+    font-size: 21px;
+  }
+  .ask-thread-item__answer {
+    font-size: 14.5px;
+    padding: 16px 18px;
+  }
+  .ask-thread-item__similar {
+    grid-template-columns: 1fr;
+  }
+  .ask-kb-card {
+    flex: 0 0 180px;
+  }
+  .ask-followup-box {
+    bottom: 8px;
+    padding: 10px 12px;
+  }
+  .ask-followup-box__input {
+    font-size: 14px;
+  }
+}
+
+/* ============================================================
+ * Mobile (<= 480px, narrow viewports e.g. iPhone SE 375px) — W3-B
+ * ------------------------------------------------------------
+ * The 768px block handles tablet+. At 375px the brand mark, chips and
+ * fixed followup box need tighter values. Only override declarations
+ * whose 768px values are still too generous for a narrow phone.
+ * ============================================================ */
+
+@media (max-width: 480px) {
+  .ask-main {
+    padding: 0 12px;
+  }
+  .ask-empty {
+    padding: 32px 0 28px;
+  }
+  .ask-empty__brand {
+    font-size: 26px;
+    letter-spacing: -0.3px;
+  }
+  .ask-empty__tagline {
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+  .ask-searchbox {
+    padding: 12px 12px 8px;
+    border-radius: 12px;
+  }
+  .ask-searchbox__input {
+    font-size: 15px;
+    min-height: 52px;
+    padding: 4px 2px;
+  }
+  .ask-empty__examples-chips {
+    /* Allow horizontal wrap without overflow; align left to match input */
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .ask-chip {
+    font-size: 12px;
+    padding: 7px 11px;
+    /* Prevent a long chip label forcing horizontal scroll */
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+    line-height: 1.4;
+  }
+
+  /* Thread items — query line at 21px wraps fine, but the answer + KB
+     cards need extra padding trimming. */
+  .ask-thread-item__answer {
+    font-size: 14px;
+    padding: 14px 14px;
+    border-radius: 10px;
+  }
+  .ask-thread-item__cards {
+    /* Snap to KB cards so swipe lands cleanly on one card */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .ask-kb-card {
+    flex: 0 0 160px;
+    scroll-snap-align: start;
+  }
+
+  /* Fixed followup box must respect iOS safe area inset so the input
+     does not hide behind the home-indicator bar. */
+  .ask-followup-box {
+    bottom: 0;
+    left: 8px;
+    right: 8px;
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    border-radius: 12px;
+  }
+  .ask-followup-box__input {
+    font-size: 14px;
+  }
+}
+
+/* ============================================================
+ * Reduced motion: kill blinking / shimmer
+ * ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-caret { animation: none; opacity: 0.6; }
+  .ask-skeleton { animation: none; }
+}
+
+/* ============================================================
+ * Explore cards (W3-C session #9 first-fold strengthening)
+ * ------------------------------------------------------------
+ * Sits between examples chips and footer links. Three cards in
+ * a row on desktop, single column on mobile. Visual style stays
+ * consistent with the rest of the empty state: white card,
+ * grey border, accent hover.
+ * ============================================================ */
+
+.ask-empty__explore {
+  margin-top: 48px;
+  width: 100%;
+  max-width: 880px;
+}
+.ask-empty__explore-label {
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--brand-muted);
+  margin-bottom: 14px;
+}
+.ask-empty__explore-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.explore-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 18px 16px;
+  background: var(--brand-paper-card);
+  border: 1px solid var(--brand-line);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s, transform 0.05s;
+}
+.explore-card:hover {
+  border-color: var(--brand-accent);
+  background: var(--brand-accent-soft);
+}
+.explore-card:active { transform: scale(0.99); }
+.explore-card__icon {
+  /* SESSION-17 P2-1: holds a single-colour line SVG icon. */
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  color: var(--brand-muted);
+}
+.explore-card:hover .explore-card__icon { color: var(--brand-accent); }
+.explore-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  letter-spacing: -0.1px;
+}
+.explore-card__desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--brand-muted);
+}
+
+@media (max-width: 768px) {
+  .ask-empty__explore {
+    margin-top: 32px;
+  }
+  .ask-empty__explore-cards {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .explore-card {
+    padding: 14px 14px 12px;
+  }
+}

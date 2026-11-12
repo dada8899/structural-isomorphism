@@ -1,0 +1,24 @@
+{"rank": 15, "a_name": "多基因风险评分", "b_name": "历史档案模糊匹配", "final_score": 8.0, "v1_sim": 0.9372562170028687, "v2_sim": 0.763863205909729, "agreement": "high"}
+{"rank": 1, "a_name": "Phi 累积故障检测器", "b_name": "梯度裁剪", "final_score": 9, "v1_sim": 0.9606325626373291, "v2_sim": 0.5981358885765076, "agreement": "high"}
+{"rank": 1, "a_name": "TLB 快表地址翻译加速", "b_name": "KV缓存推理加速机制", "final_score": 9, "v1_sim": 0.9606325626373291, "v2_sim": 0.5981358885765076, "agreement": "high"}
+{"rank": 1, "a_name": "二级价格歧视与信息租金", "b_name": "鲁棒控制的H∞范数", "final_score": 8.5, "v1_sim": 0.9606325626373291, "v2_sim": 0.5981358885765076, "agreement": "high"}
+{"rank": 1, "a_name": "健康工人效应", "b_name": "分布外泛化", "final_score": 8.5, "v1_sim": 0.9606325626373291, "v2_sim": 0.5981358885765076, "agreement": "high"}
+{"rank": 1, "a_name": "路径积分对偶(d维量子→d+1维经典)", "b_name": "神经切线核(无限宽NN→核回归)", "final_score": 8, "v1_sim": 0.9606325626373291, "v2_sim": 0.5981358885765076, "agreement": "high"}
+{"rank": 1, "a_name": "RCU 读写无锁同步机制", "b_name": "TCP TIME_WAIT 状态", "final_score": 8, "v1_sim": 0.9606325626373291, "v2_sim": 0.5981358885765076, "agreement": "high"}
+{"rank": 3, "a_name": "二度价格歧视与自选择菜单", "b_name": "人类反馈强化学习对齐", "final_score": 8, "v1_sim": 0.9528605937957764, "v2_sim": 0.2715788781642914, "agreement": "medium"}
+{"rank": 3, "a_name": "杠杆顺周期放大机制", "b_name": "AMM恒定乘积曲线", "final_score": 8, "v1_sim": 0.9528605937957764, "v2_sim": 0.2715788781642914, "agreement": "medium"}
+{"rank": 8, "a_name": "Spoofing Across Markets", "b_name": "Quote Stuffing与闪电贷预言机操纵", "final_score": 8.0, "v1_sim": 0.9400333762168884, "v2_sim": 0.24663987755775452, "agreement": "medium"}
+{"rank": 8, "a_name": "竞争风险生存分析", "b_name": "压力测试非线性损失聚合", "final_score": 8, "v1_sim": 0.9400333762168884, "v2_sim": 0.24663987755775452, "agreement": "medium"}
+{"rank": 2, "a_name": "CRISPR-Cas系统的间隔序列获取", "b_name": "文件系统日志 Journaling 原子写", "final_score": 9, "v1_sim": 0.9529327154159546, "v2_sim": 0.24658209085464478, "agreement": "medium"}
+{"rank": 2, "a_name": "轨道稳定子定理", "b_name": "LoRA低秩矩阵微调", "final_score": 9, "v1_sim": 0.9529327154159546, "v2_sim": 0.24658209085464478, "agreement": "medium"}
+{"rank": 2, "a_name": "非寿险准备金的链梯法", "b_name": "洪水路由的Muskingum方法", "final_score": 8.0, "v1_sim": 0.9529327154159546, "v2_sim": 0.24658209085464478, "agreement": "medium"}
+{"rank": 2, "a_name": "Polycomb抑制标记的S型扩散", "b_name": "止损触发的流动性螺旋", "final_score": 8, "v1_sim": 0.9529327154159546, "v2_sim": 0.24658209085464478, "agreement": "medium"}
+{"rank": 2, "a_name": "抵押品升降级的再质押循环", "b_name": "清算瀑布的级联效应", "final_score": 8.0, "v1_sim": 0.9529327154159546, "v2_sim": 0.24658209085464478, "agreement": "medium"}
+{"rank": 9, "a_name": "In-Band Metadata for Distributed Routing", "b_name": "TraceID Propagation与SRv6 Segment Routing", "final_score": 8.0, "v1_sim": 0.9385933876037598, "v2_sim": 0.2458740472793579, "agreement": "medium"}
+{"rank": 2968, "a_name": "I型超敏反应的肥大细胞脱颗粒", "b_name": "清算级联的链上流动性危机", "final_score": 8, "v1_sim": 0.8624956607818604, "v2_sim": 0.20630431175231934, "agreement": "medium"}
+{"rank": 30, "a_name": "量子误差缓解", "b_name": "模型合并任务向量算术", "final_score": 8, "v1_sim": 0.9243196845054626, "v2_sim": 0.2061043679714203, "agreement": "medium"}
+{"rank": 2945, "a_name": "量子误差缓解", "b_name": "量化感知训练精度保持", "final_score": 9, "v1_sim": 0.8626636862754822, "v2_sim": 0.11030105501413345, "agreement": "medium"}
+{"rank": 4, "a_name": "LDPC码消息传递译码", "b_name": "扩散语言模型离散去噪", "final_score": 8, "v1_sim": 0.9473989009857178, "v2_sim": 0.08773644268512726, "agreement": "medium"}
+{"rank": 4, "a_name": "横断面研究患病率与发病率的差异", "b_name": "压力期间的相关性制度切换", "final_score": 8.0, "v1_sim": 0.9473989009857178, "v2_sim": 0.08773644268512726, "agreement": "medium"}
+{"rank": 27, "a_name": "大模型能力涌现相变现象", "b_name": "信用衍生品的相关性陷阱", "final_score": 8, "v1_sim": 0.9258596897125244, "v2_sim": 0.04263398423790932, "agreement": "medium"}
+{"rank": 2903, "a_name": "信号博弈分离均衡", "b_name": "人类反馈强化学习对齐", "final_score": 8, "v1_sim": 0.8629187941551208, "v2_sim": -0.16669699549674988, "agreement": "medium"}

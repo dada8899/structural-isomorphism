@@ -1,0 +1,40 @@
+{
+  "system": "Oslo rice pile (1D conserved SOC) (SYNTHETIC)",
+  "data_provenance": "SYNTHETIC: 1D Oslo rice-pile model (Christensen-Corral-Frette-Feder-J\u00f8ssang 1996 PRL 77 107; experimental anchor Frette-Christensen-Malthe-S\u00f8rensen-Feder-J\u00f8ssang-Meakin 1996 Nature 379 49 \u2014 long-grain rice in narrow channel). tau_s \u2248 1.55 (Pruessner 2004 PRE 69 048105). Stochastic site thresholds z_c \u2208 {1,2}, open right boundary.",
+  "predicted_class": "oslo_rice_pile",
+  "exponents_predicted": {
+    "tau_size": 1.55
+  },
+  "summary": {
+    "L": 256,
+    "n_warmup": 30000,
+    "n_record": 80000,
+    "n_zero": 29316,
+    "n_nonzero": 50684,
+    "mean_avalanche_size": 326.4522137163602,
+    "max_avalanche_size": 197077,
+    "tau_size_measured": 1.5653058957580375,
+    "tau_size_predicted": 1.55,
+    "tau_size_band": [
+      1.4,
+      1.7
+    ],
+    "in_oslo_band": true,
+    "powerlaw_fit": {
+      "name": "oslo_avalanche_size",
+      "alpha": 1.5653058957580375,
+      "sigma_alpha": 0.005285772519978519,
+      "xmin": 17.0,
+      "n_total": 50684,
+      "n_tail": 11438,
+      "vs_lognormal_R": -2.631411929813877,
+      "vs_lognormal_p": 0.008503090248554234,
+      "vs_exponential_R": 43.17450037524218,
+      "vs_exponential_p": 0.0,
+      "vs_powerlaw_lognormal_winner": "lognormal",
+      "rejects_power_law": true,
+      "ks_statistic": 0.010512465975592966
+    },
+    "overall_verdict": "CONFIRMED"
+  }
+}

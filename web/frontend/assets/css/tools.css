@@ -1,0 +1,172 @@
+/* Tools hub — Session #18.
+   The discovery surface for the seven A-G product directions. Calm, white,
+   generous whitespace; one card grid per functional group. */
+
+.tools-page {
+  max-width: var(--max-content, 920px);
+  margin: 0 auto;
+  padding: var(--space-9, 64px) var(--space-5, 24px) var(--space-10, 96px);
+}
+
+.tools-page__eyebrow {
+  font-size: var(--fs-13, 13px);
+  letter-spacing: var(--ls-wide, 0.06em);
+  color: var(--text-tertiary, #9a958c);
+  text-align: center;
+  margin-bottom: var(--space-4, 16px);
+}
+
+.tools-page__title {
+  font-family: var(--font-hero-page, var(--font-serif));
+  font-size: var(--fs-48, 44px);
+  line-height: var(--lh-tight, 1.15);
+  font-weight: var(--fw-semibold, 600);
+  color: var(--text-primary, #1c1917);
+  text-align: center;
+  margin: 0 0 var(--space-5, 24px);
+}
+
+.tools-page__lede {
+  max-width: 600px;
+  margin: 0 auto var(--space-9, 64px);
+  font-size: var(--fs-18, 18px);
+  line-height: var(--lh-relaxed, 1.7);
+  color: var(--text-secondary, #57534e);
+  text-align: center;
+}
+
+.tools-page__lede strong {
+  color: var(--text-primary, #1c1917);
+  font-weight: var(--fw-semibold, 600);
+}
+
+/* --- group --- */
+.tools-group {
+  margin-bottom: var(--space-9, 64px);
+}
+.tools-group:last-child { margin-bottom: 0; }
+
+.tools-group__label {
+  font-size: var(--fs-13, 13px);
+  font-weight: var(--fw-semibold, 600);
+  letter-spacing: var(--ls-wide, 0.06em);
+  text-transform: uppercase;
+  color: var(--text-tertiary, #9a958c);
+  margin: 0 0 var(--space-4, 16px);
+  padding-bottom: var(--space-2, 8px);
+  border-bottom: 1px solid var(--border-subtle, #ece8e1);
+}
+
+/* --- card grid --- */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: var(--space-4, 16px);
+}
+
+.tool-card {
+  display: block;
+  padding: var(--space-5, 24px);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-default, #e7e3db);
+  border-radius: var(--radius-lg, 12px);
+  text-decoration: none;
+  transition: border-color var(--dur-fast, 120ms) var(--ease-out, ease),
+              box-shadow var(--dur-fast, 120ms) var(--ease-out, ease),
+              transform var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.tool-card:hover {
+  border-color: var(--border-strong, #d6d0c6);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.06));
+  transform: translateY(-2px);
+}
+
+.tool-card:focus-visible {
+  outline: none;
+  border-color: var(--accent, #b45309);
+  box-shadow: var(--shadow-focus, 0 0 0 3px rgba(180,83,9,.18));
+}
+
+/* --- card icon --- a calm, line-only mark so the 9 cards aren't text-only */
+.tool-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: var(--space-3, 12px);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-subtle, #f5f3ef);
+  color: var(--text-tertiary, #9a958c);
+  transition: background var(--dur-fast, 120ms) var(--ease-out, ease),
+              color var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.tool-card__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tool-card:hover .tool-card__icon,
+.tool-card:focus-visible .tool-card__icon {
+  background: var(--accent-subtle, #fdf3e7);
+  color: var(--accent, #b45309);
+}
+
+.tool-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.tool-card__name {
+  font-size: var(--fs-16, 16px);
+  font-weight: var(--fw-semibold, 600);
+  color: var(--text-primary, #1c1917);
+}
+
+.tool-card__badge {
+  font-size: var(--fs-11, 11px);
+  font-weight: var(--fw-semibold, 600);
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm, 5px);
+  color: var(--accent, #b45309);
+  background: var(--accent-subtle, #fdf3e7);
+}
+
+.tool-card__desc {
+  margin: 0;
+  font-size: var(--fs-14, 14px);
+  line-height: var(--lh-relaxed, 1.65);
+  color: var(--text-secondary, #57534e);
+}
+
+@media (max-width: 600px) {
+  .tools-page {
+    padding-top: var(--space-7, 40px);
+    padding-left: var(--space-4, 16px);
+    padding-right: var(--space-4, 16px);
+  }
+  .tools-page__title { font-size: var(--fs-32, 32px); }
+  .tools-page__lede { font-size: var(--fs-16, 16px); }
+  .tools-group { margin-bottom: var(--space-7, 40px); }
+  .tools-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3, 12px);
+  }
+  .tool-card { padding: var(--space-4, 16px); }
+  .tool-card__icon {
+    width: 34px;
+    height: 34px;
+    margin-bottom: var(--space-2, 8px);
+  }
+}
+
+/* Respect reduced-motion: drop the lift transform. */
+@media (prefers-reduced-motion: reduce) {
+  .tool-card,
+  .tool-card:hover { transform: none; }
+}

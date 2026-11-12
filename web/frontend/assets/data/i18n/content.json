@@ -1,0 +1,2617 @@
+{
+  "page.home.entry_title": {"zh": "从你的现象，开始研究", "en": "Start with a phenomenon"},
+  "page.home.entry_description": {"zh": "先描述观察到的现象和希望解决的问题，再核对草稿、保存修订，按需查找线索与来源。不必先知道数学方法或英文术语。", "en": "Describe what you observe and what you want to solve. Review the draft, save revisions, and look for clues and sources when needed. No mathematical method or English terminology is required to begin."},
+  "page.home.entry_scope": {"zh": "当前提供问题记录、本地知识库线索与经批准的来源查询；模型分析和深度研究结论尚未开放。", "en": "You can save problems, search local knowledge clues, and approve source queries. Model analysis and deep research conclusions are not available yet."},
+  "page.home.entry_cta": {"zh": "开始研究", "en": "Start research"},
+  "page.home.entry_kb_cta": {"zh": "查找本地知识库线索", "en": "Find local knowledge clues"},
+  "page.home.entry_kb_hint": {"zh": "知识库内容是待核验的研究线索，不能直接作为解题结论；数学对应关系与适用条件仍需逐项核对。进入研究页后重新输入；这里不会自动传递私有问题。", "en": "Knowledge records are unverified research clues. Check mathematical correspondences and applicability before drawing conclusions for your problem. Enter your problem again on the research page; private input is not transferred automatically."},
+  "page.home.entry_legacy": {"zh": "旧 AI 报告入口已停用。已有资料和旧工具仍可按历史入口查看。", "en": "The old AI report entry is retired. Existing references and legacy tools remain accessible through their historical links."},
+  "page.about.eyebrow": {
+    "zh": "— 关于 Structural —",
+    "en": "— About Structural —"
+  },
+  "page.about.title": {
+    "zh": "万物的形状<br>都在重复",
+    "en": "The shape of everything<br>recurs"
+  },
+  "page.about.lede": {
+    "zh": "Structural 是一个跨领域思维引擎。它检索一个值得检验的可能性：<strong>看似无关的现象，可能共享可比较的变量关系、反馈或方程骨架</strong>。这类相似只形成候选，不等于机制相同；每一对仍需核对变量映射、来源、反例和真实数据。",
+    "en": "Structural is a cross-domain thinking engine. It searches for a testable possibility: <strong>apparently unrelated phenomena may share comparable variable relationships, feedback, or an equation skeleton</strong>. Such similarity is a candidate lead; it does not establish the same mechanism. Each pair still requires checks of the variable mapping, sources, counterexamples, and real data."
+  },
+  "page.about.goal.label": {
+    "zh": "Goal",
+    "en": "Goal"
+  },
+  "page.about.goal.title": {
+    "zh": "整体目标 · 把\"发现跨域同构\"系统化",
+    "en": "Overall goal — systematizing the discovery of cross-domain isomorphism"
+  },
+  "page.about.goal.p1": {
+    "zh": "科学史上的一些关键突破——Shannon 用热力学的熵建立信息论、Black-Scholes 把热传导方程搬到期权定价、模拟退火把冶金过程变成组合优化——都是<strong>\"同一个数学骨架第一次被搬到另一个领域\"的瞬间</strong>。传统上这类跨域借用依赖极少数通才的偶然洞察。",
+    "en": "A number of pivotal moments in the history of science — Shannon importing thermodynamic entropy into information theory, Black and Scholes carrying the heat equation into option pricing, simulated annealing recasting a metallurgical process as combinatorial optimization — are all instances of <strong>the same mathematical skeleton being transplanted into a new domain for the first time</strong>. Historically, such cross-domain borrowings have depended on the serendipitous insight of a small number of polymaths."
+  },
+  "page.about.goal.p2": {
+    "zh": "Structural 想把偶然的跨领域联想变成<strong>可搜索、可质疑、可验证的研究流程</strong>。系统先提出候选结构，再要求核对变量、机制、来源、反例和失败条件。候选不是论文结论；领域专家仍需收集真实数据、确认引用并承担作者责任。",
+    "en": "Structural turns accidental cross-domain analogy into a <strong>searchable, challengeable, and testable research workflow</strong>. The system proposes a candidate structure, then asks for variables, mechanism, sources, counterexamples, and a failure criterion. A candidate is not a paper conclusion; domain experts must still collect real data, verify citations, and take author responsibility."
+  },
+  "page.about.goal.stat1.label": {
+    "zh": "Phenomena<br/>（自然语言知识库）",
+    "en": "Phenomena<br/>(natural-language knowledge base)"
+  },
+  "page.about.goal.stat2.label": {
+    "zh": "优先核查候选<br/>（AI 内部排序）",
+    "en": "Priority-review candidates<br/>(internally AI-ranked)"
+  },
+  "page.about.goal.stat3.label": {
+    "zh": "Universality classes<br/>（V4 等价类引擎聚合）",
+    "en": "Universality classes<br/>(aggregated by the V4 equivalence-class engine)"
+  },
+  "page.about.goal.stat4.label": {
+    "zh": "领域结果记录<br/>（证据强度不一）",
+    "en": "Domain result records<br/>(mixed evidence strength)"
+  },
+  "page.about.why.label": {
+    "zh": "Why",
+    "en": "Why"
+  },
+  "page.about.why.title": {
+    "zh": "为什么这有用",
+    "en": "Why this matters"
+  },
+  "page.about.why.p1": {
+    "zh": "当你在自己的领域里遇到难题，其他学科的模型或实验设计也许能提供候选思路。<strong>相似骨架只提示“值得比较”</strong>——术语、变量和边界条件仍需逐项映射，借用的方法也要在当前问题中验证。",
+    "en": "When you hit a hard problem in your field, models or experiment designs from another discipline may provide candidate ideas. <strong>A similar skeleton only says “worth comparing”</strong>—terms, variables, and boundary conditions still require mapping, and any borrowed method must be validated in the current problem."
+  },
+  "page.about.why.p2": {
+    "zh": "Claude Shannon 借用热力学的\"熵\"奠定了信息论。Black 和 Scholes 把热传导方程搬到金融市场上得到了期权定价公式。模拟退火算法把冶金学的物理过程变成了组合优化的利器。这些跨领域的突破不是偶然——它们都是<strong>结构同构被发现的瞬间</strong>。Structural 想做的是把这种\"发现\"系统化。",
+    "en": "Claude Shannon founded information theory by borrowing entropy from thermodynamics. Black and Scholes derived the option-pricing formula by transplanting the heat equation into financial markets. Simulated annealing turned a metallurgical process into a powerful tool for combinatorial optimization. These cross-domain breakthroughs are not accidents — each is <strong>a moment when a structural isomorphism was recognized</strong>. Structural exists to make that recognition systematic."
+  },
+  "page.about.how.label": {
+    "zh": "How",
+    "en": "How"
+  },
+  "page.about.how.title": {
+    "zh": "它是怎么工作的",
+    "en": "How it works"
+  },
+  "page.about.how.intro": {
+    "zh": "普通搜索主要找字面或语义接近的内容。Structural 还尝试比较变量关系、反馈和阈值等“数学骨架”。这只会产生值得检查的候选：<strong>提取结构草案 → 跨学科检索 → 内部 AI 筛查 → 记录支持、反对或证据不足</strong>，不会自动证明机制相同。",
+    "en": "Ordinary search primarily finds text with similar wording or meaning. Structural also compares candidate variable relationships, feedback loops, and thresholds — a plain-language sense of a mathematical skeleton. This produces leads to inspect, not proof that two systems share a mechanism."
+  },
+  "page.about.how.v1.title": {
+    "zh": "V1 · 广义 embedding（covering recall）",
+    "en": "V1 · General-purpose embedding (covering recall)"
+  },
+  "page.about.how.v1.p1": {
+    "zh": "用 <code>text2vec-base-chinese</code> 作为 backbone，在 84 种结构类型 × 1,214 条人工标注样本上做对比学习微调（MultipleNegativesRankingLoss）。目标是让\"同一结构的不同领域描述\"在 768 维空间中互相靠近，\"不同结构\"互相推开。训练完成后 Silhouette 0.85、Retrieval@5 100%。",
+    "en": "We use <code>text2vec-base-chinese</code> as the backbone and fine-tune it via contrastive learning (MultipleNegativesRankingLoss) on 1,214 manually annotated examples spanning 84 structural types. The objective is to pull descriptions of the <em>same</em> structure from different domains close together in 768-dimensional space, while pushing apart descriptions of different structures. After training, Silhouette = 0.85 and Retrieval@5 = 100%."
+  },
+  "page.about.how.v1.p2": {
+    "zh": "<strong>路径</strong>：自然语言描述 → V1 embedding → cosine 相似度 → top-k。<br><strong>优势</strong>：召回广（在 4,443 KB 上找到 339,913 对高相似跨域配对）。<br><strong>缺点</strong>：精度一般，\"共享关键词\"和\"共享数学\"区分不够。<br><strong>角色</strong>：宽撒网——找潜在候选，不保证质量。",
+    "en": "<strong>Path</strong>: natural-language description → V1 embedding → cosine similarity → top-k.<br><strong>Strengths</strong>: broad recall (339,913 high-similarity cross-domain pairs across the 4,443-item KB).<br><strong>Weaknesses</strong>: modest precision — the model does not cleanly separate \"shared keywords\" from \"shared mathematics\".<br><strong>Role</strong>: wide net — surfacing candidates without guaranteeing quality."
+  },
+  "page.about.how.v2.title": {
+    "zh": "V2 · 严格 embedding（precision retrieval）",
+    "en": "V2 · Strict embedding (precision retrieval)"
+  },
+  "page.about.how.v2.p1": {
+    "zh": "相同的 backbone，但训练集扩到 5,689 条（V1 原始 + 4,475 条新扩展），多了一倍的负样本和跨领域对。这让模型变得更\"挑剔\"——在同一个 4,443 KB 上只产出 <strong>4,533 对高相似配对</strong>（严格度是 V1 的 75×）。",
+    "en": "Same backbone, but the training set is expanded to 5,689 examples (the original V1 set plus 4,475 newly added items), roughly doubling the negatives and cross-domain pairs. The resulting model is substantially more selective — on the same 4,443-item KB it returns only <strong>4,533 high-similarity pairs</strong>, a 75× tightening relative to V1."
+  },
+  "page.about.how.v2.p2": {
+    "zh": "<strong>路径</strong>：自然语言 → V2 embedding → cosine → top-k。<br><strong>评估</strong>：Silhouette 0.55（比 V1 在扩展集上更好）、Retrieval@5 96%。<br><strong>角色</strong>：精度检索——同样是 embedding，但更能分辨浅层关键词相似。",
+    "en": "<strong>Path</strong>: natural language → V2 embedding → cosine → top-k.<br><strong>Evaluation</strong>: Silhouette = 0.55 (better than V1 on the expanded set), Retrieval@5 = 96%.<br><strong>Role</strong>: precision retrieval — still embedding-based, but markedly better at discounting shallow lexical overlap."
+  },
+  "page.about.how.v3.title": {
+    "zh": "V3 · StructTuple + LLM rerank（structural algebra）",
+    "en": "V3 · StructTuple + LLM rerank (structural algebra)"
+  },
+  "page.about.how.v3.intro": {
+    "zh": "前两代的 embedding 都是\"统计相关\"——把文本映射到向量空间看距离。V3 换了一个哲学：如果结构同构的本质是共享数学方程，就必须<strong>显式地表达这些方程</strong>，不是用相关性近似它。",
+    "en": "The first two generations are statistical: they map text into a vector space and read off distances. V3 takes a different stance — if structural isomorphism is fundamentally about sharing a mathematical equation, then the equation itself must be <strong>represented explicitly</strong>, not approximated through correlation."
+  },
+  "page.about.how.v3.bullets_intro": {
+    "zh": "我们用 Kimi/Opus 把 4,443 现象每一条都抽取成一个<strong>结构化元组</strong>（StructTuple），字段包括：",
+    "en": "Using Kimi and Opus, we extract each of the 4,443 phenomena into a <strong>structured tuple</strong> (StructTuple) whose fields include:"
+  },
+  "page.about.how.v3.bullet1": {
+    "zh": "<code>state_vars</code> — 随时间变化的状态变量",
+    "en": "<code>state_vars</code> — the state variables that evolve over time"
+  },
+  "page.about.how.v3.bullet2": {
+    "zh": "<code>dynamics_family</code> — 动力学族：ODE1_exponential_decay / DDE_delayed_feedback / PDE_reaction_diffusion / Bistable_switch / Network_cascade / Phase_transition_1st 等 27 个枚举值",
+    "en": "<code>dynamics_family</code> — the dynamical family, drawn from 27 enumerated values: ODE1_exponential_decay, DDE_delayed_feedback, PDE_reaction_diffusion, Bistable_switch, Network_cascade, Phase_transition_1st, and so on"
+  },
+  "page.about.how.v3.bullet3": {
+    "zh": "<code>feedback_topology</code> — positive_loop / negative_loop / delayed / bistable / none",
+    "en": "<code>feedback_topology</code> — positive_loop / negative_loop / delayed / bistable / none"
+  },
+  "page.about.how.v3.bullet4": {
+    "zh": "<code>boundary_behavior</code> — runaway / saturation / limit_cycle / fold_bifurcation / phase_transition",
+    "en": "<code>boundary_behavior</code> — runaway / saturation / limit_cycle / fold_bifurcation / phase_transition"
+  },
+  "page.about.how.v3.bullet5": {
+    "zh": "<code>timescale_log10_s</code> — 特征时间的数量级",
+    "en": "<code>timescale_log10_s</code> — the order of magnitude of the characteristic timescale"
+  },
+  "page.about.how.v3.bullet6": {
+    "zh": "<code>canonical_equation</code> — 可推断的方程骨架（如 <code>dx/dt = f(x(t-τ)) - g(x)</code>）",
+    "en": "<code>canonical_equation</code> — an inferable equation skeleton, e.g. <code>dx/dt = f(x(t-τ)) - g(x)</code>"
+  },
+  "page.about.how.v3.match_logic": {
+    "zh": "检索时用<strong>字段级硬匹配</strong>：dynamics_family 不同直接拒绝；同族才进入细粒度评分。这过滤掉了\"两个现象都含'反馈'、'阈值'但机制完全不同\"的关键词陷阱。通过后再用 LLM pairwise rerank 做第二次过滤，每对输出 <code>shared_equation</code> 和 <code>variable_mapping</code>。",
+    "en": "Retrieval proceeds by <strong>field-level hard matching</strong>: a mismatch on <code>dynamics_family</code> is an immediate reject, and only same-family pairs advance to fine-grained scoring. This filters out the classic keyword trap in which two phenomena both mention \"feedback\" or \"threshold\" while operating under entirely different mechanisms. Surviving pairs are then re-ranked by a pairwise LLM pass that emits a <code>shared_equation</code> and a <code>variable_mapping</code> for each."
+  },
+  "page.about.how.v3.role": {
+    "zh": "<strong>路径</strong>：自然语言 → LLM 推断 dynamics_family → StructTuple 字段匹配 → LLM rerank → 带候选方程骨架和变量映射的结果。<br><strong>内部观察</strong>：历史内部评分在不同管道间有差异，但评分未做外部校准，不是正确率或论文质量证明。<br><strong>角色</strong>：生成可核查的结构草案；方程、变量对应和引用必须由领域专家复核后才能进入研究方法。",
+    "en": "<strong>Path</strong>: natural language → LLM inference of <code>dynamics_family</code> → StructTuple field matching → LLM rerank → results with a candidate equation skeleton and variable mapping.<br><strong>Internal observation</strong>: historical internal scores differ across pipelines, but they are not externally calibrated and are neither correctness rates nor evidence of paper quality.<br><strong>Role</strong>: generate an inspectable structural draft; domain experts must verify its equation, variable mapping, and sources before it can enter a research method."
+  },
+  "page.about.how.parallel.title": {
+    "zh": "三条管道，候选集合不同",
+    "en": "Three pipelines, different candidate sets"
+  },
+  "page.about.how.parallel.p": {
+    "zh": "历史筛选各保留了 V1 的 24 条、V2 的 19 条和 V3 的 20 条候选，在当时的候选 ID 口径下没有重复。这个集合差异可能来自召回空间、阈值、提示词或抽样，不足以证明三条管道分别发现了结构的不同本质。并集作为 <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63</a> 保存 63 条历史候选；“63”是记录数，不是独立性或质量等级。",
+    "en": "Historical screening retained 24 V1, 19 V2, and 20 V3 candidates, with no duplicate candidate IDs under the definitions used at the time. That set difference could arise from retrieval space, thresholds, prompts, or sampling; it does not show that the pipelines discovered distinct underlying facets. Their union is preserved as <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63</a>: 63 is a record count, not a claim of independence or quality."
+  },
+  "page.about.how.v4.title": {
+    "zh": "V4 · 普适类发现引擎（universality class engine）",
+    "en": "V4 · Universality-class discovery engine"
+  },
+  "page.about.how.v4.intro": {
+    "zh": "V1–V3 产出离散的候选配对。V4 把共享节点或相似描述的配对聚合成<strong>候选结构组</strong>，例如把地震、市场波动、DeFi 清算和神经雪崩放在同一组中比较。聚类只说明它们值得用统一变量表和反例检验；不能据此证明任意两者同构，也不能推出一个更底层的共同规律。",
+    "en": "V1–V3 produce discrete candidate pairs. V4 groups pairs that share nodes or similar descriptions into <strong>candidate structural groups</strong>, for example placing earthquakes, market fluctuations, DeFi liquidations, and neural avalanches in one comparison set. Clustering only makes them worth testing with a common variable ledger and counterexamples; it does not establish pairwise isomorphism or a deeper common law."
+  },
+  "page.about.how.v4.layers_intro": {
+    "zh": "实现分五层：",
+    "en": "Implementation spans five layers:"
+  },
+  "page.about.how.v4.layer1": {
+    "zh": "<strong>Layer 1 · 图建模</strong>——把 SIBD-63 建成图，节点 = 领域现象，边 = 同构对；对语义相近的节点做别名归并（<code>node_aliases.json</code>，人工白名单 + LLM 建议）。",
+    "en": "<strong>Layer 1 · Graph construction</strong> — represent SIBD-63 as a graph in which nodes are domain phenomena and edges are isomorphism pairs, with semantically close nodes merged via an alias table (<code>node_aliases.json</code>, a manual whitelist augmented by LLM suggestions)."
+  },
+  "page.about.how.v4.layer2": {
+    "zh": "<strong>Layer 2 · 连通分量 + Louvain 社区</strong>——用 NetworkX 算 connected components 和 Louvain community，得到 23 个 candidate universality classes。",
+    "en": "<strong>Layer 2 · Connected components and Louvain communities</strong> — compute connected components and Louvain communities with NetworkX, yielding 23 candidate universality classes."
+  },
+  "page.about.how.v4.layer3": {
+    "zh": "<strong>Layer 3 · LLM 精编</strong>——每个 candidate 过 Opus 审核：命名（如 \"Branching-process SOC\"）、核心方程（<code>P(s)∝s⁻ᵗ</code>、<code>γ=(α-1)/(τ-1)</code>）、hub domain、典型 exponent 范围、literature status。",
+    "en": "<strong>Layer 3 · LLM curation</strong> — each candidate is reviewed by Opus, producing a name (e.g. \"Branching-process SOC\"), core equations (<code>P(s)∝s⁻ᵗ</code>, <code>γ=(α-1)/(τ-1)</code>), a hub domain, typical exponent ranges, and literature status."
+  },
+  "page.about.how.v4.layer4": {
+    "zh": "<strong>Layer 4 · 可验证预测</strong>——每个类提炼 1-5 个\"如果成立，某个分布/指数就会是这个值\"的 falsifiable prediction（共 24 个）。",
+    "en": "<strong>Layer 4 · Falsifiable predictions</strong> — for each class we distill one to five falsifiable predictions of the form \"if the class holds, such-and-such distribution or exponent will take this value\" (24 in total)."
+  },
+  "page.about.how.v4.layer5": {
+    "zh": "<strong>Layer 5 · 证据评估</strong>——对较可操作的 SOC 候选记录“数据 → 拟合 → 局限”流程；结果包含支持、拒绝和证据不足，不等于实证确认。",
+    "en": "<strong>Layer 5 · Evidence assessment</strong> — for a tractable SOC candidate, record the data → fit → limitations workflow. Outcomes include support, rejection, and insufficient evidence; this is not empirical confirmation."
+  },
+  "page.about.how.v4.role": {
+    "zh": "<strong>角色</strong>：候选组织器——把 V1-V3 的离散联系归入 23 个待检验结构家族，便于逐领域提出预测和反例。一个领域的结果不能替其他领域完成验证；每项仍待独立复现。浏览候选：<a href=\"/classes\">/classes</a>。",
+    "en": "<strong>Role</strong>: candidate organizer — grouping V1–V3 links into 23 structural families so predictions and counterexamples can be tested per domain. A result in one domain cannot validate another; each remains pending independent replication. Browse the candidates at <a href=\"/classes\">/classes</a>."
+  },
+  "page.about.empirical.label": {
+    "zh": "Empirical",
+    "en": "Empirical"
+  },
+  "page.about.empirical.title": {
+    "zh": "结果记录 · 同一分析框架在多类数据上的表现",
+    "en": "Result records · one analysis framework across varied data"
+  },
+  "page.about.empirical.intro": {
+    "zh": "项目保存了 13 份领域分析与合成对照的结果记录（口径冻结于 2026-07-12，证据账本 v1）。它们复用分析框架，但数据接入、预处理、独立性和证据强度不同；结果包含支持、拒绝、NULL、PARTIAL 和 INCONCLUSIVE，不能算作 13 次独立机制复现。",
+    "en": "The project retains 13 domain-analysis and synthetic-control result records (scope frozen on 2026-07-12, evidence ledger v1). They reuse an analysis framework but differ in data access, preprocessing, independence, and evidence strength. Outcomes include support, rejection, NULL, PARTIAL, and INCONCLUSIVE — not 13 independent mechanism replications."
+  },
+  "page.about.empirical.phase1": {
+    "zh": "<strong>Phase 1 · 地震 / USGS 84k events</strong>：历史分析记录 b-value = 1.084、p = 0.941、τ ≈ 1.67。<span style=\"color: #e8a800;\">⚠️ 与候选范围相容</span>；未完成预注册、稳健性审计和独立复现，不能据此确认机制。",
+    "en": "<strong>Phase 1 · Earthquakes (USGS, 84k events)</strong>: a historical analysis records b-value = 1.084, p = 0.941, and τ ≈ 1.67. <span style=\"color: #e8a800;\">⚠️ Compatible with the candidate range</span>; without preregistration, robustness audit, and independent replication, this does not confirm a mechanism."
+  },
+  "page.about.empirical.phase2": {
+    "zh": "<strong>Phase 2 · S&amp;P 500 日线</strong>：历史分析记录 α ≈ 3.00、p = 0.29。<span style=\"color: #e8a800;\">⚠️ 统计观察</span>；数值与部分文献范围接近，但尚不足以确认连续扩散亚类，也不能与地震合并为同一机制。",
+    "en": "<strong>Phase 2 · S&amp;P 500 daily series</strong>: a historical analysis records α ≈ 3.00 and p = 0.29. <span style=\"color: #e8a800;\">⚠️ Statistical observation</span>; proximity to selected literature ranges does not establish a continuous-diffusion subclass or a mechanism shared with earthquakes."
+  },
+  "page.about.empirical.phase3": {
+    "zh": "<strong>Phase 3 · DeFi 清算级联</strong>（Aave V2 + Compound V2 + MakerDAO，43,065 events）：历史分析记录的 per-protocol α = 1.57-1.68。<span style=\"color: #e8a800;\">⚠️ 跨协议统计相似</span>——协议并非三个独立自然系统，指数接近也不能证明共同机制。",
+    "en": "<strong>Phase 3 · DeFi liquidation cascades</strong> (Aave V2 + Compound V2 + MakerDAO, 43,065 events): a historical analysis records per-protocol α = 1.57–1.68. <span style=\"color: #e8a800;\">⚠️ Cross-protocol statistical similarity</span> — the protocols are not three independent natural systems, and similar exponents do not prove a common mechanism."
+  },
+  "page.about.empirical.phase4": {
+    "zh": "<strong>Phase 4 · 小鼠皮层神经雪崩</strong>（DANDI 000006）：历史拟合的 size exponent τ、lifetime γ 与 task-state 亚临界假说部分相容。<span style=\"color: #e8a800;\">⚠️ 候选观察</span>；这不是对 Priesemann 2014 的独立复现，仍需替代模型与独立分析。",
+    "en": "<strong>Phase 4 · Neuronal avalanches in mouse cortex</strong> (DANDI 000006): historical fits of size exponent τ and lifetime γ are partly compatible with the task-state sub-critical hypothesis. <span style=\"color: #e8a800;\">⚠️ Candidate observation</span>; this is not an independent replication of Priesemann et al. (2014) and still requires alternative models and independent analysis."
+  },
+  "page.about.empirical.phase5": {
+    "zh": "<strong>Phase 5 · 合成对照</strong>：特定 Poisson / Gaussian 样本在当时配置下未被选为幂律。这个有限对照可发现部分实现错误，但不能排除预处理、模型选择或数据依赖偏差；真实领域结论仍待独立复现。",
+    "en": "<strong>Phase 5 · Synthetic controls</strong>: selected Poisson and Gaussian samples were not classified as power laws under the recorded configuration. This bounded control can reveal some implementation errors, but cannot exclude preprocessing, model-selection, or data-dependent bias; real-domain conclusions remain pending independent replication."
+  },
+  "page.about.empirical.closing": {
+    "zh": "分析脚本、研究报告 Markdown 和数据下载脚本保存在仓库中；当前材料是内部研究记录，不代表同行评审或外部发表。可从 <a href=\"/classes\">/classes</a> 查看结果与局限。",
+    "en": "Analysis scripts, research-report Markdown, and data-download scripts are retained in the repository. These are internal research records, not peer-reviewed or externally published papers. Results and limitations are available from <a href=\"/classes\">/classes</a>."
+  },
+  "page.about.empirical.significance": {
+    "zh": "<strong>意义</strong>：共享代码让不同结果可比较，并保留失败和证据不足；它建立的是可审计的研究起点，不是跨域机制已经成立的证明。",
+    "en": "<strong>Significance</strong>: shared code makes unlike outcomes easier to compare while retaining failures and insufficient evidence. It creates an auditable research starting point, not proof of a shared cross-domain mechanism."
+  },
+  "page.about.scoring.label": {
+    "zh": "Scoring",
+    "en": "Scoring"
+  },
+  "page.about.scoring.title": {
+    "zh": "本次检索顺序是怎么形成的",
+    "en": "How this query's ranking is formed"
+  },
+  "page.about.scoring.intro": {
+    "zh": "Beta 站的 <code>/api/search</code> 用混合排序融合四个信号。该值只服务于同一次查询中的先后排序：",
+    "en": "The beta <code>/api/search</code> endpoint combines four signals for ranking. The resulting value is used only to order candidates within one query:"
+  },
+  "page.about.scoring.signal1": {
+    "zh": "<strong>BM25 词项命中</strong>（权重 0.45）— 用 jieba 中文分词后做 BM25-Okapi，衡量查询词和现象描述的词汇重合度。先 min-max 归一化到 [0, 1]。",
+    "en": "<strong>BM25 term overlap</strong> (weight 0.45) — jieba-tokenized Chinese text scored with BM25-Okapi, measuring lexical overlap between the query and each phenomenon description. Min-max normalized to [0, 1]."
+  },
+  "page.about.scoring.signal2": {
+    "zh": "<strong>V2 embedding 余弦相似</strong>（权重 0.55）— 把查询和现象描述都过 V2 模型，计算 768 维向量的 cosine 相似度。同样先 min-max 归一化到 [0, 1]。",
+    "en": "<strong>V2 embedding cosine similarity</strong> (weight 0.55) — both query and phenomenon are passed through the V2 model, and the cosine similarity of the 768-dimensional vectors is taken. Also min-max normalized to [0, 1]."
+  },
+  "page.about.scoring.signal3": {
+    "zh": "<strong>StructTuple dynamics_family boost</strong>（+0.10）— 从查询关键词推断动力学族（\"延迟\"→DDE_delayed_feedback、\"阈值\"→Phase_transition_1st 等），给 StructTuple 里匹配的现象加一个轻奖励。",
+    "en": "<strong>StructTuple dynamics-family boost</strong> (+0.10) — the dynamical family is inferred from query keywords (e.g. \"delay\" → <code>DDE_delayed_feedback</code>, \"threshold\" → <code>Phase_transition_1st</code>), granting a small bonus to phenomena whose StructTuple matches."
+  },
+  "page.about.scoring.signal4": {
+    "zh": "<strong>领域多样性保护（MMR）</strong>（后置过滤）— 如果 top-5 有超过 2 个同领域结果，把多余的推到 top-10 位置，保证跨域结果的多样性。",
+    "en": "<strong>MMR domain-diversity guard</strong> (post-filter) — if more than two entries in the top-5 come from the same domain, the surplus are pushed down into the top-10 range to preserve cross-domain diversity."
+  },
+  "page.about.scoring.formula": {
+    "zh": "内部排序值 = <code>0.45 × BM25 + 0.55 × embedding + 0.10 × dynamics_boost</code>。各查询都会重新归一化和重排，因此前端只显示序位，不显示百分比或强弱档位。",
+    "en": "The internal ranking value is <code>0.45 × BM25 + 0.55 × embedding + 0.10 × dynamics_boost</code>. Each query is normalized and reranked anew, so the UI shows position rather than a percentage or strength tier."
+  },
+  "page.about.scoring.tier1": {
+    "zh": "<strong>序位</strong> — 只表示候选在当前输入下的相对先后，不可跨查询比较",
+    "en": "<strong>Position</strong> — relative order for the current input only; it cannot be compared across queries."
+  },
+  "page.about.scoring.tier2": {
+    "zh": "<strong>相邻差距</strong> — 不是效果量、置信度或成功概率，不能据此判断机制",
+    "en": "<strong>Gaps between positions</strong> — not an effect size, confidence, or success probability, and not evidence of mechanism."
+  },
+  "page.about.scoring.tier3": {
+    "zh": "<strong>所有结果</strong> — 都是待核查候选；需要来源、反证、边界条件和独立验证",
+    "en": "<strong>Every result</strong> — remains a candidate requiring sources, counterevidence, boundary conditions, and independent validation."
+  },
+  "page.about.scoring.note": {
+    "zh": "<strong>搜索结果与精选发现</strong>不公开未校准的排序分，也不把模型意见当作独立评审。公开页面只用候选序位帮助浏览；研究判断仍要核对来源状态、证据缺口和下一步核查。",
+    "en": "<strong>Search does not publish uncalibrated ranking scores</strong>; Curated Discoveries follows the same rule and does not treat model opinions as independent review. Public pages use candidate order only for navigation; research judgment still depends on source status, evidence gaps, and the next review step."
+  },
+  "page.about.next.label": {
+    "zh": "What's Next",
+    "en": "What's Next"
+  },
+  "page.about.next.title": {
+    "zh": "从候选库到可检验研究",
+    "en": "From candidate library to testable research"
+  },
+  "page.about.next.intro": {
+    "zh": "SIBD-63 保存了 63 条历史候选（<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">DOI 10.5281/zenodo.19615170</a>，CC-BY-4.0）。其中 39 条通过内部 AI 筛查后进入候选展示；这不是同行评审或机制确认。下一步是补来源、预先写下失败条件、用真实数据检验，并交给领域专家独立复核。",
+    "en": "SIBD-63 preserves 63 historical candidates (<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">DOI 10.5281/zenodo.19615170</a>, CC-BY-4.0). Thirty-nine passed internal AI screening for candidate display; that is neither peer review nor mechanism confirmation. Next steps are source enrichment, preregistered failure criteria, real-data tests, and independent domain-expert review."
+  },
+  "page.about.next.item1": {
+    "zh": "<strong>Seed bank outreach</strong>——把 63 个候选分门别类发给对口方向的学术团队（生态 / 金融 / 材料 / 神经 / DeFi），让领域专家挑与自己专长匹配的 seed 做成论文，Structural 获得 co-author / acknowledgement / 被引。",
+    "en": "<strong>Seed-bank outreach</strong> — route each of the 63 candidates to matched academic groups (ecology, finance, materials, neuroscience, DeFi), so that domain experts can pick up seeds aligned with their expertise and develop them into papers, with Structural credited as co-author, acknowledged, or cited."
+  },
+  "page.about.next.item2": {
+    "zh": "<strong>其他候选模式评估</strong>——把 Layer 5 的证据工作流用于另外 22 个候选，逐项写明数据、替代解释、失败条件与独立复现状态。",
+    "en": "<strong>Assessment of further candidate patterns</strong> — apply the Layer 5 evidence workflow to 22 additional candidates, documenting data, alternative explanations, failure criteria, and independent-replication status for each."
+  },
+  "page.about.next.item3": {
+    "zh": "<strong>方法论评估</strong>——用 13 份证据强度不一的结果记录建立基准，先补预注册、负例和独立复现，再判断是否形成可投稿的方法论结论。",
+    "en": "<strong>Methodology assessment</strong> — use the 13 mixed-strength result records as a benchmark, add preregistration, negative cases, and independent replication, then determine whether a submission-ready methodology claim is warranted."
+  },
+  "page.about.next.item4": {
+    "zh": "<strong>Phase Detector 研究演示</strong>——把候选模式用于冻结数据上的历史状态回放（<a href=\"https://phase.bytedance.city/\" target=\"_blank\" rel=\"noopener\">打开 Phase 子产品</a>）。它不是实时检测、预测或投资信号。",
+    "en": "<strong>Phase Detector research demo</strong> — use candidate patterns for historical state replay on frozen data (<a href=\"https://phase.bytedance.city/\" target=\"_blank\" rel=\"noopener\">open the Phase product</a>). It is not real-time detection, prediction, or an investment signal."
+  },
+  "page.about.resources.label": {
+    "zh": "Resources",
+    "en": "Resources"
+  },
+  "page.about.resources.title": {
+    "zh": "论文与源码",
+    "en": "Paper and source code"
+  },
+  "page.about.resources.p": {
+    "zh": "完整的方法论、训练细节、评估结果和反向实验，请见 <a href=\"/papers\">论文与方法</a>。SIBD-63 数据集：<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">Zenodo DOI 10.5281/zenodo.19615170</a>。所有代码在 <a href=\"https://github.com/dada8899/structural-isomorphism\" target=\"_blank\" rel=\"noopener\">GitHub</a> 上开源。V2 embedding 模型在 <a href=\"https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded\" target=\"_blank\" rel=\"noopener\">HuggingFace</a>。",
+    "en": "For the full methodology, training details, evaluation results, and ablation experiments, see <a href=\"/papers\">Papers &amp; methods</a>. The SIBD-63 dataset lives at <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">Zenodo (DOI 10.5281/zenodo.19615170)</a>. All code is open-sourced on <a href=\"https://github.com/dada8899/structural-isomorphism\" target=\"_blank\" rel=\"noopener\">GitHub</a>. The V2 embedding model is available on <a href=\"https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded\" target=\"_blank\" rel=\"noopener\">HuggingFace</a>."
+  },
+  "page.about.contact.label": {
+    "zh": "Contact",
+    "en": "Contact"
+  },
+  "page.about.contact.title": {
+    "zh": "合作与讨论",
+    "en": "Collaboration and discussion"
+  },
+  "page.about.contact.p": {
+    "zh": "如果你想合作、有新的跨领域同构案例要投稿、或者只是想讨论这个方向，欢迎邮件联系：\n      <a href=\"mailto:wanqinghui@gmail.com\">wanqinghui@gmail.com</a>。",
+    "en": "For collaboration, submissions of new cross-domain isomorphism cases, or simply a conversation about this line of work, please get in touch by email: <a href=\"mailto:wanqinghui@gmail.com\">wanqinghui@gmail.com</a>."
+  },
+  "page.home.eyebrow": {
+    "zh": "跨领域思维引擎",
+    "en": "A cross-domain thinking engine"
+  },
+  "page.home.tagline": {
+    "zh": "看似无关的现象，可能包含值得检验的结构相似。",
+    "en": "Apparently unrelated phenomena may contain structural similarities worth testing."
+  },
+  "page.home.lede": {
+    "zh": "描述你的问题，从 <strong>87</strong> 个学科的 <strong>4,443</strong> 个现象里，寻找可检验的结构类比与方法候选。",
+    "en": "Describe your problem and search <strong>4,443</strong> phenomena across <strong>87</strong> disciplines for testable structural analogies and candidate methods."
+  },
+  "page.home.hero_evidence.caption_1": {
+    "zh": "在明确假设下，它们可用<strong>同一类数学模型</strong>描述；机制是否一致仍需验证。",
+    "en": "Under explicit assumptions, the same <strong>model family</strong> can describe both; shared mechanism still requires validation."
+  },
+  "page.home.hero_evidence.caption_2": {
+    "zh": "细菌增长和产品扩散都可尝试用<strong>逻辑斯谛模型族</strong>比较；参数与机制需分别检验。",
+    "en": "Bacterial growth and product diffusion can be compared with a <strong>logistic model family</strong>; their parameters and mechanisms require separate tests."
+  },
+  "page.home.hero_evidence.caption_3": {
+    "zh": "病毒与信息扩散可提出<strong>SIR 类候选映射</strong>；接触、恢复和传播假设并不相同。",
+    "en": "Virus and information diffusion invite a <strong>candidate SIR-like mapping</strong>; contact, recovery, and transmission assumptions differ."
+  },
+  "page.home.hero_evidence.caption_4": {
+    "zh": "磁滞与湖泊翻转可用<strong>尖点灾变候选模型</strong>比较；是否落在同一模型上仍需数据检验。",
+    "en": "Magnetic hysteresis and lake regime shifts can be compared with a <strong>candidate cusp-catastrophe model</strong>; data must test whether either model is appropriate."
+  },
+  "page.home.hero_evidence.caption_5": {
+    "zh": "弹簧与市场波动可提出<strong>受驱振子类比</strong>；市场反馈不等于机械回复力。",
+    "en": "Springs and market fluctuations invite a <strong>driven-oscillator analogy</strong>; market feedback is not a mechanical restoring force."
+  },
+  "page.home.search.placeholder": {
+    "zh": "一句话描述你观察到的现象、问题或正在做的研究方向。\n（可选）补充你的背景和已经尝试过的，我会调整迁移的深度。",
+    "en": "Describe in one sentence the phenomenon you've observed, the problem you're stuck on, or the research direction you're pursuing.\n(Optional) Add your background and what you've already tried, and I'll calibrate the depth of the transfer."
+  },
+  "page.home.search.submit_label": {
+    "zh": "生成研究报告",
+    "en": "Generate report"
+  },
+  "page.home.search.hint": {
+    "zh": "<kbd>⌘</kbd> + <kbd>Enter</kbd> 提交",
+    "en": "<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit"
+  },
+  "page.home.search.no_suggestions": {
+    "zh": "描述一个你观察到的现象...",
+    "en": "Describe a phenomenon you've observed..."
+  },
+  "page.home.cross_product.badge": {
+    "zh": "子产品",
+    "en": "Sub-product"
+  },
+  "page.home.cross_product.label": {
+    "zh": "Phase Detector — 597 个 demo ticker 的冻结研究快照。",
+    "en": "Phase Detector — a frozen research snapshot of 597 demo tickers."
+  },
+  "page.home.cross_product.link": {
+    "zh": "打开 Phase Detector →",
+    "en": "Open Phase Detector →"
+  },
+  "page.home.how.label": {
+    "zh": "工作流程",
+    "en": "Workflow"
+  },
+  "page.home.how.title": {
+    "zh": "你输入一个问题之后，<em>会发生什么</em>",
+    "en": "What happens <em>after you type a question</em>"
+  },
+  "page.home.how.sub": {
+    "zh": "从一句话描述到一份可执行的跨学科研究报告，约需 2–3 分钟。",
+    "en": "From a one-sentence description to an actionable cross-disciplinary research report in about two to three minutes."
+  },
+  "page.home.how.step1.title": {
+    "zh": "理解 + 检索",
+    "en": "Understand and retrieve"
+  },
+  "page.home.how.step1.text": {
+    "zh": "把口语化描述改写成检索问题，再从 4,443 个跨学科现象中排序 20 个待核查候选；序位不代表结构等价。",
+    "en": "Your informal description is rewritten as a retrieval question, then used to rank 20 candidates from 4,443 cross-disciplinary phenomena. Rank does not establish structural equivalence."
+  },
+  "page.home.how.step1.time": {
+    "zh": "≈ 1s",
+    "en": "≈ 1s"
+  },
+  "page.home.how.step2.title": {
+    "zh": "比较待验证候选",
+    "en": "Compare unvalidated candidates"
+  },
+  "page.home.how.step2.text": {
+    "zh": "模型只在真实 Top-K 来源内比较候选，列出建议先核查的记录、证据缺口、竞争解释、失败条件和下一步检验。完整输出通过 schema 与来源白名单后才会展示。",
+    "en": "The model compares only the real Top-K source records, identifying what to inspect first plus evidence gaps, competing explanations, failure conditions, and the next test. Nothing is shown until the complete output passes schema and source-allowlist validation."
+  },
+  "page.home.how.step2.time": {
+    "zh": "≈ 8–15s",
+    "en": "≈ 8–15s"
+  },
+  "page.home.how.step3.title": {
+    "zh": "深度迁移报告",
+    "en": "Deep transfer report"
+  },
+  "page.home.how.step3.text": {
+    "zh": "点首推卡 → 8 段流式生成的研究草案：候选结构、关键变量、源领域的方法线索、怎么检验在当前问题中的适用性、待验证假设和迁移风险。",
+    "en": "Click the recommended card to stream an eight-section research draft: candidate structure, key variables, method leads from the source domain, tests of applicability to the current problem, open hypotheses, and transfer risks."
+  },
+  "page.home.how.step3.time": {
+    "zh": "≈ 2–3 分钟",
+    "en": "≈ 2–3 min"
+  },
+  "page.home.usecases.label": {
+    "zh": "适合这样用",
+    "en": "Works well for"
+  },
+  "page.home.usecases.title": {
+    "zh": "三种<em>典型场景</em>",
+    "en": "Three <em>canonical scenarios</em>"
+  },
+  "page.home.usecases.sub": {
+    "zh": "输入你正被困住的问题，系统提出候选结构和其他领域的方法线索；是否适用仍需核对变量、边界与反例。",
+    "en": "Enter the problem you are stuck on; the system proposes candidate structures and method leads from other domains. Applicability still requires checks of variables, boundaries, and counterexamples."
+  },
+  "page.home.usecases.tag_question": {
+    "zh": "你问",
+    "en": "You ask"
+  },
+  "page.home.usecases.tag_system": {
+    "zh": "系统给",
+    "en": "System returns"
+  },
+  "page.home.usecases.card1.title": {
+    "zh": "学术 · 找跨域结构",
+    "en": "Research · finding cross-domain structure"
+  },
+  "page.home.usecases.card1.sample": {
+    "zh": "地震、股价跳跃、神经雪崩都曾报告重尾或幂律拟合；仅凭这些形状不能确认共同机制，下一步该检验什么？ →",
+    "en": "Earthquakes, stock-price jumps, and neural avalanches have each been fitted with heavy-tailed or power-law models; those shapes alone cannot establish a common mechanism, so what should be tested next? →"
+  },
+  "page.home.usecases.card1.value": {
+    "zh": "<strong>自组织临界（SOC）候选类</strong> · 历史结果记录比较了地震、DeFi 清算和神经雪崩的部分统计量，并同时保留 PARTIAL、NULL 与局限；配套材料是内部研究稿，不是外部复现。",
+    "en": "<strong>Candidate Self-Organized Criticality (SOC) class</strong> · historical result records compare selected statistics from earthquakes, DeFi liquidations, and neural avalanches while retaining PARTIAL and NULL outcomes and limitations. The companion materials are internal research drafts, not external replications."
+  },
+  "page.home.usecases.card2.title": {
+    "zh": "产品 · 用户流失分析",
+    "en": "Product · user-churn analysis"
+  },
+  "page.home.usecases.card2.sample": {
+    "zh": "我们月活用户按固定比率掉 7%，怎么看怎么干预？ →",
+    "en": "Our monthly active users are dropping at a fixed 7% rate — how should we read it, and how should we intervene? →"
+  },
+  "page.home.usecases.card2.value": {
+    "zh": "<strong>一阶指数衰减候选</strong> · dN/dt = −λN——可把固定比例流失先与放射性衰变、药物浓度等衰减曲线作结构比较。业务流失通常还有分群、获客和季节因素，半衰期不是唯一参数；先检验拟合与反例，再决定干预。",
+    "en": "<strong>Candidate first-order exponential decay</strong> · dN/dt = −λN — fixed-rate churn can first be compared with decay curves from radioactivity or drug concentration. Business churn also reflects cohorts, acquisition, and seasonality, so half-life is not the only parameter; test the fit and counterexamples before acting."
+  },
+  "page.home.usecases.card3.title": {
+    "zh": "战略 · 不可逆恶化",
+    "en": "Strategy · irreversible degradation"
+  },
+  "page.home.usecases.card3.sample": {
+    "zh": "团队氛围一旦变差就回不去了——为什么会这样？ →",
+    "en": "Once team morale goes bad, it never comes back — why? →"
+  },
+  "page.home.usecases.card3.value": {
+    "zh": "<strong>双稳态 / 磁滞候选</strong>——团队状态可先与磁化、湖泊富营养化等“前进与恢复路径不同”的现象比较。类比只提示检查阈值和记忆效应，不证明团队遵循尖点灾变或 fold 分岔；需用纵向数据排除更简单解释。",
+    "en": "<strong>Candidate bistability / hysteresis</strong> — team state can be compared with systems whose forward and recovery paths differ, such as magnetization or lake eutrophication. The analogy only suggests checking thresholds and memory effects; it does not establish a cusp catastrophe or fold bifurcation, and longitudinal data must rule against simpler explanations."
+  },
+  "page.home.history.label": {
+    "zh": "你最近的问题",
+    "en": "Your recent questions"
+  },
+  "page.home.history.title": {
+    "zh": "接着上次<em>继续想</em>",
+    "en": "Pick up <em>where you left off</em>"
+  },
+  "page.home.daily.label": {
+    "zh": "今日发现",
+    "en": "Today's discoveries"
+  },
+  "page.home.daily.title": {
+    "zh": "从知识库中查看 <em>3 组</em>跨领域候选联系",
+    "en": "Explore <em>three</em> cross-domain candidate connections from the knowledge base"
+  },
+  "page.home.daily.link": {
+    "zh": "查看全部 39 个优先核查候选",
+    "en": "Browse all 39 priority-review candidates"
+  },
+  "page.home.daily_candidate": {
+    "zh": "待验证候选",
+    "en": "Candidate for validation"
+  },
+  "page.home.daily_unreviewed": {
+    "zh": "来源未独立复核",
+    "en": "Sources not independently reviewed"
+  },
+  "page.home.daily_boundary": {
+    "zh": "≈? 表示待检验的结构联系；它不能证明两边机制相同。",
+    "en": "≈? marks a structural connection to test; it does not establish a shared mechanism."
+  },
+  "page.home.daily_open": {
+    "zh": "查看证据缺口",
+    "en": "Review evidence gaps"
+  },
+  "page.home.daily_candidate_aria": {
+    "zh": "待验证候选联系：{a} 与 {b}。查看证据缺口。",
+    "en": "Candidate connection for validation: {a} and {b}. Review the evidence gaps."
+  },
+  "page.home.favorites.label": {
+    "zh": "收藏的报告",
+    "en": "Saved reports"
+  },
+  "page.home.favorites.title": {
+    "zh": "你保存的<em>研究报告</em>",
+    "en": "Your saved <em>research reports</em>"
+  },
+  "page.home.meta_title": {
+    "zh": "Structural — 万物的形状都在重复",
+    "en": "Structural — The shape of everything recurs"
+  },
+  "page.home.meta_desc": {
+    "zh": "一个跨领域思维引擎。描述你观察到的现象，寻找其他领域中可检验的结构相似候选，并查看证据缺口与反例。",
+    "en": "A cross-domain thinking engine. Describe an observed phenomenon, find testable structural analogies in other fields, and inspect evidence gaps and counterexamples."
+  },
+  "page.about.meta_title": {
+    "zh": "关于 — Structural",
+    "en": "About — Structural"
+  },
+  "page.about.meta_desc": {
+    "zh": "Structural 是一个跨领域思维引擎，用变量关系和反馈骨架提出可检验类比；候选联系不是机制证明，仍需来源、反例与独立复现。",
+    "en": "Structural is a cross-domain thinking engine that proposes testable analogies from variable relationships and feedback skeletons. Candidate links are not mechanism proof and still require sources, counterexamples, and independent replication."
+  },
+  "page.classes.meta_title": {
+    "zh": "共享模式 — Structural",
+    "en": "Shared patterns — Structural"
+  },
+  "page.classes.meta_desc": {
+    "zh": "浏览候选结构分组、结构化的历史分析字段与证据边界；数量由当前加载记录计算。",
+    "en": "Browse candidate structural groups, structured historical analysis fields, and evidence boundaries. Counts are computed from the currently loaded records."
+  },
+  "page.discoveries.meta_title": {
+    "zh": "候选核查 — Structural",
+    "en": "Candidate review — Structural"
+  },
+  "page.discoveries.meta_desc": {
+    "zh": "跨领域候选核查队列；当前没有候选完成来源复核，也没有研究方案在实验前公开锁定。",
+    "en": "A cross-domain candidate review queue; no candidate has completed source review or publicly locked a study plan before testing."
+  },
+  "page.search.meta_title": {
+    "zh": "搜索 — Structural",
+    "en": "Search — Structural"
+  },
+  "page.analyze.meta_title": {
+    "zh": "研究报告 — Structural",
+    "en": "Research report — Structural"
+  },
+  "page.phenomenon.meta_title": {
+    "zh": "现象详情 — Structural",
+    "en": "Phenomenon — Structural"
+  },
+  "page.paper.meta_title": {
+    "zh": "历史研究材料 — Structural",
+    "en": "Historical research material — Structural"
+  },
+  "page.404.meta_title": {
+    "zh": "404 — Structural",
+    "en": "404 — Structural"
+  },
+  "page.classes.hero_eyebrow": {
+    "zh": "候选分组 · 待检验不变量 · 可证伪预测",
+    "en": "Candidate groups · proposed invariants · falsifiable predictions"
+  },
+  "page.classes.hero_title": {
+    "zh": "候选<em>模式</em>",
+    "en": "<em>Candidate patterns</em>"
+  },
+  "page.classes.hero_lede": {
+    "zh": "这些分组由算法从候选联系中生成，用来组织待检验预测；它们不是已经证明的普适机制。部分系统有内部分析记录，也包含 NULL、FAIL、PARTIAL 和合成对照。点开卡片先看预测、数据和边界，再决定是否继续验证。",
+    "en": "These groups were generated from candidate connections to organize testable predictions; they are not proven universal mechanisms. Some systems have internal analysis records, including NULL, FAIL, PARTIAL, and synthetic controls. Open a card to inspect predictions, data, and boundaries before choosing the next validation."
+  },
+  "page.classes.filter_manual": {
+    "zh": "人工精选",
+    "en": "Curated"
+  },
+  "page.classes.filter_llm": {
+    "zh": "AI 辅助",
+    "en": "AI-assisted"
+  },
+  "page.classes.filter_unclassified": {
+    "zh": "后加候选",
+    "en": "Later candidates"
+  },
+  "page.classes.filter_all": {
+    "zh": "全部",
+    "en": "All"
+  },
+  "page.classes.filter_path": {
+    "zh": "学习路径",
+    "en": "Learning path"
+  },
+  "page.classes.footnote_title": {
+    "zh": "方法论说明",
+    "en": "Methodology"
+  },
+  "page.discoveries.hero_eyebrow": {
+    "zh": "候选核查队列 · 不是发现清单或同行评审",
+    "en": "Candidate review queue · not a list of established discoveries or peer review"
+  },
+  "page.discoveries.hero_title": {
+    "zh": "从<em>候选</em>走向证据",
+    "en": "From <em>candidate</em> to evidence"
+  },
+  "page.discoveries.filter_all": {
+    "zh": "全部",
+    "en": "All"
+  },
+  "page.discoveries.filter_unexplored": {
+    "zh": "未探索",
+    "en": "Unexplored"
+  },
+  "page.discoveries.filter_partial": {
+    "zh": "部分",
+    "en": "Partial"
+  },
+  "page.discoveries.filter_established": {
+    "zh": "已有",
+    "en": "Established"
+  },
+  "page.404.title": {
+    "zh": "这个现象还没有被收录",
+    "en": "We haven't catalogued this phenomenon yet"
+  },
+  "page.404.desc": {
+    "zh": "你要找的页面不存在。也许我们的知识库还没有覆盖到它。",
+    "en": "The page you're looking for doesn't exist. Our knowledge base may not have reached it yet."
+  },
+  "page.home.hero_evidence.rotate": {
+    "zh": "下一个",
+    "en": "Next"
+  },
+  "page.home.hero_evidence.rotate_aria": {
+    "zh": "下一个例子",
+    "en": "Next example"
+  },
+  "page.home.hero_evidence.a_aria": {
+    "zh": "搜索 A 侧现象",
+    "en": "Search the A-side phenomenon"
+  },
+  "page.home.hero_evidence.b_aria": {
+    "zh": "搜索 B 侧现象",
+    "en": "Search the B-side phenomenon"
+  },
+  "page.home.hero_evidence.sym_aria": {
+    "zh": "待检验的结构联系",
+    "en": "Structural connection to test"
+  },
+  "page.home.hero_evidence.dots_aria": {
+    "zh": "切换例子",
+    "en": "Switch example"
+  },
+  "common.searchbox_aria": {
+    "zh": "输入问题",
+    "en": "Enter your question"
+  },
+  "common.search_submit_aria": {
+    "zh": "分析",
+    "en": "Analyze"
+  },
+  "page.classes.footnote_l1": {
+    "zh": "<strong>Layer 1 图构建</strong>：读取 V1/V2/V3 中带 A、B+ 内部评分标签的候选，按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤，得到 180 节点 / 143 边。标签只用于当时的内部筛选，不代表正确性或证据质量。",
+    "en": "<strong>Layer 1 — Graph construction</strong>: candidates carrying internal A or B+ score labels in V1/V2/V3 are filtered by <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code>, yielding 180 nodes and 143 edges. These labels supported internal triage; they do not establish correctness or evidence quality."
+  },
+  "page.classes.footnote_l2": {
+    "zh": "<strong>当前数据边界</strong>：候选总数、原队列数与后加候选数均由当前加载记录计算。",
+    "en": "<strong>Current data boundary</strong>: candidate totals, original-queue counts, and later-candidate counts are computed from the currently loaded records."
+  },
+  "page.classes.footnote_l3": {
+    "zh": "<strong>Layer 3 分类假设</strong>：带有人工来源标签的候选分组与文献命名模式关联，供后续检验。这个关联是分类标签，不等于确认物理普适类或共享机制。",
+    "en": "<strong>Layer 3 — Taxonomy hypothesis</strong>: candidate groups carrying a human-source label were associated with named patterns from the literature for later testing. The association is a taxonomy label, not confirmation of a physical universality class or shared mechanism."
+  },
+  "page.classes.footnote_l4": {
+    "zh": "<strong>Layer 4 假设草拟</strong>：参考文献中报告的关系，为其他领域草拟可证伪假设。迁移是否成立仍取决于变量映射、真实数据、替代解释和预先声明的失败标准。",
+    "en": "<strong>Layer 4 — Hypothesis drafting</strong>: literature-reported relationships are used to draft falsifiable hypotheses for other domains. Any transfer still depends on variable mapping, real data, alternative explanations, and predeclared failure criteria."
+  },
+  "page.classes.footnote_l5": {
+    "zh": "<strong>Layer 5 结果记录</strong>：领域分析与合成对照使用共享代码框架，但数据依赖和证据强度不同。记录包含支持、拒绝、部分支持和证据不足；不等于外部复现。",
+    "en": "<strong>Layer 5 — Result records</strong>: domain analyses and synthetic controls share a code framework, but their dependence and evidence strength differ. Records include support, rejection, partial support, and insufficient evidence; they are not external replications."
+  },
+  "page.classes.footnote_l6": {
+    "zh": "<strong>合成对照记录</strong>：在当时配置下，3 组已选非 SOC 样本（高斯、指数、Poisson）未被选为幂律（R ∈ [−45, −16]，Poisson Omori R² ≈ 0.002）。这个有限对照可发现部分实现错误，不能排除其他生成过程、预处理或模型选择偏差。",
+    "en": "<strong>Synthetic-control record</strong>: under the recorded configuration, three selected non-SOC samples (Gaussian, exponential, and Poisson) were not selected as power laws (R ∈ [−45, −16]; Poisson Omori R² ≈ 0.002). This bounded control can reveal some implementation errors but cannot exclude other generators, preprocessing choices, or model-selection bias."
+  },
+  "page.classes.footnote_hint": {
+    "zh": "完整 feasibility 报告见 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md\" target=\"_blank\" rel=\"noopener\">v4/results/FINDINGS-2026-04-15.md</a>，完整 V4 规划见 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">plans/v4-universality-class-engine.md</a>。",
+    "en": "Full feasibility report: <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md\" target=\"_blank\" rel=\"noopener\">v4/results/FINDINGS-2026-04-15.md</a>. Full V4 plan: <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">plans/v4-universality-class-engine.md</a>."
+  },
+  "page.classes.stat_total": {
+    "zh": "候选模式",
+    "en": "Candidate patterns"
+  },
+  "page.classes.stat_original_queue": {
+    "zh": "原队列跨域组",
+    "en": "Original-queue cross-domain"
+  },
+  "page.classes.stat_later": {
+    "zh": "后加候选",
+    "en": "Later candidates"
+  },
+  "page.classes.stat_cross_domain": {
+    "zh": "跨领域",
+    "en": "Cross-domain"
+  },
+  "page.classes.stat_max_members": {
+    "zh": "最大成员数",
+    "en": "Max members"
+  },
+  "page.classes.stat_max_domains": {
+    "zh": "最多跨越领域",
+    "en": "Max spanned domains"
+  },
+  "page.classes.no_match": {
+    "zh": "没有匹配的候选模式",
+    "en": "No matching candidate patterns"
+  },
+  "page.discoveries.hero_lede": {
+    "zh": "这里收录的是由模型提出、等待核查的跨领域配对。公开页面不展示未校准分数、投稿建议或机制结论。<strong>当前所有条目都停留在候选层</strong>：先补来源、数据、比较方法、主指标和失败条件，再决定是否在实验前公开锁定研究方案（预注册）。",
+    "en": "These are model-proposed cross-domain pairs awaiting review. The public surface omits uncalibrated scores, venue suggestions, and mechanism conclusions. <strong>Every item currently remains a candidate</strong>: add sources, data, a comparison method, primary metric, and failure rule before publicly locking the study plan (preregistering it)."
+  },
+  "page.discoveries.meta_rating": {
+    "zh": "候选队列标签",
+    "en": "Candidate queue label"
+  },
+  "page.discoveries.meta_iso_confidence": {
+    "zh": "未公开的内部排序信号",
+    "en": "Unpublished internal ranking signal"
+  },
+  "page.discoveries.meta_iso_depth": {
+    "zh": "候选映射复杂度",
+    "en": "Candidate mapping complexity"
+  },
+  "page.discoveries.meta_solo_feasible": {
+    "zh": "执行条件待评估",
+    "en": "Execution conditions not assessed"
+  },
+  "page.discoveries.expand": {
+    "zh": "展开",
+    "en": "Expand"
+  },
+  "page.discoveries.collapse": {
+    "zh": "收起",
+    "en": "Collapse"
+  },
+  "page.discoveries.filter_lit_status_label": {
+    "zh": "来源核查状态",
+    "en": "Source-review status"
+  },
+  "page.discoveries.filter_pipeline_label": {
+    "zh": "检索管道",
+    "en": "Pipeline"
+  },
+  "page.discoveries.section_dim_scores": {
+    "zh": "内部排序维度（不作为证据）",
+    "en": "Internal ranking dimensions (not evidence)"
+  },
+  "page.discoveries.section_shared_equation": {
+    "zh": "候选共享方程",
+    "en": "Candidate shared equation"
+  },
+  "page.discoveries.section_key_equations": {
+    "zh": "关键方程",
+    "en": "Key equations"
+  },
+  "page.discoveries.section_paper_path": {
+    "zh": "验证缺口",
+    "en": "Validation gaps"
+  },
+  "page.discoveries.section_blocking": {
+    "zh": "阻塞机制",
+    "en": "Blocking mechanisms"
+  },
+  "page.discoveries.section_risks": {
+    "zh": "潜在风险",
+    "en": "Potential risks"
+  },
+  "page.discoveries.section_execution_plan": {
+    "zh": "模型生成的待核查步骤",
+    "en": "Model-generated steps to review"
+  },
+  "page.discoveries.section_practical_value": {
+    "zh": "待验证的决策价值",
+    "en": "Decision value to validate"
+  },
+  "page.discoveries.section_full_analysis": {
+    "zh": "历史内部分析（不作为证据）",
+    "en": "Historical internal analysis (not evidence)"
+  },
+  "page.discoveries.label_var_mapping": {
+    "zh": "两边变量的对应关系（变量映射）",
+    "en": "How variables on the two sides correspond (variable mapping)"
+  },
+  "page.discoveries.label_submit_to": {
+    "zh": "历史内部字段（公开页不展示）",
+    "en": "Historical internal field (not shown publicly)"
+  },
+  "page.discoveries.stat_a_grade": {
+    "zh": "优先核查候选",
+    "en": "Priority-review candidates"
+  },
+  "page.discoveries.stat_lit_unexplored": {
+    "zh": "系统检索未记录",
+    "en": "Systematic search not recorded"
+  },
+  "page.discoveries.tier2_hint": {
+    "zh": "尚未进入优先核查的跨领域候选；不公开未校准分数。下一步是检查变量映射、来源、基线和反例。",
+    "en": "Cross-domain candidates not yet in priority review; uncalibrated scores are not published. Next check the variable mapping, sources, baseline, and counterexamples."
+  },
+  "page.discoveries.empty_filter": {
+    "zh": "没有匹配的候选",
+    "en": "No matching candidates"
+  },
+  "page.discoveries.tier2_unloaded": {
+    "zh": "候选池数据未加载",
+    "en": "Candidate pool not loaded"
+  },
+  "page.discoveries.load_failed": {
+    "zh": "加载失败",
+    "en": "Failed to load"
+  },
+  "page.discoveries.cta_main": {
+    "zh": "打开比较工作台",
+    "en": "Open comparison workspace"
+  },
+  "page.discoveries.cta_hint": {
+    "zh": "生成分析草稿，不生成机制证明",
+    "en": "Generates an analysis draft, not mechanism proof"
+  },
+  "page.discoveries.dim_novelty": {
+    "zh": "创新性",
+    "en": "Novelty"
+  },
+  "page.discoveries.dim_rigor": {
+    "zh": "严谨性",
+    "en": "Rigor"
+  },
+  "page.discoveries.dim_feasibility": {
+    "zh": "可行性",
+    "en": "Feasibility"
+  },
+  "page.discoveries.dim_impact": {
+    "zh": "影响力",
+    "en": "Impact"
+  },
+  "page.discoveries.dim_writability": {
+    "zh": "可写性",
+    "en": "Writability"
+  },
+  "page.discoveries.status_unexplored": {
+    "zh": "系统文献检索未记录",
+    "en": "Systematic literature search not recorded"
+  },
+  "page.discoveries.status_partial": {
+    "zh": "存在来源记录，复核未完成",
+    "en": "Source records exist; review incomplete"
+  },
+  "page.discoveries.status_established": {
+    "zh": "来源记录待独立复核",
+    "en": "Source records await independent review"
+  },
+  "page.discoveries.filter_partial_chip": {
+    "zh": "部分探索",
+    "en": "Partial"
+  },
+  "page.discoveries.filter_established_chip": {
+    "zh": "有相关研究",
+    "en": "Related literature"
+  },
+  "page.discoveries.pipeline_v2": {
+    "zh": "文本结构检索",
+    "en": "Text-structure retrieval"
+  },
+  "page.discoveries.pipeline_v3": {
+    "zh": "变量关系检索",
+    "en": "Variable-relation retrieval"
+  },
+  "page.discoveries.mapping_note": {
+    "zh": "未结构化备注",
+    "en": "Unstructured note"
+  },
+  "page.discoveries.tier_curated": {
+    "zh": "优先核查",
+    "en": "Priority review"
+  },
+  "page.discoveries.tier_tier2": {
+    "zh": "候选池",
+    "en": "Candidate pool"
+  },
+  "page.discoveries.filter_all_chip": {
+    "zh": "全部",
+    "en": "All"
+  },
+  "page.classes.badge_members": {
+    "zh": "成员",
+    "en": "members"
+  },
+  "page.classes.badge_domains": {
+    "zh": "领域",
+    "en": "domains"
+  },
+  "page.classes.badge_verified": {
+    "zh": "内部结果记录",
+    "en": "Internal result record"
+  },
+  "page.classes.badge_verified_multi": {
+    "zh": "内部结果记录",
+    "en": "Internal result record"
+  },
+  "page.classes.badge_recorded": {
+    "zh": "有历史内部记录",
+    "en": "Historical internal record"
+  },
+  "page.classes.badge_source_manual": {
+    "zh": "人工队列来源",
+    "en": "Human-queue source"
+  },
+  "page.classes.badge_source_llm": {
+    "zh": "AI 队列来源",
+    "en": "AI-queue source"
+  },
+  "page.classes.badge_source_unclassified": {
+    "zh": "后加候选 · 来源未分类",
+    "en": "Later candidate · source unclassified"
+  },
+  "page.classes.count_equations": {
+    "zh": "方程",
+    "en": "equations"
+  },
+  "page.classes.count_invariants": {
+    "zh": "不变量",
+    "en": "invariants"
+  },
+  "page.classes.count_predictions": {
+    "zh": "历史分析记录",
+    "en": "historical analysis records"
+  },
+  "page.classes.card_cta": {
+    "zh": "查看详情 →",
+    "en": "View details →"
+  },
+  "page.classes.section_prototype": {
+    "zh": "物理学原型",
+    "en": "Physical prototype"
+  },
+  "page.classes.section_equations": {
+    "zh": "候选方程",
+    "en": "Candidate equations"
+  },
+  "page.classes.section_equations_sub": {
+    "zh": "V3 抽取的 TeX-ish 方程，跨 pair 聚合。",
+    "en": "TeX-ish equations extracted by V3, aggregated across pairs."
+  },
+  "page.classes.section_invariants": {
+    "zh": "候选不变量",
+    "en": "Candidate invariants"
+  },
+  "page.classes.section_members": {
+    "zh": "成员（按领域分组，★ 为 hub）",
+    "en": "Members (grouped by domain; ★ = hub)"
+  },
+  "page.classes.section_predictions": {
+    "zh": "历史分析记录（结构化公开字段）",
+    "en": "Historical analysis records (structured public fields)"
+  },
+  "page.classes.back_to_list": {
+    "zh": "← 返回共享模式列表",
+    "en": "← Back to shared patterns"
+  },
+  "page.classes.hub_label": {
+    "zh": "Hub 节点",
+    "en": "Hub node"
+  },
+  "page.classes.pred_meta_method": {
+    "zh": "方法",
+    "en": "Method"
+  },
+  "page.classes.pred_meta_data": {
+    "zh": "数据",
+    "en": "Data"
+  },
+  "page.classes.pred_meta_sample": {
+    "zh": "样本量",
+    "en": "Sample size"
+  },
+  "page.classes.pred_meta_historical_stat": {
+    "zh": "历史记录数值",
+    "en": "Historical recorded values"
+  },
+  "page.classes.pred_record_label": {
+    "zh": "历史内部记录",
+    "en": "Historical internal record"
+  },
+  "page.classes.pred_target_unknown": {
+    "zh": "目标未记录",
+    "en": "Target not recorded"
+  },
+  "page.classes.pred_boundary": {
+    "zh": "历史内部记录 · 未绑定当前证据账本 · 不能证明共享机制",
+    "en": "Historical internal record · not bound to the current evidence ledger · cannot prove a shared mechanism"
+  },
+  "page.classes.pred_meta_venue": {
+    "zh": "目标期刊",
+    "en": "Target venue"
+  },
+  "page.classes.pred_paper_link": {
+    "zh": "📄 论文 →",
+    "en": "📄 Paper →"
+  },
+  "page.classes.load_failed": {
+    "zh": "内容暂时加载不出来，请稍后重试。",
+    "en": "Content could not be loaded. Please try again later."
+  },
+  "page.classes.verified_title": {
+    "zh": "条预测有内部结果记录",
+    "en": "predictions with internal result records"
+  },
+  "page.classes.status_internal_record": {
+    "zh": "内部结果记录",
+    "en": "Internal result record"
+  },
+  "page.classes.status_needs_review": {
+    "zh": "状态待复核",
+    "en": "Status needs review"
+  },
+  "page.classes.status_pending": {
+    "zh": "待验证",
+    "en": "Pending test"
+  },
+  "page.classes.status_internal_negative": {
+    "zh": "内部负结果记录",
+    "en": "Internal negative result"
+  },
+  "page.classes.status_internal_partial": {
+    "zh": "内部部分结果记录",
+    "en": "Internal partial result"
+  },
+  "page.classes.status_internal_support": {
+    "zh": "内部支持记录",
+    "en": "Internal supporting result"
+  },
+  "page.classes.uncurated_note": {
+    "zh": "AI 自动生成，尚未人工审核",
+    "en": "LLM-generated, not yet human-reviewed"
+  },
+  "page.classes.llm_note": {
+    "zh": "AI 批注",
+    "en": "LLM note"
+  },
+  "page.home.suggestions_label": {
+    "zh": "试试这些真实场景",
+    "en": "Try one of these real scenarios"
+  },
+  "page.home.daily_structure_prefix": {
+    "zh": "结构",
+    "en": "Structure"
+  },
+  "page.home.daily_empty": {
+    "zh": "今日发现暂时加载不出来，先去",
+    "en": "Today's discoveries aren't available right now — "
+  },
+  "page.home.daily_empty_link": {
+    "zh": "查看全部候选队列",
+    "en": "browse the full candidate queue"
+  },
+  "page.home.daily_empty_punctuation": {
+    "zh": "。",
+    "en": "."
+  },
+  "page.analyze.crumb_home": {
+    "zh": "首页",
+    "en": "Home"
+  },
+  "page.analyze.crumb_back": {
+    "zh": "返回",
+    "en": "Back"
+  },
+  "page.analyze.crumb_current": {
+    "zh": "研究报告",
+    "en": "Research report"
+  },
+  "page.analyze.btn_brief": {
+    "zh": "复制为简报",
+    "en": "Copy as brief"
+  },
+  "page.analyze.btn_share": {
+    "zh": "分享",
+    "en": "Share"
+  },
+  "page.analyze.btn_fav": {
+    "zh": "收藏",
+    "en": "Favorite"
+  },
+  "page.analyze.btn_brief_aria": {
+    "zh": "复制为简报",
+    "en": "Copy as brief"
+  },
+  "page.analyze.btn_share_aria": {
+    "zh": "分享这份报告",
+    "en": "Share this report"
+  },
+  "page.analyze.btn_fav_aria": {
+    "zh": "收藏这份报告",
+    "en": "Favorite this report"
+  },
+  "page.analyze.loading_title": {
+    "zh": "正在生成研究报告",
+    "en": "Generating research report"
+  },
+  "page.analyze.loading_hint": {
+    "zh": "9 段流式生成 · 通常 2–3 分钟",
+    "en": "9 streaming sections · usually 2–3 minutes"
+  },
+  "page.analyze.error_title": {
+    "zh": "生成失败",
+    "en": "Generation failed"
+  },
+  "page.analyze.error_hint": {
+    "zh": "连接中断，可能是网络问题或响应超时",
+    "en": "Connection dropped — likely a network issue or response timeout"
+  },
+  "page.analyze.btn_retry": {
+    "zh": "刷新重试",
+    "en": "Retry"
+  },
+  "page.analyze.btn_back_home": {
+    "zh": "返回首页",
+    "en": "Back to home"
+  },
+  "page.phenomenon.crumb_home": {
+    "zh": "首页",
+    "en": "Home"
+  },
+  "page.phenomenon.crumb_search": {
+    "zh": "返回搜索",
+    "en": "Back to search"
+  },
+  "page.phenomenon.crumb_current": {
+    "zh": "现象",
+    "en": "Phenomenon"
+  },
+  "page.paper.crumb_back": {
+    "zh": "历史材料目录",
+    "en": "Historical materials"
+  },
+  "page.paper.dl_md": {
+    "zh": "⬇ 下载 Markdown 原文",
+    "en": "⬇ Download Markdown"
+  },
+  "page.paper.source_gh": {
+    "zh": "📂 源代码与数据 (GitHub)",
+    "en": "📂 Source + data (GitHub)"
+  },
+  "page.paper.back_to_list": {
+    "zh": "返回历史材料目录",
+    "en": "Back to historical materials"
+  },
+  "page.paper.md_loader_failed": {
+    "zh": "Markdown 渲染器加载失败。",
+    "en": "Markdown renderer failed to load."
+  },
+  "page.paper.load_failed": {
+    "zh": "历史材料加载失败",
+    "en": "Historical material failed to load"
+  },
+  "page.404.btn_home": {
+    "zh": "返回首页",
+    "en": "Back to home"
+  },
+  "page.analyze.retry_first": {
+    "zh": "首次生成失败，正在重试...",
+    "en": "First attempt failed, retrying..."
+  },
+  "page.home.placeholder_1": {
+    "zh": "我们的产品增长放缓了...",
+    "en": "Our product growth is slowing..."
+  },
+  "page.home.placeholder_2": {
+    "zh": "为什么市场会崩盘",
+    "en": "Why do markets crash"
+  },
+  "page.home.placeholder_3": {
+    "zh": "用户老客户越来越不活跃，怎么看",
+    "en": "How to interpret declining retention among long-time users"
+  },
+  "page.home.placeholder_4": {
+    "zh": "为什么有些市场必然赢家通吃",
+    "en": "Why some markets inevitably end winner-take-all"
+  },
+  "page.home.fallback_placeholder": {
+    "zh": "描述一个你观察到的现象...",
+    "en": "Describe a phenomenon you've observed..."
+  },
+  "page.home.example_aria": {
+    "zh": "例子",
+    "en": "Example"
+  },
+  "page.home.no_title": {
+    "zh": "(未命名查询)",
+    "en": "(Untitled query)"
+  },
+  "page.classes.llm_high": {
+    "zh": "高置信",
+    "en": "High confidence"
+  },
+  "page.classes.llm_medium": {
+    "zh": "中置信",
+    "en": "Medium confidence"
+  },
+  "page.classes.llm_low": {
+    "zh": "低置信",
+    "en": "Low confidence"
+  },
+  "page.classes.untitled": {
+    "zh": "(未命名)",
+    "en": "(Untitled)"
+  },
+  "page.paper.meta_desc": {
+    "zh": "历史内部研究材料；尚未与当前证据账本绑定，也不代表外部复核或独立复现。",
+    "en": "Historical internal research material; it is not bound to the current evidence ledger and does not represent external review or independent replication."
+  },
+  "page.analyze.section_shared_structure": {
+    "zh": "候选结构",
+    "en": "Candidate structure"
+  },
+  "page.analyze.section_your_problem_breakdown": {
+    "zh": "你的问题拆解",
+    "en": "Breakdown of your problem"
+  },
+  "page.analyze.section_target_domain_intro": {
+    "zh": "那个领域是怎么回事",
+    "en": "Source-domain primer"
+  },
+  "page.analyze.section_structural_mapping": {
+    "zh": "两个问题逐项对照",
+    "en": "Structural mapping"
+  },
+  "page.analyze.section_borrowable_insights": {
+    "zh": "可借用的工具",
+    "en": "Borrowable tools"
+  },
+  "page.analyze.section_how_to_combine": {
+    "zh": "怎么结合",
+    "en": "How to combine them"
+  },
+  "page.analyze.section_research_directions": {
+    "zh": "研究方向",
+    "en": "Research directions"
+  },
+  "page.analyze.section_risks_and_limits": {
+    "zh": "借用时的坑",
+    "en": "Transfer risks"
+  },
+  "page.analyze.section_action_plan": {
+    "zh": "本周行动",
+    "en": "This week's action plan"
+  },
+  "page.analyze.sub_key_variables": {
+    "zh": "关键变量",
+    "en": "Key variables"
+  },
+  "page.analyze.sub_dynamics": {
+    "zh": "动力学",
+    "en": "Dynamics"
+  },
+  "page.analyze.sub_why_stuck": {
+    "zh": "为什么卡壳",
+    "en": "Why it is stuck"
+  },
+  "page.analyze.sub_source_domain": {
+    "zh": "源领域",
+    "en": "Source domain"
+  },
+  "page.analyze.sub_your_problem": {
+    "zh": "你的问题",
+    "en": "Your problem"
+  },
+  "page.analyze.sub_corresponding_phenomenon": {
+    "zh": "这个领域里的对应现象",
+    "en": "The analogous phenomenon in this domain"
+  },
+  "page.analyze.sub_discovery_history": {
+    "zh": "发现历史",
+    "en": "Discovery history"
+  },
+  "page.analyze.sub_key_thinkers": {
+    "zh": "关键人物",
+    "en": "Key thinkers"
+  },
+  "page.analyze.sub_mature_tools": {
+    "zh": "可借方法候选",
+    "en": "Candidate methods to borrow"
+  },
+  "page.analyze.sub_what_it_solves": {
+    "zh": "它在源领域中的用途",
+    "en": "How it is used in the source domain"
+  },
+  "page.analyze.sub_translated_to_target": {
+    "zh": "翻译到你的问题",
+    "en": "Translated to your problem"
+  },
+  "page.analyze.sub_concrete_application": {
+    "zh": "具体怎么用",
+    "en": "Concrete application"
+  },
+  "page.analyze.sub_execution_steps": {
+    "zh": "执行步骤",
+    "en": "Execution steps"
+  },
+  "page.analyze.sub_assumptions": {
+    "zh": "需要验证的假设",
+    "en": "Assumptions to verify"
+  },
+  "page.analyze.sub_boundary_conditions": {
+    "zh": "边界条件",
+    "en": "Boundary conditions"
+  },
+  "page.analyze.sub_literature_status": {
+    "zh": "文献状态",
+    "en": "Literature status"
+  },
+  "page.analyze.status_unknown": {
+    "zh": "未知",
+    "en": "unknown"
+  },
+  "page.analyze.sub_research_opportunity": {
+    "zh": "⭐ 潜在的研究机会",
+    "en": "⭐ Potential research opportunity"
+  },
+  "page.analyze.sub_suggested_references": {
+    "zh": "建议参考",
+    "en": "Suggested references"
+  },
+  "page.analyze.severity_high": {
+    "zh": "高",
+    "en": "High"
+  },
+  "page.analyze.severity_medium": {
+    "zh": "中",
+    "en": "Medium"
+  },
+  "page.analyze.severity_low": {
+    "zh": "低",
+    "en": "Low"
+  },
+  "page.analyze.action_how": {
+    "zh": "怎么做",
+    "en": "How"
+  },
+  "page.analyze.action_verification": {
+    "zh": "验证指标",
+    "en": "Verification metric"
+  },
+  "page.analyze.action_expected": {
+    "zh": "预期产出",
+    "en": "Expected outcome"
+  },
+  "page.analyze.action_if_only_one": {
+    "zh": "⭐ 如果你只能做一件事",
+    "en": "⭐ If you can only do one thing"
+  },
+  "page.analyze.action_full_plan": {
+    "zh": "本周完整计划",
+    "en": "Full weekly plan"
+  },
+  "page.analyze.action_next_week": {
+    "zh": "下周回头看",
+    "en": "Revisit next week"
+  },
+  "page.analyze.header_your_question": {
+    "zh": "你的问题",
+    "en": "Your question"
+  },
+  "page.analyze.header_comparison": {
+    "zh": "对比分析",
+    "en": "Comparative analysis"
+  },
+  "page.analyze.header_borrow_from": {
+    "zh": "检查来自 {source} 的候选线索",
+    "en": "Inspect a candidate lead from {source}"
+  },
+  "page.analyze.header_apply_to": {
+    "zh": "在 {target} 中检验对应、反证和边界",
+    "en": "Test mappings, counterevidence, and boundaries in {target}"
+  },
+  "page.analyze.header_similarity": {
+    "zh": "候选检索线索，不是概率",
+    "en": "Candidate retrieval lead, not a probability"
+  },
+  "page.analyze.header_inspect_candidate": {
+    "zh": "检查来自 {source} 的候选线索",
+    "en": "Inspect a candidate lead from {source}"
+  },
+  "page.analyze.header_test_against": {
+    "zh": "在 {target} 中检验对应、反证和边界",
+    "en": "Test mappings, counterevidence, and boundaries in {target}"
+  },
+  "page.analyze.loading_progress_line": {
+    "zh": "正在接收并校验完整研究草案",
+    "en": "Receiving and validating the complete research draft"
+  },
+  "page.analyze.loading_hint_long": {
+    "zh": "我们正在写一份跨学科迁移研究报告。",
+    "en": "We are drafting a cross-domain transfer research report."
+  },
+  "page.analyze.status_waiting": {
+    "zh": "等待中",
+    "en": "Waiting"
+  },
+  "page.analyze.status_generating_section": {
+    "zh": "正在生成这一部分",
+    "en": "Generating this section"
+  },
+  "page.analyze.timer_elapsed_eta": {
+    "zh": "已 {s}s / 约 {eta}s",
+    "en": "{s}s elapsed / ~{eta}s"
+  },
+  "page.analyze.timer_waiting": {
+    "zh": "已等待 0s",
+    "en": "0s elapsed"
+  },
+  "page.analyze.timer_typical": {
+    "zh": "约需 2–3 分钟 · 报告会分段逐步出现",
+    "en": "~2–3 min · sections appear as they finish"
+  },
+  "page.analyze.retry_first_hint": {
+    "zh": "刚才生成不太顺，我们换个角度再试一次。",
+    "en": "That attempt did not go smoothly; retrying from a different angle."
+  },
+  "page.analyze.btn_retry_soft": {
+    "zh": "重试",
+    "en": "Retry"
+  },
+  "page.analyze.brief_title": {
+    "zh": "Structural · 跨学科分析简报",
+    "en": "Structural · Cross-domain analysis brief"
+  },
+  "page.analyze.brief_your_question": {
+    "zh": "你的问题",
+    "en": "Your question"
+  },
+  "page.analyze.brief_analogy": {
+    "zh": "待验证的跨领域候选",
+    "en": "Cross-domain candidate to test"
+  },
+  "page.analyze.brief_shared_structure": {
+    "zh": "候选结构",
+    "en": "Candidate structure"
+  },
+  "page.analyze.brief_similarity": {
+    "zh": "候选检索信号",
+    "en": "Candidate retrieval signal"
+  },
+  "page.analyze.brief_boundary": {
+    "zh": "证据边界",
+    "en": "Evidence boundary"
+  },
+  "page.analyze.candidate_only": {
+    "zh": "候选类比",
+    "en": "Candidate analogy"
+  },
+  "page.analyze.mechanism_not_verified": {
+    "zh": "机制未验证",
+    "en": "Mechanism not verified"
+  },
+  "page.analyze.review_not_recorded": {
+    "zh": "未记录独立复核",
+    "en": "No independent review recorded"
+  },
+  "page.analyze.brief_one_liner": {
+    "zh": "一句话核心",
+    "en": "Core idea in one line"
+  },
+  "page.analyze.brief_top_insights": {
+    "zh": "三条最关键的洞察",
+    "en": "Three most critical insights"
+  },
+  "page.analyze.brief_weekly_actions": {
+    "zh": "本周行动清单",
+    "en": "This week's action list"
+  },
+  "page.analyze.brief_verify": {
+    "zh": "验证",
+    "en": "Verify"
+  },
+  "page.analyze.brief_expected": {
+    "zh": "预期",
+    "en": "Expected"
+  },
+  "page.analyze.brief_footer": {
+    "zh": "来自 [Structural]",
+    "en": "From [Structural]"
+  },
+  "page.analyze.fav_active": {
+    "zh": "已收藏",
+    "en": "Favorited"
+  },
+  "page.analyze.toast_still_generating": {
+    "zh": "报告还在生成中，请稍后再点",
+    "en": "The report is still being generated — please try again in a moment"
+  },
+  "page.analyze.toast_brief_copied": {
+    "zh": "已复制为简报（Markdown 格式），可直接粘到 Notion、Slack 或邮件里",
+    "en": "Copied as a brief (Markdown) — ready to paste into Notion, Slack, or email"
+  },
+  "page.analyze.toast_copy_failed_perm": {
+    "zh": "复制失败，请检查浏览器权限",
+    "en": "Copy failed — please check browser clipboard permissions"
+  },
+  "page.analyze.toast_link_copied": {
+    "zh": "链接已复制，可以分享给朋友",
+    "en": "Link copied — ready to share"
+  },
+  "page.analyze.toast_copy_failed_manual": {
+    "zh": "复制失败，请手动复制地址栏 URL",
+    "en": "Copy failed — please copy the URL from the address bar manually"
+  },
+  "page.analyze.toast_fav_added": {
+    "zh": "已添加到收藏",
+    "en": "Added to favorites"
+  },
+  "page.analyze.toast_fav_removed": {
+    "zh": "已移出收藏",
+    "en": "Removed from favorites"
+  },
+  "page.analyze.toast_fav_local_login": {
+    "zh": "已保存在本机，登录后同步",
+    "en": "Saved on this device. Sign in to sync."
+  },
+  "page.analyze.toast_fav_sync_later": {
+    "zh": "已保存在本机，账户同步稍后重试",
+    "en": "Saved on this device. Account sync will retry later."
+  },
+  "page.analyze.toast_fav_account_confirm": {
+    "zh": "已保存在本机，请重新确认账户后同步",
+    "en": "Saved on this device. Confirm your account before syncing."
+  },
+  "page.analyze.toast_fav_quota": {
+    "zh": "已保存在本机，账户收藏已达上限",
+    "en": "Saved on this device. Your account bookmark limit is full."
+  },
+  "page.analyze.toast_fav_synced": {
+    "zh": "已同步到账户",
+    "en": "Synced to your account"
+  },
+  "page.analyze.toast_fav_removed_local": {
+    "zh": "已从本机收藏移除",
+    "en": "Removed from this device"
+  },
+  "page.analyze.toast_fav_removed_account": {
+    "zh": "已从账户收藏移除",
+    "en": "Removed from your account"
+  },
+  "page.analyze.toast_fav_remove_failed": {
+    "zh": "账户移除未完成，收藏仍然保留",
+    "en": "Account removal did not finish. The bookmark is still saved."
+  },
+  "page.reports.favorites_title": {
+    "zh": "我的研究收藏库",
+    "en": "My research library"
+  },
+  "page.reports.favorites_loading": {
+    "zh": "正在读取与你当前身份关联的收藏。",
+    "en": "Loading bookmarks associated with your current identity."
+  },
+  "page.reports.favorite_source_local": {
+    "zh": "Structural · 本机",
+    "en": "Structural · This device"
+  },
+  "page.reports.favorite_source_account": {
+    "zh": "Structural · 账户收藏",
+    "en": "Structural · Account bookmark"
+  },
+  "page.reports.favorite_source_phase": {
+    "zh": "Phase 子产品账户收藏",
+    "en": "Phase · Account bookmark"
+  },
+  "page.reports.favorite_open": {
+    "zh": "打开收藏",
+    "en": "Open bookmark"
+  },
+  "page.reports.favorite_remove": {
+    "zh": "移除收藏",
+    "en": "Remove bookmark"
+  },
+  "page.reports.favorite_remove_short": {
+    "zh": "移除",
+    "en": "Remove"
+  },
+  "page.reports.favorite_removing": {
+    "zh": "移除中…",
+    "en": "Removing…"
+  },
+  "page.reports.favorite_remove_failed": {
+    "zh": "移除没有完成；收藏仍然保留。",
+    "en": "Removal did not finish; the bookmark is still saved."
+  },
+  "page.reports.favorites_empty": {
+    "zh": "还没有收藏。保存结构分析或在 Phase 收藏公司后，会出现在这里。",
+    "en": "No bookmarks yet. Save a Structural analysis or a company in Phase to see it here."
+  },
+  "page.reports.favorites_anonymous": {
+    "zh": "当前显示这台浏览器的研究收藏；登录后可同步并跨设备恢复。",
+    "en": "Showing bookmarks on this browser. Sign in to sync and restore them across devices."
+  },
+  "page.reports.favorites_account": {
+    "zh": "正在显示本机与账户收藏；账户收藏可在其他已登录设备恢复。",
+    "en": "Showing device and account bookmarks. Account bookmarks can be restored on other signed-in devices."
+  },
+  "page.reports.favorites_locked": {
+    "zh": "账户身份需要重新确认；收藏保持锁定，未读取本机或任何账户资产。",
+    "en": "Account identity needs to be confirmed again. Bookmarks remain locked; no device or account assets have been read."
+  },
+  "page.reports.favorites_identity_unavailable": {
+    "zh": "身份确认失败；未读取本机或账户收藏。",
+    "en": "Identity could not be confirmed; no device or account bookmarks have been read."
+  },
+  "page.reports.favorites_read_failed": {
+    "zh": "账户收藏暂时无法读取；本机收藏仍然可用。",
+    "en": "Account bookmarks are temporarily unavailable; device bookmarks still work."
+  },
+  "page.reports.favorites_sync_failed": {
+    "zh": "账户同步暂时不可用；本机收藏仍完整保留，可继续使用。",
+    "en": "Account sync is temporarily unavailable. Device bookmarks remain intact and usable."
+  },
+  "page.reports.favorites_partial": {
+    "zh": "部分收藏已同步到账户；达到配额的项目仍保存在本机。",
+    "en": "Some bookmarks synced. Items beyond your quota remain saved on this device."
+  },
+  "page.reports.favorites_synced": {
+    "zh": "收藏已与账户同步，可在其他已登录设备恢复。",
+    "en": "Bookmarks are synced and can be restored on other signed-in devices."
+  },
+  "page.privacy.bookmark_detail": {
+    "zh": "<strong>结构分析收藏</strong>会保存标题、你提交的问题、被比较对象的标识和由服务端生成的站内链接；Phase 公司收藏会保存股票代码。匿名收藏先留在本机，登录后才会主动同步到账户。同步或移除失败时，本机副本不会被误删；已同步收藏会进入账户导出，并随账户删除一起删除。",
+    "en": "A <strong>Structural analysis bookmark</strong> stores its title, your submitted question, the compared-item identifiers, and a server-generated internal link; a Phase company bookmark stores its ticker. Anonymous bookmarks stay on this device until you sign in and actively sync them. A failed sync or removal never silently deletes the device copy. Synced bookmarks are included in account export and removed with account deletion."
+  },
+  "page.search.rank_within_query": {
+    "zh": "本次排序 #{rank}",
+    "en": "Rank #{rank} in this query"
+  },
+  "page.search.within_query": {
+    "zh": "本次排序",
+    "en": "This query"
+  },
+  "page.search.ranking_note": {
+    "zh": "序位只表示本次查询中的相对先后；不可跨查询比较，也不是成功概率、置信度或证据等级。",
+    "en": "Rank indicates relative order only within this query. It cannot be compared across queries and is not a success probability, confidence, or evidence level."
+  },
+  "page.search.phase_understanding": {
+    "zh": "正在理解你的问题",
+    "en": "Understanding your question"
+  },
+  "page.search.phase_picking": {
+    "zh": "正在整理候选记录",
+    "en": "Organizing candidate records"
+  },
+  "page.search.phase_organizing": {
+    "zh": "正在核对候选边界",
+    "en": "Checking candidate boundaries"
+  },
+  "page.search.phase_almost": {
+    "zh": "马上就好",
+    "en": "Almost there"
+  },
+  "page.search.your_question": {
+    "zh": "你的问题",
+    "en": "Your question"
+  },
+  "page.search.edit": {
+    "zh": "编辑",
+    "en": "Edit"
+  },
+  "page.search.edit_your_question": {
+    "zh": "编辑你的问题",
+    "en": "Edit your question"
+  },
+  "page.search.edit_this_question": {
+    "zh": "编辑这个问题",
+    "en": "Edit this question"
+  },
+  "page.search.cancel": {
+    "zh": "取消",
+    "en": "Cancel"
+  },
+  "page.search.ask_again": {
+    "zh": "再问一次",
+    "en": "Ask again"
+  },
+  "page.search.submit_hint": {
+    "zh": "提交",
+    "en": "Submit"
+  },
+  "page.search.rewritten_as": {
+    "zh": "已改写为研究问题：",
+    "en": "Rewritten as a research question: "
+  },
+  "page.search.retrieval_wording": {
+    "zh": "检索表达：",
+    "en": "Retrieval wording: "
+  },
+  "page.search.retrieval_original": {
+    "zh": "先按原问题检索",
+    "en": "starting with your original question"
+  },
+  "page.search.elapsed_start": {
+    "zh": "已等待 0s",
+    "en": "Waited 0s"
+  },
+  "page.search.candidates_loading": {
+    "zh": "候选检索中 · 结果通过校验后显示",
+    "en": "Retrieving candidates · shown after validation"
+  },
+  "page.search.candidates_typical": {
+    "zh": "个候选 · 通常 8–15s",
+    "en": "candidates · usually 8–15s"
+  },
+  "page.search.synthesis_validated_label": {
+    "zh": "候选比较 · 格式已校验",
+    "en": "Candidate comparison · schema checked"
+  },
+  "page.search.synthesis_degraded_label": {
+    "zh": "候选比较 · 已安全降级",
+    "en": "Candidate comparison · safely degraded"
+  },
+  "page.search.synthesis_checking_label": {
+    "zh": "候选比较 · 校验中",
+    "en": "Candidate comparison · validating"
+  },
+  "page.search.synthesis_checking_text": {
+    "zh": "正在核对候选来源、证据缺口、竞争解释与失败条件…",
+    "en": "Checking candidate sources, evidence gaps, competing explanations, and failure conditions…"
+  },
+  "page.search.evidence_gaps": {
+    "zh": "尚缺证据",
+    "en": "Evidence gaps"
+  },
+  "page.search.competing_explanation": {
+    "zh": "竞争解释",
+    "en": "Competing explanation"
+  },
+  "page.search.failure_condition": {
+    "zh": "何时否定",
+    "en": "Failure condition"
+  },
+  "page.search.next_check": {
+    "zh": "下一步核查",
+    "en": "Next check"
+  },
+  "page.search.synthesis_unavailable_label": {
+    "zh": "候选比较 · 暂不可用",
+    "en": "Candidate comparison · unavailable"
+  },
+  "page.search.synthesis_unavailable_text": {
+    "zh": "检索候选仍可逐条查看；模型比较因网络或超时未完成，未展示任何未校验内容。",
+    "en": "You can still inspect each retrieved candidate. The model comparison did not finish because of a network error or timeout, and no unvalidated content was shown."
+  },
+  "page.search.retry_comparison": {
+    "zh": "重试候选比较",
+    "en": "Retry candidate comparison"
+  },
+  "page.search.review_boundary": {
+    "zh": "核对边界",
+    "en": "Review boundary"
+  },
+  "page.search.empty_title": {
+    "zh": "没有找到可用的知识库候选",
+    "en": "No usable knowledge-base candidates found"
+  },
+  "page.search.empty_text": {
+    "zh": "知识库暂时没有返回可排序的候选。<br>试着描述现象本身的<strong>行为模式</strong>，并补充变量、时间尺度或边界条件。",
+    "en": "The knowledge base did not return candidates it can rank.<br>Describe the phenomenon's <strong>behavioral pattern</strong> and add variables, timescale, or boundary conditions."
+  },
+  "page.search.back_home": {
+    "zh": "返回首页",
+    "en": "Back to home"
+  },
+  "page.search.learn_structural": {
+    "zh": "了解 Structural",
+    "en": "About Structural"
+  },
+  "page.search.rec_placeholder": {
+    "zh": "推荐和证据将在合成完成后展开...",
+    "en": "Recommendations and evidence will unfold once synthesis completes..."
+  },
+  "page.search.v2_also_connects": {
+    "zh": "还连接到",
+    "en": "also connects to"
+  },
+  "page.search.v2_pairs_label": {
+    "zh": "V2 模型提出的跨域候选",
+    "en": "Cross-domain candidates proposed by the V2 model"
+  },
+  "page.search.v2_pairs_title": {
+    "zh": "还可以核查这些候选",
+    "en": "Additional candidates to inspect"
+  },
+  "page.search.v2_pairs_sub": {
+    "zh": "V2 管道单独生成的一组跨学科候选，不在当前向量检索流里。模型筛选不是独立验证；点击查看映射、证据缺口与反例。",
+    "en": "A separate set of cross-disciplinary candidates produced by the V2 pipeline, outside the current vector-retrieval stream. Model filtering is not independent validation; open a pair to inspect its mapping, evidence gaps, and counterexamples."
+  },
+  "page.search.candidates_title": {
+    "zh": "跨领域候选",
+    "en": "Cross-domain candidates"
+  },
+  "page.search.evidence_candidates_title": {
+    "zh": "跨领域候选",
+    "en": "Cross-domain candidates"
+  },
+  "page.search.results_pre_synth_hint": {
+    "zh": "模型正在比较候选 · 现在已可逐条核查",
+    "en": "The model is comparing candidates · records are ready to inspect"
+  },
+  "page.search.v2_pair_rank": {
+    "zh": "本组候选 #{rank}",
+    "en": "Group candidate #{rank}"
+  },
+  "page.search.v2_ranking_note": {
+    "zh": "候选序位只在当前分组内有效，不代表相似度、置信度或验证结论。",
+    "en": "Candidate order applies only within this group; it is not similarity, confidence, or a validation result."
+  },
+  "page.search.candidates_unit": {
+    "zh": "个候选",
+    "en": "candidates"
+  },
+  "page.search.structure_prefix": {
+    "zh": "结构",
+    "en": "Structure"
+  },
+  "page.search.primary_rec_label": {
+    "zh": "建议先核查这个候选",
+    "en": "Inspect this candidate first"
+  },
+  "page.search.primary_why": {
+    "zh": "为什么先核查",
+    "en": "Why inspect this first"
+  },
+  "page.search.primary_takeaway": {
+    "zh": "下一步核查",
+    "en": "Next check"
+  },
+  "page.search.primary_cta": {
+    "zh": "生成研究报告",
+    "en": "Generate research report"
+  },
+  "page.search.alt_angle_default": {
+    "zh": "补充视角",
+    "en": "Alternative angle"
+  },
+  "page.search.deep_analysis": {
+    "zh": "研究报告",
+    "en": "Research report"
+  },
+  "page.search.alt_angles_label": {
+    "zh": "补充视角 — 从不同角度看你的问题",
+    "en": "Alternative angles — see your question from a different perspective"
+  },
+  "page.search.others_prefix": {
+    "zh": "其他",
+    "en": "Other"
+  },
+  "page.search.others_suffix": {
+    "zh": "个待核查候选",
+    "en": "candidates to inspect"
+  },
+  "page.search.unknown_error": {
+    "zh": "未知错误",
+    "en": "Unknown error"
+  },
+  "page.search.error_title": {
+    "zh": "搜索失败",
+    "en": "Search failed"
+  },
+  "page.search.error_text": {
+    "zh": "可能是网络问题或服务暂时不可用。",
+    "en": "This may be a network issue or the service is temporarily unavailable."
+  },
+  "page.search.retry": {
+    "zh": "重试",
+    "en": "Retry"
+  },
+  "page.search.context_lost_title": {
+    "zh": "没有可恢复的研究问题",
+    "en": "No research question can be restored"
+  },
+  "page.search.context_lost_text": {
+    "zh": "问题不会保留在网址中。链接已过期、被重复使用，或浏览器安全存储不可用时，请返回首页重新提交。",
+    "en": "Your question is not kept in the URL. If this link expired, was already used, or secure browser storage is unavailable, return home and submit it again."
+  },
+  "page.search.context_lost_action": {
+    "zh": "返回首页重新提交",
+    "en": "Return home and resubmit"
+  },
+  "page.search.rephrase": {
+    "zh": "换个说法",
+    "en": "Rephrase"
+  },
+  "page.search.assess_coaching_default": {
+    "zh": "这个输入对 Structural 的结构候选搜索可能不太适合。",
+    "en": "This input may not be a good fit for Structural's structural-candidate search."
+  },
+  "page.search.assess_category_other": {
+    "zh": "其他",
+    "en": "Other"
+  },
+  "page.search.assess_identified_as": {
+    "zh": "识别为：",
+    "en": "Recognized as: "
+  },
+  "page.search.assess_title": {
+    "zh": "这个问题对 Structural 来说不太典型",
+    "en": "This question isn't typical for Structural"
+  },
+  "page.search.assess_rewrite_hint": {
+    "zh": "💡 试着这样改写",
+    "en": "💡 Try rewriting it like this"
+  },
+  "page.search.assess_use_rewrite": {
+    "zh": "用这个改写",
+    "en": "Use this rewrite"
+  },
+  "page.search.assess_force_search": {
+    "zh": "还是按原文搜",
+    "en": "Search original anyway"
+  },
+  "page.search.assess_why_summary": {
+    "zh": "为什么 Structural 拦下了这个问题",
+    "en": "Why Structural flagged this question"
+  },
+  "page.search.assess_why_p1": {
+    "zh": "Structural 用跨学科<strong>结构比较</strong>来处理现象级问题，例如行为模式、动力学、阈值和趋势变化。它返回变量关系或方程骨架相近、值得进一步核查的候选；这不证明案例结构等价或机制一致。",
+    "en": "Structural uses cross-disciplinary <strong>structure comparison</strong> for phenomenon-level questions such as behavioral patterns, dynamics, thresholds, and trend changes. It returns candidates with variable relationships or equation skeletons worth checking; this does not establish structural equivalence or a common mechanism."
+  },
+  "page.search.assess_why_p2": {
+    "zh": "不擅长的：帮你写东西、关于产品本身的问题（比如「这个产品怎么用」）、闲聊、查事实、个人琐事——这些场景没有「另一个学科里的同款现象」可借。",
+    "en": "What it isn't good at: writing requests, questions about the product itself (e.g. \"how do I use this\"), small talk, factual lookups, personal trivia — for these, there's no \"matching phenomenon in another discipline\" to borrow from."
+  },
+  "page.phenomenon.structure_prefix": {
+    "zh": "候选结构",
+    "en": "Candidate structure"
+  },
+  "page.phenomenon.about_label": {
+    "zh": "关于这个现象",
+    "en": "About this phenomenon"
+  },
+  "page.phenomenon.cross_domain_title": {
+    "zh": "跨领域结构类比候选",
+    "en": "Cross-domain structural-analogy candidates"
+  },
+  "page.phenomenon.cross_domain_caption": {
+    "zh": "点击任意候选，查看待检验的变量与结构映射",
+    "en": "Open any candidate to inspect a variable and structure mapping that still needs testing"
+  },
+  "page.phenomenon.more_answers_eyebrow": {
+    "zh": "继续探索你的问题",
+    "en": "Keep exploring your question"
+  },
+  "page.phenomenon.more_answers_title": {
+    "zh": "你问题的其他类比候选",
+    "en": "Other analogy candidates for your question"
+  },
+  "page.phenomenon.more_answers_caption_prefix": {
+    "zh": "与\"",
+    "en": "Other candidates retrieved near \""
+  },
+  "page.phenomenon.more_answers_caption_suffix": {
+    "zh": "\"的其他检索候选。点进去查看待检验的映射与证据缺口。",
+    "en": "\". Open one to inspect the proposed mapping and its evidence gaps."
+  },
+  "page.phenomenon.back_all_results": {
+    "zh": "返回所有结果",
+    "en": "Back to all results"
+  },
+  "page.phenomenon.same_structure_caption_emphasize": {
+    "zh": "这些现象被归入同一候选骨架；可借用假设设计检验，但方法迁移前需核对变量、边界与反例。",
+    "en": "These phenomena are grouped under one candidate skeleton. It may suggest test designs, but any method transfer requires checks of variables, boundaries, and counterexamples."
+  },
+  "page.phenomenon.same_structure_caption_default": {
+    "zh": "被检索为结构相似候选的其他现象",
+    "en": "Other phenomena retrieved as structural-analogy candidates"
+  },
+  "page.phenomenon.same_structure_eyebrow": {
+    "zh": "开阔视野",
+    "en": "Broaden the view"
+  },
+  "page.phenomenon.same_structure_title": {
+    "zh": "同一候选结构下的其他现象",
+    "en": "Other phenomena under this candidate structure"
+  },
+  "page.phenomenon.structure_type_eyebrow": {
+    "zh": "候选结构类型",
+    "en": "Candidate structure type"
+  },
+  "page.phenomenon.math_skeleton_badge": {
+    "zh": "候选骨架",
+    "en": "Candidate skeleton"
+  },
+  "page.phenomenon.structure_type_caption": {
+    "zh": "这个编号是检索与组织用的候选结构标签；它把可能具有相似变量关系的现象放在一起，不代表机制已经相同。",
+    "en": "This code is a candidate-structure label for retrieval and organization. It groups phenomena with possibly similar variable relationships; it does not establish a shared mechanism."
+  },
+  "page.phenomenon.belongs_to_structure": {
+    "zh": "当前归入候选结构",
+    "en": "is currently grouped under candidate structure"
+  },
+  "page.phenomenon.structure_type_text": {
+    "zh": "。沿着这个候选骨架，你可以寻找其他领域的可比现象，把源领域做法改写成待检验假设；在当前问题采用前仍需验证适用边界。",
+    "en": ". Following this candidate skeleton can surface comparable phenomena in other domains and turn source-domain approaches into hypotheses to test; applicability must be validated before use in the current problem."
+  },
+  "page.phenomenon.v2_eyebrow": {
+    "zh": "V2 管道",
+    "en": "V2 pipeline"
+  },
+  "page.phenomenon.v2_title": {
+    "zh": "V2 模型提出的跨域候选",
+    "en": "Cross-domain candidates proposed by V2"
+  },
+  "page.phenomenon.v2_caption_prefix": {
+    "zh": "V2 管道为这个现象生成了",
+    "en": "The V2 pipeline produced"
+  },
+  "page.phenomenon.v2_caption_suffix": {
+    "zh": "个其他领域候选。检索接近度仅用于排序，来源核对、证伪与独立复现仍未完成。",
+    "en": "candidate phenomena in other domains. Retrieval proximity ranks candidates only; source checks, falsification and independent replication remain open."
+  },
+  "page.phenomenon.v2_score_prefix": {
+    "zh": "V2",
+    "en": "V2"
+  },
+  "page.phenomenon.v2_score_suffix": {
+    "zh": "分",
+    "en": "pts"
+  },
+  "page.phenomenon.analyze_eyebrow": {
+    "zh": "研究草案",
+    "en": "Research draft"
+  },
+  "page.phenomenon.analyze_title": {
+    "zh": "发起这个现象的跨学科候选迁移研究",
+    "en": "Test a cross-disciplinary transfer candidate for this phenomenon"
+  },
+  "page.phenomenon.analyze_caption": {
+    "zh": "9 段跨学科研究草案，通常 2–3 分钟流式生成",
+    "en": "9-section cross-disciplinary research draft, streamed in ~2–3 min"
+  },
+  "page.phenomenon.analyze_text_prefix": {
+    "zh": "以",
+    "en": "Starting from"
+  },
+  "page.phenomenon.analyze_text_suffix": {
+    "zh": "为起点，让 AI 沿候选骨架检索跨域类比，生成 9 段研究草案：候选结构 → 参数对照 → 方法假设 → 验证建议。草案不等于机制确认。",
+    "en": ", let the AI search across domains using a candidate skeleton and produce a 9-section research draft: candidate structure → parameter mapping → method hypothesis → validation suggestions. The draft is not mechanism confirmation."
+  },
+  "page.phenomenon.analyze_btn": {
+    "zh": "生成待验证研究草案",
+    "en": "Generate a research draft to test"
+  },
+  "page.phenomenon.analyze_hint": {
+    "zh": "9 段跨学科候选迁移研究",
+    "en": "9-section candidate transfer study"
+  },
+  "page.phenomenon.mapping_loading_text": {
+    "zh": "正在生成两个现象之间的候选结构映射",
+    "en": "Generating a candidate structural mapping between the two phenomena"
+  },
+  "page.phenomenon.mapping_loading_hint": {
+    "zh": "AI 生成可能需要 5–10 秒",
+    "en": "LLM generation may take 5-10 seconds"
+  },
+  "page.phenomenon.mapping_error_title": {
+    "zh": "映射生成失败",
+    "en": "Mapping generation failed"
+  },
+  "page.phenomenon.rewritten_as": {
+    "zh": "用于检索的候选改写：",
+    "en": "Candidate retrieval rewrite: "
+  },
+  "page.phenomenon.shared_structure_label": {
+    "zh": "候选共享结构（待验证）",
+    "en": "Candidate shared structure (not yet validated)"
+  },
+  "page.phenomenon.param_mapping_label": {
+    "zh": "参数对照",
+    "en": "Parameter mapping"
+  },
+  "page.phenomenon.param_mapping_hint": {
+    "zh": "AI 提出的 A ↔ B 变量对应，需领域数据验证",
+    "en": "AI-proposed A ↔ B variable correspondences that require domain-data validation"
+  },
+  "page.phenomenon.borrow_from_prefix": {
+    "zh": "候选参照：",
+    "en": "Candidate reference:"
+  },
+  "page.phenomenon.borrow_from_suffix": {
+    "zh": "→ 待验证于",
+    "en": "→ test in"
+  },
+  "page.phenomenon.borrow_subtitle": {
+    "zh": "把源领域做法改写成当前问题可检验的假设与行动",
+    "en": "Rewrite source-domain practices as hypotheses and actions that can be tested in the current problem"
+  },
+  "page.phenomenon.scenario_label": {
+    "zh": "建议测试场景：",
+    "en": "Suggested test scenario: "
+  },
+  "page.phenomenon.why_important_label": {
+    "zh": "为什么值得检验",
+    "en": "Why this is worth testing"
+  },
+  "page.phenomenon.share_label": {
+    "zh": "分享这个候选映射",
+    "en": "Share this candidate mapping"
+  },
+  "page.phenomenon.share_hint": {
+    "zh": "生成带待验证边界的图片，避免把候选映射误传为已确认发现",
+    "en": "Generate an image with an explicit not-yet-validated boundary so the candidate is not shared as a confirmed finding"
+  },
+  "page.phenomenon.share_preview": {
+    "zh": "预览",
+    "en": "Preview"
+  },
+  "page.phenomenon.share_copy": {
+    "zh": "复制图片",
+    "en": "Copy image"
+  },
+  "page.phenomenon.share_download": {
+    "zh": "下载图片",
+    "en": "Download image"
+  },
+  "page.phenomenon.toast_copied": {
+    "zh": "已复制到剪贴板",
+    "en": "Copied to clipboard"
+  },
+  "page.phenomenon.toast_copy_failed": {
+    "zh": "复制失败，请改用下载",
+    "en": "Copy failed, please download instead"
+  },
+  "page.phenomenon.toast_downloaded": {
+    "zh": "已下载",
+    "en": "Downloaded"
+  },
+  "page.phenomenon.modal_close_aria": {
+    "zh": "关闭",
+    "en": "Close"
+  },
+  "page.phenomenon.modal_hint": {
+    "zh": "1200 × 630 · 点击外部区域关闭",
+    "en": "1200 × 630 · click outside to close"
+  },
+  "page.phenomenon.connection_lost": {
+    "zh": "连接中断",
+    "en": "Connection lost"
+  },
+  "page.phenomenon.mapping_streaming_text": {
+    "zh": "正在生成待验证的候选结构映射",
+    "en": "Generating a candidate structural mapping to test"
+  },
+  "page.phenomenon.mapping_received_prefix": {
+    "zh": "已接收",
+    "en": "Received"
+  },
+  "page.phenomenon.mapping_received_suffix": {
+    "zh": "字",
+    "en": "chars"
+  },
+  "page.phenomenon.mapping_starting": {
+    "zh": "即将开始…",
+    "en": "Starting soon…"
+  },
+  "page.phenomenon.not_found": {
+    "zh": "现象未找到",
+    "en": "Phenomenon not found"
+  },
+  "page.phenomenon.view_full_info": {
+    "zh": "查看这个现象的完整信息",
+    "en": "View the full information for this phenomenon"
+  },
+  "page.phenomenon.not_found_title": {
+    "zh": "没找到 — Structural",
+    "en": "Not found — Structural"
+  },
+  "page.phenomenon.not_found_crumb": {
+    "zh": "未找到",
+    "en": "Not found"
+  },
+  "page.phenomenon.not_found_title_body": {
+    "zh": "这个现象还没有被收录",
+    "en": "This phenomenon hasn't been indexed yet"
+  },
+  "page.phenomenon.not_found_text": {
+    "zh": "你要找的现象不存在。<br>也许我们的知识库还没有覆盖到它。",
+    "en": "The phenomenon you're looking for doesn't exist.<br>Our knowledge base may not cover it yet."
+  },
+  "page.phenomenon.back_home": {
+    "zh": "返回首页",
+    "en": "Back to home"
+  },
+  "page.phenomenon.view_discoveries": {
+    "zh": "查看精选发现",
+    "en": "View featured discoveries"
+  },
+  "page.phenomenon.load_failed": {
+    "zh": "未能加载此现象",
+    "en": "Failed to load this phenomenon"
+  },
+  "page.phenomenon.load_failed_text": {
+    "zh": "当前语言的现象记录加载失败。请重试，或返回首页继续探索。",
+    "en": "The phenomenon record failed to load in the selected language. Try again or return home to keep exploring."
+  },
+  "page.papers.meta_title": {
+    "zh": "历史研究材料 — Structural",
+    "en": "Historical research materials — Structural"
+  },
+  "page.papers.meta_desc": {
+    "zh": "20 项历史研究材料：14 份结果记录、5 份研究草稿与 1 份复现教程；尚未与当前证据账本逐项绑定。",
+    "en": "Twenty historical research items: 14 result records, five research drafts, and one reproduction tutorial; they are not yet bound record-by-record to the current evidence ledger."
+  },
+  "page.papers.eyebrow": {
+    "zh": "历史内部材料 · 尚未绑定当前证据账本",
+    "en": "Historical internal material · not bound to the current evidence ledger"
+  },
+  "page.papers.title": {
+    "zh": "20 项历史研究材料",
+    "en": "Twenty historical research items"
+  },
+  "page.papers.lede": {
+    "zh": "这里保留 14 份结果记录、5 份研究草稿与 1 份复现教程。它们可用于审计历史分析，但不能据此证明这些系统具有同一机制，也不代表外部同行评审、独立复现或当前可投稿结论。",
+    "en": "This catalog preserves 14 result records, five research drafts, and one reproduction tutorial. They support historical audit, but cannot establish the same mechanism across these systems, external peer review, independent replication, or a submission-ready conclusion."
+  },
+  "page.papers.stat_total": {
+    "zh": "历史材料总数",
+    "en": "historical items"
+  },
+  "page.papers.stat_records": {
+    "zh": "结果记录",
+    "en": "result records"
+  },
+  "page.papers.stat_drafts": {
+    "zh": "研究草稿",
+    "en": "research drafts"
+  },
+  "page.papers.stat_tutorials": {
+    "zh": "复现教程",
+    "en": "reproduction tutorial"
+  },
+  "page.papers.catalog_title": {
+    "zh": "按材料类型浏览",
+    "en": "Browse by material type"
+  },
+  "page.papers.filter_help": {
+    "zh": "使用方向键切换筛选项",
+    "en": "Use arrow keys to change the filter"
+  },
+  "page.papers.filter_all": {
+    "zh": "全部 20 项",
+    "en": "All 20 items"
+  },
+  "page.papers.filter_unified": {
+    "zh": "综合研究稿",
+    "en": "Synthesis draft"
+  },
+  "page.papers.filter_drafts": {
+    "zh": "单系统研究稿",
+    "en": "Single-system drafts"
+  },
+  "page.papers.filter_records": {
+    "zh": "结果记录",
+    "en": "Result records"
+  },
+  "page.papers.filter_tutorial": {
+    "zh": "复现教程",
+    "en": "Reproduction tutorial"
+  },
+  "page.papers.loading": {
+    "zh": "正在校验历史材料目录…",
+    "en": "Validating the historical-material catalog…"
+  },
+  "page.papers.footer_note_title": {
+    "zh": "阅读边界",
+    "en": "Reading boundary"
+  },
+  "page.papers.footer_note_body": {
+    "zh": "每个详情页先显示当前公开边界，再将未经当前证据标准化的历史 Markdown 收纳在默认关闭的区域中。源码与数据链接仅指向项目 GitHub 仓库。",
+    "en": "Each detail page shows the current public boundary first, then places the historical Markdown that has not been normalized to current evidence standards inside a closed-by-default section. Source and data links are restricted to the project GitHub repository."
+  },
+  "page.paper.recorded_observation": {
+    "zh": "记录了什么",
+    "en": "Recorded observation"
+  },
+  "page.paper.not_established": {
+    "zh": "不能推出什么",
+    "en": "What it does not establish"
+  },
+  "page.paper.next_validation": {
+    "zh": "下一步检验",
+    "en": "Next validation step"
+  },
+  "page.paper.analysis_class": {
+    "zh": "历史分类",
+    "en": "Historical classification"
+  },
+  "page.paper.legacy_warning": {
+    "zh": "以下内容按原始历史记录呈现，其中标题和论断可能强于当前公开证据边界；请以上方边界卡为准。",
+    "en": "The material below is preserved from the original historical record. Its title and claims may be stronger than the current public evidence boundary; use the boundary card above as the controlling interpretation."
+  },
+  "page.methods.meta_title": {
+    "zh": "方法与 Pipeline — Structural",
+    "en": "Methods & pipeline — Structural"
+  },
+  "page.methods.meta_desc": {
+    "zh": "V4 Layer 1-5 pipeline 全貌。",
+    "en": "V4 Layer 1-5 pipeline overview."
+  },
+  "page.methods.eyebrow": {
+    "zh": "完整 pipeline · 5 个阶段",
+    "en": "Full pipeline · 5 stages"
+  },
+  "page.methods.title": {
+    "zh": "共享分析模块，<em>不同证据结果</em>",
+    "en": "Shared analysis modules, <em>different evidence outcomes</em>"
+  },
+  "page.methods.l1_title": {
+    "zh": "图构建",
+    "en": "Graph construction"
+  },
+  "page.methods.l2_title": {
+    "zh": "社区发现",
+    "en": "Community detection"
+  },
+  "page.methods.l3_title": {
+    "zh": "Taxonomy Match",
+    "en": "Taxonomy match"
+  },
+  "page.methods.l4_title": {
+    "zh": "预测翻译",
+    "en": "Prediction translation"
+  },
+  "page.methods.l5_title": {
+    "zh": "领域结果记录（真实与合成数据）",
+    "en": "Domain result records (real and synthetic data)"
+  },
+  "page.methods.b3_title": {
+    "zh": "B3 同模型族内部筛查",
+    "en": "B3 same-family internal screening"
+  },
+  "page.methods.null_title": {
+    "zh": "Null robustness",
+    "en": "Null robustness"
+  },
+  "page.taxv2.meta_title": {
+    "zh": "候选分组内部筛查记录 · Structural",
+    "en": "Internal screening record for candidate groups · Structural"
+  },
+  "page.taxv2.eyebrow": {
+    "zh": "内部筛查记录 · 同厂商多配置",
+    "en": "Internal screening · same-vendor configurations"
+  },
+  "page.taxv2.title": {
+    "zh": "候选分组内部筛查 — 保留、降级、<em>拒绝</em>",
+    "en": "Internal candidate screening — keep, demote, or <em>reject</em>"
+  },
+  "page.taxv2.col_class": {
+    "zh": "候选类",
+    "en": "Candidate class"
+  },
+  "page.taxv2.col_consensus": {
+    "zh": "多数筛查标签",
+    "en": "Majority screening label"
+  },
+  "page.taxv2.legend_keep": {
+    "zh": "保留类",
+    "en": "keep as-is"
+  },
+  "page.taxv2.legend_reject": {
+    "zh": "demote 到描述符目录",
+    "en": "demote to descriptor catalog"
+  },
+  "page.taxv2.legend_split": {
+    "zh": "拆为子类",
+    "en": "split into sub-classes"
+  },
+  "page.taxv2.legend_merge": {
+    "zh": "合并到其他类",
+    "en": "merge into another class"
+  },
+  "page.taxv2.legend_disagree": {
+    "zh": "人工初判与内部筛查多数标签不同",
+    "en": "Initial human label differs from the internal majority label"
+  },
+  "page.about.empirical.results": {
+    "zh": "记录中既有与候选预测相容的统计量，也有 NULL、FAIL、PARTIAL 和 INCONCLUSIVE。地震、市场、DeFi 与神经数据的历史拟合只能说明某些统计形状值得继续比较；不能单凭指数接近推出同一机制。合成对照用于检查代码行为，也不能排除所有方法偏差。逐项数据、版本和限制见结果记录与证据账本 v1（2026-07-12）。",
+    "en": "The records include statistics compatible with candidate predictions as well as NULL, FAIL, PARTIAL, and INCONCLUSIVE outcomes. Historical fits on earthquake, market, DeFi, and neural data identify shapes worth comparing; similar exponents alone do not establish a shared mechanism. Synthetic controls check code behavior but cannot eliminate every methodological bias. See the result records and evidence ledger v1 (2026-07-12) for inputs, versions, and limits."
+  },
+  "page.about.how.example1": {
+    "zh": "<strong>地震和股价闪崩</strong>——候选比较关注“缓慢积累、突然释放”的统计形状；形状接近不等于驱动机制相同。",
+    "en": "<strong>Earthquakes and stock-market flash crashes</strong> — a candidate comparison focuses on slow build-up and sudden-release statistics; similar shapes do not establish the same driving mechanism."
+  },
+  "page.about.how.example2": {
+    "zh": "<strong>神经雪崩和电网级联</strong>——都可提出“局部事件沿连接传播”的候选模型，但网络、因果方向和证据仍需分别检验。",
+    "en": "<strong>Neural avalanches and power-grid cascades</strong> — both invite a candidate model of local events propagating along connections, while their networks, causal direction, and evidence require separate tests."
+  },
+  "page.about.how.example3": {
+    "zh": "<strong>DeFi 清算和银行挤兑</strong>——可比较杠杆、阈值与压力传播的变量映射；跨协议统计相似只是研究线索。",
+    "en": "<strong>DeFi liquidations and bank runs</strong> — leverage, thresholds, and stress propagation can be mapped for comparison; cross-protocol statistical similarity remains a research lead."
+  },
+  "page.about.how.example4": {
+    "zh": "<strong>野火和太阳耀斑</strong>——历史结果曾比较事件大小分布；当前只作为候选统计类比，不作普适机制结论。",
+    "en": "<strong>Wildfires and solar flares</strong> — historical records compared event-size distributions; this remains a candidate statistical analogy, not a universal-mechanism conclusion."
+  },
+  "page.about.how.examples_intro": {
+    "zh": "这套流程实际跑出来的发现，长这样：",
+    "en": "Here is what this pipeline actually finds in practice:"
+  },
+  "page.about.how.flow": {
+    "zh": "系统从描述中提取状态变量、反馈结构和候选方程，再聚合相似现象。多个 AI 配置只用于内部筛查，不等于外部同行评审。部分候选随后进入共享分析代码，结果可能是支持、拒绝、NULL、PARTIAL 或 INCONCLUSIVE；每条仍需检查数据来源、替代解释和独立复现。",
+    "en": "The system extracts state variables, feedback structures, and candidate equations, then groups similar phenomena. Multiple AI configurations provide internal screening, not external peer review. Some candidates enter shared analysis code, producing support, rejection, NULL, PARTIAL, or INCONCLUSIVE results; every claim still requires source checks, alternative explanations, and independent replication."
+  },
+  "page.about.how.outcome": {
+    "zh": "每条候选提供变量映射、可能的方程、反例方向和下一步实验草案，供领域专家判断是否值得继续；它不是可直接投稿的结论。候选模式见 <a href=\"/classes\">/classes</a>。",
+    "en": "Each candidate offers a variable mapping, possible equation, counterexample direction, and next-experiment draft so a domain expert can decide whether to continue. It is not a submission-ready conclusion. Candidate patterns are listed at <a href=\"/classes\">/classes</a>."
+  },
+  "page.analyze.crumb_classes": {
+    "zh": "共享模式",
+    "en": "Shared patterns"
+  },
+  "page.classes.footnote_l7": {
+    "zh": "<strong>AI 内部筛查记录</strong>：AI 配置只对原队列候选生成内部处理标签，用于安排人工复核优先级。这些配置不是独立同行评审，也不能验证分类方法。详见 <a href=\"/taxonomy-v2\">筛查记录</a>。",
+    "en": "<strong>Internal AI screening record</strong>: AI configurations only produced internal handling labels for original-queue candidates to prioritize human review. They are not independent peer review and do not validate the taxonomy method. See the <a href=\"/taxonomy-v2\">screening record</a>."
+  },
+  "page.home.brand": {
+    "zh": "把你的难题，换成<em>其他学科可供检验的类比</em>",
+    "en": "Turn your problem into <em>analogies worth testing in other fields</em>"
+  },
+  "page.home.hero_evidence.eyebrow": {
+    "zh": "演示 · 点任一边看一个真实例子",
+    "en": "Demo · click either side for a real example"
+  },
+  "page.methods.b3_limit_label": {
+    "zh": "局限:",
+    "en": "Limit:"
+  },
+  "page.methods.b3_limit_text": {
+    "zh": "同厂商 AI 审稿团探测的是同模型族内的判定漂移,不是跨架构分歧。跨厂商审稿(其他 LLM 家族)因地区访问限制推迟到后续版本。",
+    "en": "A single-vendor review panel only detects intra-family verdict drift, not cross-architecture disagreement. Cross-vendor review (other LLM families) is deferred to a future version due to regional access constraints."
+  },
+  "page.methods.b3_p1": {
+    "zh": "候选模式太多或命名太松会污染整个分类。分类假设阶段使用同一厂商模型族的三个配置，对 21 个候选分别给出保留 / 拒绝 / 拆分 / 合并的内部筛查票。多数票只用于安排人工复核优先级，不是独立评审。",
+    "en": "Too many candidate patterns or overly loose names can pollute the taxonomy. At the taxonomy-hypothesis stage, three configurations from one vendor's model family cast internal screening votes—keep, reject, split, or merge—on 21 candidates. A majority only prioritizes human review; it is not independent review."
+  },
+  "page.methods.b3_p2": {
+    "zh": "<strong>共识分布:</strong> 保留 5 / 拒绝 7 / 拆分 5 / 合并 4。详细投票矩阵见 <a href=\"/taxonomy-v2\">审稿结果</a>。",
+    "en": "<strong>Consensus breakdown:</strong> keep 5 / reject 7 / split 5 / merge 4. Full voting matrix at <a href=\"/taxonomy-v2\">/taxonomy-v2</a>."
+  },
+  "page.methods.b3_p3": {
+    "zh": "<strong>内部观察 — 相似错误标签:</strong> 同厂商的三个模型配置都把 4 个初始候选标为“可能把数学工具误当机制”。这种一致可用于发现待人工复核项，但由于模型同源、提示与样本未独立，它不是方法论有效性的验证。",
+    "en": "<strong>Internal observation — a similar error label:</strong> three configurations from one vendor flagged four initial candidates as possibly mistaking mathematical tools for mechanisms. This agreement can prioritize human review, but shared model provenance, prompts, and samples mean it is not validation of the methodology."
+  },
+  "page.methods.b3_stat_agreement": {
+    "zh": "人工 ↔ AI 一致",
+    "en": "human ↔ AI agreement"
+  },
+  "page.methods.b3_stat_errors": {
+    "zh": "解析错误",
+    "en": "parse errors"
+  },
+  "page.methods.b3_stat_verdicts": {
+    "zh": "投票总数",
+    "en": "total verdicts"
+  },
+  "page.methods.b3_stat_walltime": {
+    "zh": "总耗时",
+    "en": "total wall-time"
+  },
+  "page.methods.l1_desc": {
+    "zh": "读取前几代检索中带 A、B+ 内部评分标签的候选，按当时阈值过滤，得到 180 节点 / 143 边的现象关联图；标签不代表正确性或证据质量。",
+    "en": "Read candidates carrying internal A or B+ score labels from earlier retrieval generations and filter them by the recorded threshold, yielding a phenomenon graph of 180 nodes / 143 edges; the labels do not establish correctness or evidence quality."
+  },
+  "page.methods.l2_desc": {
+    "zh": "用社区发现算法(Louvain)在关联图上聚簇,得到 <strong>23 个候选等价类</strong>,21 个跨 ≥ 2 领域。",
+    "en": "Run a community-detection algorithm (Louvain) on the graph to cluster nodes, yielding <strong>23 candidate equivalence classes</strong>, 21 of which span ≥ 2 domains."
+  },
+  "page.methods.l3_desc": {
+    "zh": "把算法生成的候选分组关联到文献中的命名模式，作为待检验的分类假设；关联标签不等于确认物理普适类或共享机制。",
+    "en": "Associate algorithm-generated candidate groups with named patterns in the literature as taxonomy hypotheses for testing; an association label does not confirm a physical universality class or shared mechanism."
+  },
+  "page.methods.l4_desc": {
+    "zh": "参考文献中报告的关系草拟跨领域可证伪假设；每项迁移仍需核对变量映射、数据、替代解释和失败标准。",
+    "en": "Use literature-reported relationships to draft cross-domain falsifiable hypotheses; each transfer still requires checks of variable mapping, data, alternative explanations, and failure criteria."
+  },
+  "page.methods.l5_desc": {
+    "zh": "共享分析模块用于多份领域数据和合成对照。结果并不一致：有支持、拒绝、部分支持、NULL 和证据不足。合成对照检验代码行为，不替代真实系统的机制证据。",
+    "en": "Shared analysis modules are used on multiple domain datasets and synthetic controls. Outcomes differ: support, rejection, partial support, NULL, and insufficient evidence. Synthetic controls test code behavior; they do not replace real-system mechanism evidence."
+  },
+  "page.methods.lede": {
+    "zh": "共享代码只能保证分析步骤可比较，不能保证数据独立、机制相同或结论成立。这里记录从候选模式到真实/合成数据测试的流程，并保留支持、拒绝、NULL、PARTIAL 和 INCONCLUSIVE 结果。",
+    "en": "Shared code makes analysis steps comparable; it does not guarantee independent data, a common mechanism, or a positive conclusion. This page records the path from candidate patterns to real/synthetic tests while preserving support, rejection, NULL, PARTIAL, and INCONCLUSIVE outcomes."
+  },
+  "page.methods.null_p1": {
+    "zh": "为检查代码是否会把明显的非幂律样本也拟合成幂律，我们记录了 4 个合成对照（Gaussian 随机游走、指数变量、Poisson 事件、Poisson 余震叠加）。在当时配置下这些样本未被选为幂律（记录的 R ∈ [-45, -16]，Poisson 余震 R² ≈ 0.002）。这个小型对照只覆盖已选生成过程，不能排除其他方法偏差。",
+    "en": "To check whether the code also labels obvious non-power-law samples as power laws, we recorded four synthetic controls (Gaussian random walk, exponential variates, Poisson events, and Poisson-aftershock superposition). Under the recorded configuration they were not selected as power laws (R ∈ [-45, -16]; Poisson-aftershock R² ≈ 0.002). This small control set covers only the chosen generators and cannot exclude other methodological bias."
+  },
+  "page.methods.null_p2": {
+    "zh": "另有一份探索性形态对照：在有限尺寸标度假设和既定归一化下，7 份领域曲线记录 r<sub>shape</sub> = 1.11；当时的模型选择在 5/7 中偏向幂律 + 指数 cutoff。阈值、领域选择和预处理均非预注册，因此这只是候选观察，不能证明 7 个领域发生同一 collapse 或共享机制。",
+    "en": "A separate exploratory shape comparison records r<sub>shape</sub> = 1.11 for seven domain curves under a finite-size-scaling assumption and a selected normalization; the recorded model selection favored power law plus exponential cutoff in 5/7. The threshold, domains, and preprocessing were not preregistered, so this is a candidate observation—not proof of one collapse or a shared mechanism across seven domains."
+  },
+  "page.methods.null_p3": {
+    "zh": "完整研究规划见 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>,统一研究报告见 <a href=\"/paper/unified-pipeline-v0.2-2026-05-13\">研究报告</a>。",
+    "en": "Full research plan on <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>; unified pipeline report at <a href=\"/paper/unified-pipeline-v0.2-2026-05-13\">research report</a>."
+  },
+  "page.methods.pipeline_p1": {
+    "zh": "多份领域记录复用一个 Python 分析模块（<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">查看代码 →</a>）；数据接入、预处理和运行配置仍需逐项审计。模块提供以下分析操作：",
+    "en": "Multiple domain records reuse a Python analysis module (<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">view source →</a>); ingestion, preprocessing, and run configuration still require per-record audit. The module provides these operations:"
+  },
+  "page.methods.pipeline_p2": {
+    "zh": "<strong>不同领域复用共享分析模块，但数据接入、预处理和适用参数可能因数据而异。</strong>复用提高可比性；在缺少逐项配置与来源审计时，不能声称整条管道完全未修改、未调参或未使用先验。",
+    "en": "<strong>Domains reuse shared analysis modules, while ingestion, preprocessing, and applicable parameters may differ by dataset.</strong> Reuse improves comparability; without a per-run configuration and provenance audit, we cannot claim that the full pipeline was unchanged, untuned, or free of priors."
+  },
+  "page.methods.pipeline_title": {
+    "zh": "共享代码模块",
+    "en": "Shared code modules"
+  },
+  "page.taxv2.lede": {
+    "zh": "21 个候选分组接受了同一厂商模型家族的三种 AI 配置内部筛查。每种配置给出保留 / 拒绝 / 拆分 / 合并标签；多数标签只用于安排人工复核优先级，不是独立同行评审或分类方法验证。共记录 63 次输出、0 次解析错误和 40.8 分钟总耗时。方法细节见<a href=\"/methods\">方法页</a>。",
+    "en": "Twenty-one candidate groups received internal screening from three configurations in one vendor's model family. Each configuration assigned keep / reject / split / merge labels; the majority label only prioritizes human review and is neither independent peer review nor validation of the taxonomy method. The record contains 63 outputs, 0 parse errors, and 40.8 minutes of wall time. See the <a href=\"/methods\">methods page</a>."
+  },
+  "page.taxv2.limit_p1": {
+    "zh": "<strong>(a) 同厂商配置</strong> — 三种 AI 配置来自同一家厂商，只能观察同模型家族内的标签漂移，不是独立同行评审，也不能代表跨架构分歧。其他 LLM 家族因地区访问限制与备用路由尚未验证而未纳入。",
+    "en": "<strong>(a) Same-vendor configurations</strong> — the three AI configurations come from one vendor. They only reveal label drift within a model family, are not independent peer review, and do not represent cross-architecture disagreement. Other LLM families were not included because regional access and the fallback route remain unverified."
+  },
+  "page.taxv2.limit_p2": {
+    "zh": "<strong>(b) 21 个候选是已发现的子集</strong> — 社区发现浮现 23 个候选,审稿评议了 21 个。\"应当存在但没被社区发现浮现\"的类无法靠审稿补回来,需要回到前几代检索加新现象。",
+    "en": "<strong>(b) 21 is a subset of what's discoverable</strong> — community detection surfaced 23 candidates; the panel reviewed 21. Classes that \"should exist but were never surfaced by community detection\" cannot be recovered by review alone — they require returning to earlier retrieval generations to add new phenomena."
+  },
+  "page.taxv2.limit_p3": {
+    "zh": "内部筛查原始输出与每条标签理由公开在 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_review.jsonl\" target=\"_blank\" rel=\"noopener\">GitHub</a>，多数标签结果在 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_taxonomy_v2.jsonl\" target=\"_blank\" rel=\"noopener\">GitHub</a>，汇总表在 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_summary.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>。",
+    "en": "The raw internal-screening outputs and reasons for each label are public on <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_review.jsonl\" target=\"_blank\" rel=\"noopener\">GitHub</a>; majority-label results are at <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_taxonomy_v2.jsonl\" target=\"_blank\" rel=\"noopener\">GitHub</a>; the summary table is at <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_summary.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>."
+  },
+  "page.taxv2.limit_title": {
+    "zh": "局限与下一步",
+    "en": "Limitations & next steps"
+  },
+  "page.taxv2.meta_desc": {
+    "zh": "21 个候选分组接受了同一厂商模型家族三种配置的内部筛查。多数标签只用于安排人工复核，不是独立同行评审或分类方法验证。",
+    "en": "Twenty-one candidate groups received internal screening from three configurations in one vendor's model family. Majority labels only prioritize human review; they are not independent peer review or validation of the taxonomy method."
+  },
+  "page.taxv2.pattern_p1": {
+    "zh": "<strong>4 个候选</strong>在内部筛查中收到降级标签（延迟微分债务、Preisach 作为单一类、无标度渗流类、尾部 copula 传染）。共同待核查点是：这些候选可能把可复用的数学工具误当成跨领域机制证据。",
+    "en": "<strong>Four candidates</strong> received downgrade labels in the internal screen (delay-differential debt; Preisach as one class; scale-free percolation; tail-copula contagion). The shared review question is whether a reusable mathematical tool was mistaken for cross-domain mechanism evidence."
+  },
+  "page.taxv2.pattern_p2": {
+    "zh": "延迟微分方程、Preisach 积分、无标度生成模型、copula 联合分布族是可描述多种机制的数学工具，本身不是机制。同厂商三种模型配置给出相似标签，只是内部筛查观察；它们共享训练谱系，不能作为方法论验证。",
+    "en": "Delay-differential equations, Preisach integrals, scale-free generative models, and copula joint distributions are mathematical tools that can describe multiple mechanisms; they are not mechanisms themselves. Similar labels from three same-vendor configurations are an internal screening observation, not methodological validation, because the models share a training lineage."
+  },
+  "page.taxv2.pattern_p3": {
+    "zh": "<strong>Preisach 待检验项:</strong> 把 Preisach 当作单一跨域机制的候选已被降级。NGSIM US-101 上的交通拟合、磁滞与毛细类比目前都只是各领域观察；一次数据拟合不确认真实机制，各子类仍需领域对照和独立复现。",
+    "en": "<strong>Preisach item pending tests:</strong> the candidate that treated Preisach as one cross-domain mechanism was downgraded. The traffic fit on NGSIM US-101 and the magnetic and capillary analogies remain per-domain observations; one dataset fit does not confirm a physical mechanism, and each subclass requires domain controls and independent replication."
+  },
+  "page.taxv2.pattern_title": {
+    "zh": "共享降级模式",
+    "en": "A shared downgrade pattern"
+  },
+  "page.discoveries.load_failed_friendly": {
+    "zh": "内容暂时加载不出来，请稍后重试。",
+    "en": "Content could not be loaded. Please try again later."
+  },
+  "page.discoveries.retry": {
+    "zh": "重试",
+    "en": "Retry"
+  },
+  "page.search.retired_comparison_status": {
+    "zh": "旧候选比较暂不可用；当前仅为本地排序结果",
+    "en": "Legacy candidate comparison is unavailable; these are local ranking results only."
+  },
+  "page.search.research_no_transfer": {
+    "zh": "本页问题不会自动带入研究页。请重新输入、确认后保存。",
+    "en": "Your question is not transferred to the research page. Re-enter, confirm and save it there."
+  },
+  "page.search.research_new_problem": {
+    "zh": "前往研究记录（需重新输入并保存）",
+    "en": "Open research records (re-enter and save your question)"
+  }
+}

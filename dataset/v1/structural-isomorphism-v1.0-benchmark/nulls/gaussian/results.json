@@ -1,0 +1,27 @@
+{
+  "case_id": "null_001_gaussian_walk",
+  "synthetic_data_type": "gaussian_walk",
+  "description": "|dX_t| where dX_t ~ N(0,1); folded-normal tail, NOT power-law",
+  "params": {
+    "mean": 0.0,
+    "std": 1.0,
+    "rng_seed": 42
+  },
+  "n_samples": 20000,
+  "pipeline_verdict": "rejected",
+  "key_indicators": {
+    "alpha_clauset": 2.999087244811155,
+    "sigma_alpha": 0.021499290727308048,
+    "xmin": 0.7840644374778307,
+    "n_tail": 8646,
+    "vs_lognormal_R": -28.577448877381094,
+    "vs_lognormal_p": 1.281215785634331e-179,
+    "vs_exponential_R": -44.75967762663638,
+    "vs_exponential_p": 0.0
+  },
+  "expected_real_distribution": "folded_normal",
+  "date_added": "2026-05-13",
+  "phase_source": "phase_5_null",
+  "source_file": "v4/validation/null-controls/null_results.json",
+  "doc_ref": "v4/validation/null-controls/VERDICT-2026-04-16.md"
+}

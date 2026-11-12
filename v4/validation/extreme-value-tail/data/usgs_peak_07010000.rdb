@@ -1,0 +1,239 @@
+#
+# U.S. Geological Survey
+# National Water Information System
+# Retrieved: 2026-05-24 13:57:47 EDT
+#
+# ---------------------------------- WARNING ----------------------------------------
+# Some of the data that you have obtained from this U.S. Geological Survey database
+# may not have received Director's approval. Any such data values are qualified
+# as provisional and are subject to revision. Provisional data are released on the
+# condition that neither the USGS nor the United States Government may be held liable
+# for any damages resulting from its use.
+#
+# More data may be available offline.
+# For more information on these data,  contact  USGS Water Data Inquiries.
+# This file contains the annual peak streamflow data.
+#
+# This information includes the following fields:
+#
+#  agency_cd     Agency Code
+#  site_no       USGS station number
+#  peak_dt       Date of peak streamflow (format YYYY-MM-DD)
+#  peak_tm       Time of peak streamflow (24 hour format, 00:00 - 23:59)
+#  peak_va       Annual peak streamflow value in cfs
+#  peak_cd       Peak Discharge-Qualification codes (see explanation below)
+#  gage_ht       Gage height for the associated peak streamflow in feet
+#  gage_ht_cd    Gage height qualification codes
+#  year_last_pk  Peak streamflow reported is the highest since this year
+#  ag_dt         Date of maximum gage-height for water year (if not concurrent with peak)
+#  ag_tm         Time of maximum gage-height for water year (if not concurrent with peak
+#  ag_gage_ht    maximum Gage height for water year in feet (if not concurrent with peak
+#  ag_gage_ht_cd maximum Gage height code
+#
+# Sites in this file include:
+#  USGS 07010000 Mississippi River at St. Louis, MO
+#
+# Peak Streamflow-Qualification Codes(peak_cd):
+#   1 ... Discharge is a Maximum Daily Average
+#   2 ... Discharge is an Estimate
+#   3 ... Discharge affected by Dam Failure
+#   4 ... Discharge less than indicated value,
+#           which is Minimum Recordable Discharge at this site
+#   5 ... Discharge affected to unknown degree by
+#           Regulation or Diversion
+#   6 ... Discharge affected by Regulation or Diversion
+#   7 ... Discharge is an Historic Peak
+#   8 ... Discharge actually greater than indicated value
+#   9 ... Discharge due to Snowmelt, Hurricane,
+#           Ice-Jam or Debris Dam breakup
+#   A ... Year of occurrence is unknown or not exact
+#   Bd ... Day of occurrence is unknown or not exact
+#   Bm ... Month of occurrence is unknown or not exact
+#   C ... All or part of the record affected by Urbanization,
+#            Mining, Agricultural changes, Channelization, or other
+#   F ... Peak supplied by another agency
+#   O ... Opportunistic value not from systematic data collection
+#   R ... Revised
+#
+# Gage height qualification codes(gage_ht_cd,ag_gage_ht_cd):
+#   1 ... Gage height affected by backwater
+#   2 ... Gage height not the maximum for the year
+#   3 ... Gage height at different site and(or) datum
+#   4 ... Gage height below minimum recordable elevation
+#   5 ... Gage height is an estimate
+#   6 ... Gage datum changed during this year
+#   7 ... Debris, mud, or hyper-concentrated flow
+#   8 ... Gage height tidally affected
+#   Bd ... Day of occurrence is unknown or not exact
+#   Bm ... Month of occurrence is unknown or not exact
+#   F ... Peak supplied by another agency
+#   R ... Revised
+#
+#
+agency_cd	site_no	peak_dt	peak_tm	peak_va	peak_cd	gage_ht	gage_ht_cd	year_last_pk	ag_dt	ag_tm	ag_gage_ht	ag_gage_ht_cd
+5s	15s	10d	6s	8s	33s	8s	27s	4s	10d	6s	8s	27s
+USGS	07010000	1844-06-27		1000000	7	41.32						
+USGS	07010000	1862-04-26		712000	1							
+USGS	07010000	1863-03-04		252000	1							
+USGS	07010000	1864-05-14		310000	1							
+USGS	07010000	1865-07-28		513000	1							
+USGS	07010000	1866-04-25		513000	1							
+USGS	07010000	1867-05-01		568000	1							
+USGS	07010000	1868-05-14		421000	1							
+USGS	07010000	1869-07-24		615000	1							
+USGS	07010000	1870-04-16		491000	1							
+USGS	07010000	1871-03-17		348000	1							
+USGS	07010000	1872-06-12		383000	1							
+USGS	07010000	1873-04-11		462000	1							
+USGS	07010000	1874-06-19		261000	1							
+USGS	07010000	1875-08-03		637000	1							
+USGS	07010000	1876-05-10		741000	1							
+USGS	07010000	1877-06-14		506000	1							
+USGS	07010000	1878-06-15		477000	1							
+USGS	07010000	1879-07-03		332000	1							
+USGS	07010000	1880-07-12		466000	1							
+USGS	07010000	1881-05-05		822000	1							
+USGS	07010000	1882-07-05		739000	1							
+USGS	07010000	1883-06-25		863000	1							
+USGS	07010000	1884-04-09		544000	1							
+USGS	07010000	1885-06-17		504000	1							
+USGS	07010000	1886-05-13		500000	1							
+USGS	07010000	1887-04-03		308000	1							
+USGS	07010000	1888-06-04		599000	1							
+USGS	07010000	1889-06-01		416000	1							
+USGS	07010000	1890-07-01		308000	1							
+USGS	07010000	1891-07-04		388000	1							
+USGS	07010000	1892-05-19		926000	1							
+USGS	07010000	1893-05-03		700000	1							
+USGS	07010000	1894-05-11		380000	1							
+USGS	07010000	1895-07-08		229000	1							
+USGS	07010000	1896-05-26		507000	1							
+USGS	07010000	1897-05-02		645000	1							
+USGS	07010000	1898-05-23		487000	1							
+USGS	07010000	1899-04-27		432000	1							
+USGS	07010000	1900-03-16		366000	1							
+USGS	07010000	1901-04-18		343000		22.58						
+USGS	07010000	1902-07-26		475000		26.89						
+USGS	07010000	1903-06-10		1020000		38.00						
+USGS	07010000	1904-04-29		778000		33.60						
+USGS	07010000	1905-09-21		613000		30.20						
+USGS	07010000	1906-04-15		449000		26.20						
+USGS	07010000	1907-07-25		519000		28.00						
+USGS	07010000	1908-06-20		850000		34.95						
+USGS	07010000	1909-07-15		861000		35.25						
+USGS	07010000	1910-01-13		416000		25.20						
+USGS	07010000	1911-02-23		283000		19.90						
+USGS	07010000	1912-04-05		641000		30.80						
+USGS	07010000	1913-04-16		487000		27.20						
+USGS	07010000	1914-06-21		294000		20.40						
+USGS	07010000	1915-06-24		678000		31.60						
+USGS	07010000	1916-01-31		676000		31.40						
+USGS	07010000	1917-06-14		743000		32.90						
+USGS	07010000	1918-06-12		324000		20.80						
+USGS	07010000	1919-05-11		515000		26.90						
+USGS	07010000	1920-04-24		554000		28.00						
+USGS	07010000	1921-05-14		397000		23.00						
+USGS	07010000	1922-04-20		786000		33.95						
+USGS	07010000	1923-06-17		341000		20.70						
+USGS	07010000	1924-07-02		495000		26.30						
+USGS	07010000	1925-06-25		326000		19.90						
+USGS	07010000	1926-09-29		438000		24.50						
+USGS	07010000	1927-04-26		889000		36.10						
+USGS	07010000	1928-06-22		552000		27.60						
+USGS	07010000	1929-04-25		739000		34.60						
+USGS	07010000	1930-06-21		310000		19.60						
+USGS	07010000	1931-06-15		200000		13.30						
+USGS	07010000	1931-12-01		356000		22.11						
+USGS	07010000	1933-05-17		434000	5	27.00						
+USGS	07010000	1934-04-24		136000	5	9.00						
+USGS	07010000	1935-06-07		649000	5	33.52						
+USGS	07010000	1936-03-01		336000	5	21.18						
+USGS	07010000	1937-05-05		374000	5	23.76						
+USGS	07010000	1938-05-27		434000	5	26.57						
+USGS	07010000	1939-04-20		529000	5	30.13						
+USGS	07010000	1940-06-14		188000	5	13.37						
+USGS	07010000	1941-04-22		451000	5	26.15						
+USGS	07010000	1942-06-30		666000	5	34.48						
+USGS	07010000	1943-05-24		840000	5	38.94						
+USGS	07010000	1944-04-30		844000	5	39.14						
+USGS	07010000	1945-04-21		610000	5	35.30						
+USGS	07010000	1946-01-13		502000	5	28.00						
+USGS	07010000	1947-07-01		783000	5	40.26						
+USGS	07010000	1948-03-27		633000	5	34.63						
+USGS	07010000	1949-03-11		425000	5	24.41						
+USGS	07010000	1950-05-14		466000	5	27.02						
+USGS	07010000	1951-07-21		782000	5	40.28						
+USGS	07010000	1952-04-29		684000	5	33.83						
+USGS	07010000	1953-04-04		369000	5	22.57						
+USGS	07010000	1954-06-06		292000	5	18.65						
+USGS	07010000	1955-02-23		312000	5	18.62						
+USGS	07010000	1955-10-08		230000	5	14.68						
+USGS	07010000	1957-05-27		342000	5	22.91						
+USGS	07010000	1958-07-24		504000	5	29.40						
+USGS	07010000	1959-06-04		366000	5	23.35						
+USGS	07010000	1960-04-10		670000	5	33.78						
+USGS	07010000	1961-05-11		588000	5	33.20						
+USGS	07010000	1962-03-25		591000	5	30.18						
+USGS	07010000	1963-03-07		309000	5	18.35						
+USGS	07010000	1964-04-24		309000	5	18.35	2,5		1964-06-27		18.96	
+USGS	07010000	1965-09-28		552000	5	30.44						
+USGS	07010000	1966-04-25		359000	1,5	23.00	5					
+USGS	07010000	1967-07-01		530000	5	30.49						
+USGS	07010000	1968-05-26		352000	5	22.00						
+USGS	07010000	1969-07-14		618000	5	35.92						
+USGS	07010000	1970-09-28		540000	5	32.20	2,5		1969-10-16		32.32	
+USGS	07010000	1971-03-02		421000	5	23.40	2		1970-10-01		26.00	
+USGS	07010000	1972-05-04		408000	5	25.00						
+USGS	07010000	1973-04-28		852000	5	43.23						
+USGS	07010000	1974-05-24		584000	5	33.00	2,5		1974-05-25		32.53	
+USGS	07010000	1975-04-27		483000	5	29.95						
+USGS	07010000	1976-04-30		488000	5	27.29						
+USGS	07010000	1977-09-16		339000	5	20.67						
+USGS	07010000	1978-03-27		570000	5	30.38						
+USGS	07010000	1979-04-14		694000	5	37.79						
+USGS	07010000	1980-04-02		358000	5	22.33						
+USGS	07010000	1981-05-21		511000	5	30.00	2,5		1981-07-31		30.51	
+USGS	07010000	1982-06-12		546000	5	32.27						
+USGS	07010000	1982-12-07		739000	5	39.20	2,5		1983-05-04		39.27	
+USGS	07010000	1984-04-24		579000	5	34.02						
+USGS	07010000	1985-02-28		690000	5	34.40						
+USGS	07010000	1985-11-22		589000	5	33.09						
+USGS	07010000	1986-10-09		728000	5	39.13						
+USGS	07010000	1987-12-29		344000	5	22.38						
+USGS	07010000	1989-09-13		327000	5	19.87						
+USGS	07010000	1990-05-18		605000	5	33.18	2		1990-05-19		33.18	
+USGS	07010000	1991-05-08		439000	5	27.40						
+USGS	07010000	1992-04-24		421000	5	26.17						
+USGS	07010000	1993-08-01		1080000	5	49.58						
+USGS	07010000	1993-10-01		693000	5	38.91						
+USGS	07010000	1995-05-22		800000	5	41.89						
+USGS	07010000	1996-06-02		615000	5	35.35						
+USGS	07010000	1997-03-01		544000	5	32.25						
+USGS	07010000	1998-04-17		547000	5	33.36						
+USGS	07010000	1999-05-08	17:00	551000	5	32.62						
+USGS	07010000	2000-06-29	03:00	386000	5	25.43						
+USGS	07010000	2001-06-10	11:00	612000	5	34.79						
+USGS	07010000	2002-05-17		682000	5	37.34						
+USGS	07010000	2003-05-12		400000	5	25.00						
+USGS	07010000	2004-05-29		463000	5	28.19						
+USGS	07010000	2005-01-07	02:00	479000	5	28.80						
+USGS	07010000	2006-05-05	21:00	303000	5	19.02						
+USGS	07010000	2007-05-11		490000	5	29.30						
+USGS	07010000	2008-06-30		720000	5	38.67						
+USGS	07010000	2009-05-20		574000	5	33.24						
+USGS	07010000	2010-06-28		622000	5	35.18						
+USGS	07010000	2011-04-30		615000	5	34.93						
+USGS	07010000	2012-03-25		323000	5	19.94						
+USGS	07010000	2013-06-04		769000	5	40.49						
+USGS	07010000	2014-07-11		534000	5	30.99						
+USGS	07010000	2015-06-30		700000	5	38.45						
+USGS	07010000	2016-01-01	03:00	833000	5	42.52						
+USGS	07010000	2017-05-05	04:20	806000	5	41.65						
+USGS	07010000	2018-09-11	02:00	452000	5	27.00						
+USGS	07010000	2019-06-08	20:30	941000	5	46.02						
+USGS	07010000	2020-06-01	09:30	549000	6	31.94	2		2019-10-12	2330	32.15	
+USGS	07010000	2021-03-20	22:00	533000	6	31.46						
+USGS	07010000	2022-05-07	06:00	497000	6	29.81						
+USGS	07010000	2023-05-16	05:30	333000	5	20.65						
+USGS	07010000	2024-07-10	01:00	553000	5	32.33						
+USGS	07010000	2025-07-30	02:30	378000	5	23.64						

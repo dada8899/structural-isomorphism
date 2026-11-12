@@ -1,0 +1,142 @@
+{
+  "nav.my_research": {"zh": "我的研究", "en": "My research"},
+  "nav.reference_clues": {"zh": "资料线索", "en": "Reference clues"},
+  "nav.legacy_tools": {"zh": "旧工具（历史入口）", "en": "Legacy tools"},
+  "nav.legacy_reports": {"zh": "旧报告（历史）", "en": "Legacy reports"},
+  "nav.start_here": {
+    "zh": "开始研究",
+    "en": "Start research"
+  },
+  "nav.universality_classes": {
+    "zh": "共享模式",
+    "en": "Shared patterns"
+  },
+  "nav.discoveries": {
+    "zh": "候选发现",
+    "en": "Candidate discoveries"
+  },
+  "nav.favorites": {
+    "zh": "我的收藏",
+    "en": "My favorites"
+  },
+  "nav.about": {
+    "zh": "关于",
+    "en": "About"
+  },
+  "nav.github": {
+    "zh": "GitHub",
+    "en": "GitHub"
+  },
+  "nav.lang_toggle_aria": {
+    "zh": "切换到 English",
+    "en": "Switch to Chinese"
+  },
+  "footer.copyright": {
+    "zh": "© 2026 Structural · 换个学科找答案",
+    "en": "© 2026 Structural · Find answers in another field"
+  },
+  "footer.privacy": {
+    "zh": "隐私政策",
+    "en": "Privacy"
+  },
+  "footer.start_here": {
+    "zh": "从这里开始",
+    "en": "Start here"
+  },
+  "footer.about": {
+    "zh": "关于",
+    "en": "About"
+  },
+  "footer.paper": {
+    "zh": "历史材料",
+    "en": "Historical materials"
+  },
+  "footer.github": {
+    "zh": "GitHub",
+    "en": "GitHub"
+  },
+  "footer.huggingface": {
+    "zh": "HuggingFace",
+    "en": "HuggingFace"
+  },
+  "footer.zenodo": {
+    "zh": "Zenodo",
+    "en": "Zenodo"
+  },
+  "analytics.title": {
+    "zh": "由你决定是否分享匿名访问统计",
+    "en": "You decide whether to share anonymous usage data"
+  },
+  "analytics.body": {
+    "zh": "必要功能始终可用。允许后才会加载自托管、无 Cookie 的 Plausible；不记录搜索内容，也不做跨站追踪。",
+    "en": "Essential features always work. Self-hosted, cookieless Plausible loads only after you allow it; search content is not recorded and there is no cross-site tracking."
+  },
+  "analytics.privacy": {
+    "zh": "查看隐私说明",
+    "en": "Read the privacy notice"
+  },
+  "analytics.essential": {
+    "zh": "仅必要功能",
+    "en": "Essential only"
+  },
+  "analytics.allow": {
+    "zh": "允许匿名分析",
+    "en": "Allow anonymous analytics"
+  },
+  "analytics.settings": {
+    "zh": "分析设置",
+    "en": "Analytics settings"
+  },
+  "beta.badge": {
+    "zh": "beta",
+    "en": "beta"
+  },
+  "common.submit": {
+    "zh": "提交",
+    "en": "Submit"
+  },
+  "common.back": {
+    "zh": "返回",
+    "en": "Back"
+  },
+  "common.loading": {
+    "zh": "加载中",
+    "en": "Loading"
+  },
+  "nf.back_home": {
+    "zh": "返回首页",
+    "en": "Back to home"
+  },
+  "nav.papers": {
+    "zh": "历史材料",
+    "en": "Historical materials"
+  },
+  "nav.methods": {
+    "zh": "方法",
+    "en": "Methods"
+  },
+  "nav.phase_detector": {
+    "zh": "Phase Detector",
+    "en": "Phase Detector"
+  },
+  "nav.home": {
+    "zh": "首页",
+    "en": "Home"
+  },
+  "nav.analyze": {
+    "zh": "分析",
+    "en": "Analyze"
+  },
+  "nav.tools": {
+    "zh": "工具",
+    "en": "Tools"
+  },
+  "nav.reports": {
+    "zh": "我的研究",
+    "en": "My research"
+  },
+  "nav.auth": {
+    "zh": "注册 / 登录",
+    "en": "Sign up / Log in"
+  }
+}

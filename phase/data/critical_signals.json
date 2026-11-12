@@ -1,0 +1,345 @@
+{
+  "runaway_feedback": {
+    "title": "🔥 正反馈加速型",
+    "desc": "增长机制自我强化。越增长越能吸引资源。典型风险：临界点前所有指标看起来都好，跨过就是断崖式反转。",
+    "companies": [
+      {
+        "ticker": "NVDA",
+        "name": "NVIDIA",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Semiconductors / AI",
+        "market_cap_usd": 3500000000000,
+        "dynamics_family": "ODE1_exponential_growth",
+        "why_this_family": "仍处在 100%+ YoY 数据中心爆发期，hyperscaler capex 飞轮加速，远离饱和。不选 saturating 因为 K 约束尚不可见；不选 Bistable 因为尚未出现替代稳态。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway",
+        "timescale_log10_s": 7,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dI/dt = alpha*I*(P - Q)",
+        "critical_points": [
+          "任一 hyperscaler 季度订单环比减 25%+",
+          "H 系列毛利率跌破 70%",
+          "ASIC 自研份额超过 30%"
+        ],
+        "confidence": 0.88,
+        "note": "runaway 正反馈，任一大客户减单都会触发级联收缩"
+      },
+      {
+        "ticker": "AVGO",
+        "name": "Broadcom",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Semiconductors / Networking",
+        "market_cap_usd": 850000000000,
+        "dynamics_family": "ODE1_exponential_growth",
+        "why_this_family": "AI custom ASIC (Google TPU, Meta MTIA) 业务 2024-25 仍在 200%+ YoY，远未见饱和，正反馈飞轮（客户 capex → 更多定制芯片订单）仍在加速。不选 saturating 是因为 AI 部分的 K 约束尚未显现；不选 linear 是因为传统网络芯片被 AI ASIC 爆发盖过。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway",
+        "timescale_log10_s": 7,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dI/dt = alpha*I*(P-Q)",
+        "critical_points": [
+          "Google/Meta 任一减单 AI ASIC 25%+",
+          "AI capex 周期见顶信号（hyperscaler guidance 下修）"
+        ],
+        "confidence": 0.82,
+        "note": "AI ASIC 绑定两三个大客户，集中度风险是 critical point"
+      },
+      {
+        "ticker": "PDD.A",
+        "name": "PDD (Pinduoduo parent)",
+        "exchange": "NASDAQ",
+        "country": "CN",
+        "industry": "E-commerce",
+        "market_cap_usd": 180000000000,
+        "dynamics_family": "Network_cascade",
+        "why_this_family": "Temu 的海外扩张是教科书级级联传播：低价 hook + 老带新 + 广告轰炸点燃用户网络，一个地区爆发后通过社交级联到下一地区。PDD 国内也是社交拼团级联起家。不是 exp_growth 因为扩张方式是邻居-触发而非独立增长。",
+        "feedback_topology": "neighbor_triggered_cascade",
+        "boundary_behavior": "viral_spreading",
+        "timescale_log10_s": 7,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dS/dt = -beta*S*I; dI/dt = beta*S*I - gamma*I (SIR)",
+        "critical_points": [
+          "Temu 美国 MAU 连续 2 季度 QoQ 下跌",
+          "欧盟 DSA/美国 de minimis 豁免取消",
+          "获客成本 CAC 突破 LTV"
+        ],
+        "confidence": 0.82,
+        "note": "SIR-like viral cascade; regulatory and logistics limits are the saturation barriers, not market size"
+      },
+      {
+        "ticker": "MELI",
+        "name": "MercadoLibre",
+        "exchange": "NASDAQ",
+        "country": "AR",
+        "industry": "Latin America E-commerce",
+        "market_cap_usd": 100000000000,
+        "dynamics_family": "ODE1_exponential_growth",
+        "why_this_family": "LatAm 电商+支付+信贷飞轮仍在 30%+ 增长，Mercado Pago 支付渗透远未饱和，Mercado Credito 正利用数据飞轮放贷。三大业务正反馈未遇到 K 约束。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dN/dt = r*N",
+        "critical_points": [
+          "阿根廷比索新一轮崩盘触发信贷不良率",
+          "Shopee/TikTok Shop LatAm 份额突破 15%",
+          "GMV YoY 跌破 20%"
+        ],
+        "confidence": 0.78,
+        "note": "与 AMZN 早期相似的 flywheel，但嵌在汇率波动的宿主环境"
+      },
+      {
+        "ticker": "HUT",
+        "name": "Hut 8 Mining",
+        "exchange": "NASDAQ",
+        "country": "CA/US",
+        "industry": "BTC Mining + HPC",
+        "market_cap_usd": 2000000000,
+        "dynamics_family": "Self_fulfilling_prophecy",
+        "why_this_family": "矿业公司估值 = f(BTC 预期)，BTC 预期上涨 → 公司加仓/扩张 → 算力需求 → 价格正反馈，和 MicroStrategy 同构。HPC 转型也是基于 '预期 AI 需求 → 扩建 → 证实预期' 的自我实现结构。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway",
+        "timescale_log10_s": 7,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dp/dt = k*(E[p] - p) with E[p] = f(p)",
+        "critical_points": [
+          "BTC 跌破 50k 持续 1 个月",
+          "HPC 业务大客户签约"
+        ],
+        "confidence": 0.75,
+        "note": "自我实现链可以正向也可以反向崩塌，高 beta"
+      }
+    ]
+  },
+  "bistable_cusp": {
+    "title": "⚖️ 临界跳变型",
+    "desc": "系统在两种状态之间有一道折点——缓慢推动时看起来稳，但一旦跨过去就是一步到位的跳变，而且回不来。包括双稳态切换、鞍结分岔、一阶相变、滞回环。",
+    "companies": [
+      {
+        "ticker": "000858.SZ",
+        "name": "五粮液",
+        "exchange": "SZSE",
+        "country": "CN",
+        "industry": "白酒",
+        "market_cap_usd": 60000000000,
+        "dynamics_family": "Bistable_switch",
+        "why_this_family": "高端白酒的价格带存在两个稳态：政商宴请驱动的高价稳态，和大众消费驱动的低价稳态。当前正处在 cusp——批价破千近在咫尺，一旦穿越会切换到低均衡稳态。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "tipping_point",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dx/dt = -x^3 + mu*x + h (cusp catastrophe)",
+        "critical_points": [
+          "普五批价跌破 900 元",
+          "经销商库存系数超 3 个月",
+          "高端宴请场景占比跌破 40%"
+        ],
+        "confidence": 0.8,
+        "note": "批价是最清晰的可观测序参量"
+      },
+      {
+        "ticker": "688981.SS",
+        "name": "中芯国际 SMIC",
+        "exchange": "SSE",
+        "country": "CN",
+        "industry": "半导体代工",
+        "market_cap_usd": 60000000000,
+        "dynamics_family": "Phase_transition_1st",
+        "why_this_family": "SMIC 受美国出口管制（EUV 禁令）的硬约束是一阶相变：先进制程路径被一纸令切断；收入走成熟制程 vs 突破先进制程是两个截然不同的稳态，不是渐变。",
+        "feedback_topology": "delayed_positive",
+        "boundary_behavior": "phase_transition",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "Order parameter jump at T_c (external policy)",
+        "critical_points": [
+          "EUV 制裁解除或国产光刻机突破 7nm",
+          "中美半导体协议",
+          "14nm 以上良率达到商业化"
+        ],
+        "confidence": 0.78,
+        "note": "一阶相变由外生政策参数驱动，不是内生增长"
+      },
+      {
+        "ticker": "XPEV",
+        "name": "XPeng ADR",
+        "exchange": "NYSE",
+        "country": "CN",
+        "industry": "EV (ADR)",
+        "market_cap_usd": 15000000000,
+        "dynamics_family": "Fold_bifurcation",
+        "why_this_family": "造车新势力现金流烧钱曲线与月交付量爬坡形成鞍结——必须在现金耗尽前跳到正毛利稳态，否则无可逆回路。2023 年已经经历一次（Mona 车型救场）。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "repeller",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dx/dt = r + x² (saddle-node)",
+        "critical_points": [
+          "月交付连续 3 月 < 2 万台",
+          "毛利率回落至 5% 以下"
+        ],
+        "confidence": 0.78,
+        "note": "和 GM 同为 fold 但 XPEV 距临界更近，现金 buffer 更薄"
+      },
+      {
+        "ticker": "ORCL",
+        "name": "Oracle",
+        "exchange": "NYSE",
+        "country": "US",
+        "industry": "Enterprise Software / Cloud",
+        "market_cap_usd": 470000000000,
+        "dynamics_family": "Bistable_switch",
+        "why_this_family": "Oracle 正在从老式 DB/license 的稳态（衰减）向 OCI+AI infra 新稳态（增长）切换，RPO 订单量近一年从 ~$1000亿跳到 $5000亿+，是典型的双稳态越过 cusp 场景，不是平滑 logistic。",
+        "feedback_topology": "bistable",
+        "boundary_behavior": "fold_bifurcation",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dx/dt = -x^3 + mu*x + h",
+        "critical_points": [
+          "OCI 容量兑付 RPO 的比例 > 50%",
+          "AI 训练需求持续 2 年"
+        ],
+        "confidence": 0.75,
+        "note": "老 DB 业务稳态 + AI infra 新稳态之间的 cusp 切换，而非渐变"
+      },
+      {
+        "ticker": "3888.HK",
+        "name": "金山软件 Kingsoft",
+        "exchange": "HKEX",
+        "country": "CN",
+        "industry": "Office SaaS + Games (China)",
+        "market_cap_usd": 7000000000,
+        "dynamics_family": "Bistable_switch",
+        "why_this_family": "WPS 处于 '国产办公软件主流 vs 被 MS365 压制' 双稳态，中国信创 + AI 对话窗口正在把系统推向主流稳态；同时游戏业务（剑网三等）独立存在。不选 logistic 是因为并非 S 曲线，是两个稳态之间的切换。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "bistable",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dx/dt = x(1-x)(x-a)",
+        "critical_points": [
+          "信创订单占比突破 50%",
+          "WPS AI 付费率突破 15%"
+        ],
+        "confidence": 0.75,
+        "note": "信创是外部参数推动 cusp 过渡"
+      }
+    ]
+  },
+  "critical_slowing_down": {
+    "title": "📈 临界放缓型",
+    "desc": "系统接近相变，恢复力下降，扰动后回到平衡的时间越来越长。典型风险：方差增大、自相关变高，是相变最早的预警。",
+    "companies": [
+      {
+        "ticker": "PM",
+        "name": "Philip Morris International",
+        "exchange": "NYSE",
+        "country": "US",
+        "industry": "Tobacco + Next-gen",
+        "market_cap_usd": 160000000000.0,
+        "dynamics_family": "Phase_transition_2nd",
+        "why_this_family": "传统烟草负增长与 IQOS/ZYN 双位数增长在营收构成中正经历连续相变——order parameter（next-gen 占比）从 30% 向 50% 过渡，susceptibility 对监管新闻异常敏感，属二阶相变特征。",
+        "feedback_topology": "mixed_loops",
+        "boundary_behavior": "bounded",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "F = ½a(T-Tc)φ² + ¼bφ⁴  (Landau 自由能，φ=next-gen mix)",
+        "critical_points": [
+          "ZYN 美国出货量 YoY 跌破 20%",
+          "FDA 对尼古丁袋的监管 ruling",
+          "IQOS 美国获批商业化"
+        ],
+        "confidence": 0.78,
+        "note": "next-gen 过半是产品 mix 的临界点，之后动力学会重新整数化"
+      },
+      {
+        "ticker": "SNOW",
+        "name": "Snowflake",
+        "exchange": "NYSE",
+        "country": "US",
+        "industry": "Cloud Data Warehouse",
+        "market_cap_usd": 70000000000,
+        "dynamics_family": "Phase_transition_2nd",
+        "why_this_family": "Snowflake 正处在网络效应/数据引力 vs 云商品化（Databricks/BigQuery/Iceberg 开放格式）对撞的临界带，susceptibility 对外部冲击持续放大，是连续但非解析的二阶相变，不是单向饱和。",
+        "feedback_topology": "mixed_loops",
+        "boundary_behavior": "critical_slowdown",
+        "timescale_log10_s": 7,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dM/dt = -a*(M-M*) with correlation_length -> infty near Tc",
+        "critical_points": [
+          "NRR 跌破 115%",
+          "Iceberg 外部表比例超过 30%",
+          "毛利率被 Databricks 压缩 5pp+"
+        ],
+        "confidence": 0.78,
+        "note": "临界放缓特征：最近几个季度增速波动加大"
+      },
+      {
+        "ticker": "BABA",
+        "name": "阿里巴巴 ADR",
+        "exchange": "NYSE",
+        "country": "CN",
+        "industry": "E-commerce + Cloud (ADR)",
+        "market_cap_usd": 180000000000,
+        "dynamics_family": "Phase_transition_2nd",
+        "why_this_family": "阿里处于电商份额被拼多多/抖音蚕食但云+国际仍在增长的对撞点。对每一条外部新闻（监管、AI、分拆）的反应幅度持续放大，典型临界慢化+susceptibility 发散。不是一阶相变因为没有瞬时跳变。",
+        "feedback_topology": "mixed",
+        "boundary_behavior": "bounded",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "chi ~ |T - T_c|^(-gamma)",
+        "critical_points": [
+          "淘天 GMV 份额跌破 40%",
+          "阿里云 AI 收入占比 >25%",
+          "回购节奏年化 >5%"
+        ],
+        "confidence": 0.73,
+        "note": "多业务对撞，市场定价在不同剧本间来回切换"
+      },
+      {
+        "ticker": "GOOGL",
+        "name": "Alphabet / Google",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Digital Ads / Cloud",
+        "market_cap_usd": 2100000000000,
+        "dynamics_family": "Phase_transition_2nd",
+        "why_this_family": "搜索现金牛遭 LLM 原生搜索侵蚀，同时 Gemini/Cloud 自己也在抢生态位，出现 susceptibility 发散——外部小扰动（OpenAI 产品发布）引起巨大市值振幅。不选 saturating 因为广告基本盘本身在重塑；不选 Bistable 因为还没明确跳到另一稳态。",
+        "feedback_topology": "mixed",
+        "boundary_behavior": "critical_slowing",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "Ginzburg-Landau: F = a(T-Tc)*m^2 + b*m^4",
+        "critical_points": [
+          "搜索 query 份额跌破 85%",
+          "Search 广告 YoY 转负",
+          "AI Overview CTR 恶化"
+        ],
+        "confidence": 0.72,
+        "note": "临界放缓，每次 AI 叙事都放大市值波动——典型二阶相变特征"
+      },
+      {
+        "ticker": "OKTA",
+        "name": "Okta",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Identity SaaS",
+        "market_cap_usd": 20000000000.0,
+        "dynamics_family": "Phase_transition_2nd",
+        "why_this_family": "2022 安全事件后 susceptibility 显著发散：每次竞争新闻/安全事件都放大波动，客户对 Microsoft Entra 替代敏感度持续上升。二阶相变 = 连续但临界放缓 + susceptibility 发散。",
+        "feedback_topology": "mixed",
+        "boundary_behavior": "critical_slowing",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "xi ~ |T-Tc|^(-nu), chi -> infinity",
+        "critical_points": [
+          "Net retention < 105%",
+          "Microsoft Entra 捆绑率 > 60%",
+          "安全事件再发"
+        ],
+        "confidence": 0.72,
+        "note": "对竞争/事件响应幅度在放大，临界前兆"
+      }
+    ]
+  }
+}

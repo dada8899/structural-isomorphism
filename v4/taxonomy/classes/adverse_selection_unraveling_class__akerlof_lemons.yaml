@@ -1,0 +1,117 @@
+class_id: adverse_selection_unraveling_class__akerlof_lemons
+status: speculative
+display_name: Akerlof lemons unraveling (hidden quality + price-driven exit)
+display_name_zh: Akerlof 柠檬市场逆向选择
+hub_phenomenon: Hidden quality + price-conditional expectation equilibrium p* = E[q|p*] producing monotone exit of high-quality
+  types.
+shared_equation: "Akerlof 1970 conditional expectation: p* = E[q | p*]; equilibrium when expected quality matches price.\n\
+  Unraveling dynamics: x_{t+1} = f(x_t), f monotone decreasing.\nDiversity / quality dynamics: D(t+1) = D(t)·(1-α) + β·N(t),\n\
+  \  where α = homogenization rate (recommendation algorithm reinforcement),\n  β = new heterogeneous-content creator entry\
+  \ rate.\nCollapse condition: α > β → D → 0.\n"
+key_invariants:
+- 'Akerlof conditional expectation equilibrium: p* = E[q | p*]'
+- 'Monotone unraveling: x_{t+1} = f(x_t), f'' < 0'
+- 'Diversity dynamic: D(t+1) = D(t)·(1-α) + β·N(t)'
+- 'Quality collapse condition: α > β'
+- Self-selection bias drives positive feedback even without external shock
+positive_examples:
+- phenomenon: Akerlof lemons market (used cars)
+  evidence: Original 1970 formulation. Buyers cannot distinguish quality → average price reflects average quality → high-quality
+    sellers exit → average quality drops → cycle continues. Hub of class.
+  verified_at: candidate
+- phenomenon: Information cocoon / 信息茧房
+  evidence: Recommendation algorithm optimizes engagement → reduces diversity → heterogeneous creators get less attention
+    → exit → less diversity. Same unraveling dynamic. Layer 3 explicit equation match.
+  verified_at: candidate
+- phenomenon: Spiral of silence (沉默螺旋机制)
+  evidence: Minority opinion holders silent → majority appears stronger → more minority silent. Noelle-Neumann 1974. Same
+    monotone unraveling.
+  verified_at: candidate
+- phenomenon: Echo chamber effect in social media
+  evidence: Engagement-optimized recommendation reinforces homophily, drives out heterogeneous content. Same Akerlof structure.
+  verified_at: candidate
+negative_examples:
+- phenomenon: Earthquake aftershock decay
+  reason: No information asymmetry; pure stress-relaxation cascade. Belongs to soc_threshold_cascade.
+- phenomenon: Stock market crash
+  reason: 'Edge case: crashes can involve information asymmetry (lemon-like signaling about firm quality), but the main mechanism
+    is liquidity spiral / margin cascade, not adverse selection unraveling. Belongs to soc_threshold_cascade.'
+- phenomenon: Bank run
+  reason: Diamond-Dybvig is multiple-equilibrium coordination, not information-asymmetry-driven gradual unraveling. Belongs
+    to multistable_self_fulfilling.
+- phenomenon: Preferential attachment / rich-get-richer
+  reason: BA model is *positive* feedback on degree, not selective exit of high-quality. Different mechanism; both produce
+    heavy tails but via different routes.
+- phenomenon: Moral hazard in auto insurance
+  reason: "Post-contract hidden action, not pre-contract hidden quality; outcomes depend on unobservable behavior rather than a price-conditional expectation equilibrium p* = E[q|p*]."
+- phenomenon: "Gresham's law (bad money drives out good)"
+  reason: "Mechanism relies on legal tender laws and a fixed exchange ratio, not asymmetric information. No price-conditional exit of high-quality agents occurs."
+- phenomenon: "Winner's curse in common-value auctions"
+  reason: "Adverse selection emerges from overestimation conditional on winning, not from price-conditional expectation derived from a posted price. Equilibrium is bid shading, not monotone quality exit."
+- phenomenon: Network congestion driving out high-value users
+  reason: "Superficially similar market deterioration, but mechanism is congestion externalities (not hidden quality). High-value users exit due to quality of service decline, not because price reflects average quality under asymmetric information."
+- phenomenon: Price controls inducing quality degradation
+  reason: "Sellers lower overt quality in response to a binding price ceiling; quality is observable and the mechanism is supply-side cost cutting, not hidden quality and equilibrium p* = E[q|p*]."
+- phenomenon: "Gresham's law ('bad money drives out good')"
+  reason: "Superficially similar as low-quality displaces high-quality, but mechanism rests on legal tender laws and fixed exchange rates, not on asymmetric information and price-conditional expectation equilibrium."
+- phenomenon: Moral hazard in insurance markets (hidden action)
+  reason: "Similar market failure but driven by unobservable effort affecting loss probabilities after contract, not by hidden quality ex ante; equilibrium condition involves incentive constraints rather than p* = E[q|p*]."
+- phenomenon: "Network-effects tipping (e.g., VHS vs Betamax)"
+  reason: "One product dominates due to positive reinforcement from installed base, not adverse selection; quality is observable and price mechanism is unrelated to hidden information."
+- phenomenon: Mussa-Rosen monopolistic quality screening
+  reason: "Principal designs nonlinear price schedule to induce self-selection among heterogeneous types, but there is no single market price or price-driven exit; equilibrium is a contracting outcome, not a market-clearing condition under asymmetric quality information."
+- phenomenon: Spence job-market signaling
+  reason: "Involves hidden ability and an equilibrium wage that equals expected productivity conditional on signal, but the mechanism is costly signaling that prevents exit rather than causing it; no monotone exit of high types because they separate rather than leave."
+edge_cases:
+- phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
+  debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
+    The separating-equilibrium variant uses contract menus to break unraveling — still in this class, just with additional
+    structure.
+- phenomenon: Academic field decline
+  debate: Top researchers exit shrinking field → quality of remaining work drops → more top researchers exit. Plausible unraveling
+    but mechanism includes both information asymmetry and reputation dynamics. Loose class assignment.
+- phenomenon: Rothschild-Stiglitz insurance market equilibrium
+  debate: "Also driven by adverse selection, but equilibrium relies on self-selection via contract menus rather than a single price. Is the multi-dimensional screening a different universality class, or just an extension of Akerlof's price-conditional expectation framework?"
+- phenomenon: Signaling equilibrium (Spence education model)
+  debate: "Hidden quality is present, but high types avoid unraveling through costly signaling rather than exiting. Does this constitute a distinct dynamical regime where the equilibrium condition is signaling cost condition instead of p* = E[q|p*], or is it a non‐unraveling outcome within the same class?"
+- phenomenon: Credit rationing (Stiglitz-Weiss)
+  debate: "Adverse selection in loan markets leads to equilibrium interest rate below market-clearing and quantity rationing, because expected bank return is non-monotonic in rate. The mechanism diverges from p* = E[q|p*] and the unraveling is partial; is it a separate universality class of adverse selection with non-monotonic payoffs?"
+- phenomenon: Mandatory quality disclosure in a lemons market
+  debate: "Exogenous elimination of hidden quality prevents unraveling, but the underlying market structure is identical. Is the system still in the adverse selection class if the informational asymmetry is removed by policy, or does it cross a class boundary into full‐information markets?"
+- phenomenon: Online marketplace with reputation-based feedback
+  debate: "Dynamic learning from ratings reduces information asymmetry and can stem the exit of high-quality sellers. The static p* = E[q|p*] unraveling may be avoided, but the core adverse-selection tension remains. Does the introduction of reputation dynamics place this in a new class, or is it a perturbed version of the same class?"
+- phenomenon: Rothschild-Stiglitz competitive insurance screening
+  debate: "Shares core adverse selection and price (premium) linked to expected costs of the pool, but equilibrium involves firms offering menus of contracts and possible non-existence; debate whether it belongs to the same class or requires a separate competitive contract equilibrium class."
+- phenomenon: "Grossman full disclosure 'unraveling' (quality disclosure)"
+  debate: "Uses the term 'unraveling' and hinges on hidden quality, but the unraveling is of information (all firms voluntarily disclose) rather than exit of high-quality goods; mechanism is disclosure incentives, not price-conditional expectation."
+- phenomenon: Stiglitz-Weiss credit rationing with adverse selection
+  debate: "Interest rate (price) affects the pool of borrowers similarly, but equilibrium often involves rate setting below market-clearing and credit rationing, with bank expected return maximization rather than simple p* = E[q|p*]; arguably an extension, but equilibrium form differs."
+- phenomenon: Kreps-Wilson reputation in repeated lemons markets
+  debate: "Dynamic setting where high-quality sellers can invest in reputation to signal type, potentially sustaining quality; equilibrium may not reduce to static p* = E[q|p*] due to intertemporal incentives, blurring the class boundary."
+- phenomenon: "Over-the-counter asset markets with asymmetric information (e.g., Duffie, Gârleanu, Pedersen)"
+  debate: "Search frictions and bargaining combined with hidden quality can produce similar price-driven exit dynamics, but the equilibrium condition involves meeting rates and bargaining splits, not a simple Walrasian market; might be a distinct class."
+references:
+- Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
+- Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)
+- Noelle-Neumann 1974 J. Communication 24, 43 (spiral of silence)
+- Spence 1973 Q. J. Econ. 87, 355 (job market signaling — closely related)
+- Pariser 2011 The Filter Bubble (information cocoon)
+b3_status: SPLIT_B3_CHILD
+b3_verdict: SPLIT_strong
+b3_consensus: SPLIT
+b3_avg_confidence: 0.92
+b3_action_taken: 'split into 3 children: adverse_selection_unraveling_class__akerlof_lemons, adverse_selection_unraveling_class__spiral_of_silence,
+  adverse_selection_unraveling_class__echo_chamber_filter'
+superseded_by_split:
+- adverse_selection_unraveling_class__akerlof_lemons
+- adverse_selection_unraveling_class__spiral_of_silence
+- adverse_selection_unraveling_class__echo_chamber_filter
+parent_class: adverse_selection_unraveling_class
+split_from: adverse_selection_unraveling_class
+split_rationale: 'Akerlof-specific: hidden quality with conditional-expectation equilibrium. Spiral of silence and echo chambers
+  share only surface dynamics and were removed.'
+members_kept_after_split:
+- used car lemons
+- labor market signaling
+- insurance adverse selection
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.

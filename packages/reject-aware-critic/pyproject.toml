@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reject-aware-critic"
+version = "0.1.0"
+description = "Multi-vendor LLM critic ensemble for cross-domain universality candidate review (KEEP/REJECT/SPLIT/MERGE verdicts)"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Wan Qinghui" },
+]
+keywords = [
+    "llm",
+    "critic",
+    "ensemble",
+    "reject-aware",
+    "universality-class",
+    "cross-domain",
+    "deepseek",
+    "openrouter",
+    "anthropic",
+    "kimi",
+    "glm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "pydantic>=2.0",
+    "httpx>=0.25",
+    "tenacity>=8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-asyncio",
+]
+
+[project.urls]
+Homepage = "https://github.com/dada8899/structural-isomorphism"
+Documentation = "https://github.com/dada8899/structural-isomorphism/tree/main/packages/reject-aware-critic"
+Issues = "https://github.com/dada8899/structural-isomorphism/issues"
+Repository = "https://github.com/dada8899/structural-isomorphism"
+Paper = "https://github.com/dada8899/structural-isomorphism/blob/main/paper/c4-reject-aware-pipeline-2026-05-13.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
