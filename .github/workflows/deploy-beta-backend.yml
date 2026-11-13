@@ -9,9 +9,9 @@ name: Deploy Beta Backend
 # has its own deploy workflow).
 #
 # Secrets used (same pattern as deploy-phase-detector.yml):
-#   VPS_DEPLOY_KEY  — SSH private key authorized on VPS
-#   VPS_HOST        — VPS hostname / IP
-#   VPS_USER        — SSH user (typically root)
+#   STRUCTURAL_VPS_DEPLOY_KEY  — SSH private key authorized on VPS
+#   STRUCTURAL_VPS_HOST        — VPS hostname / IP
+#   STRUCTURAL_VPS_USER        — SSH user (typically root)
 
 on:
   push:
@@ -112,19 +112,23 @@ jobs:
 
       - name: Setup SSH
         env:
-          SSH_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
-          HOST: ${{ secrets.VPS_HOST }}
+          SSH_KEY: ${{ secrets.STRUCTURAL_VPS_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STRUCTURAL_VPS_KNOWN_HOSTS }}
+          HOST: ${{ secrets.STRUCTURAL_VPS_HOST }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          [[ -n "$KNOWN_HOSTS" ]] || { echo "trusted SSH host keys are required" >&2; exit 1; }
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ssh-keygen -F "$HOST" -f ~/.ssh/known_hosts >/dev/null
 
       - name: Pull + deploy via deploy-dispatcher (beta-backend route)
         env:
-          HOST: ${{ secrets.VPS_HOST }}
-          USER: ${{ secrets.VPS_USER }}
+          HOST: ${{ secrets.STRUCTURAL_VPS_HOST }}
+          USER: ${{ secrets.STRUCTURAL_VPS_USER }}
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail

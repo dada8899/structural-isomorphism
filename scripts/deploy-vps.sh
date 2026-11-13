@@ -56,6 +56,20 @@ RUNTIME_ROOT="${STRUCTURAL_RUNTIME_ROOT:-/root/structural-runtime}"
 RUNTIME_RELEASES="$RUNTIME_ROOT/releases"
 RUNTIME_CURRENT="$RUNTIME_ROOT/current"
 RUNTIME_PYTHON="${STRUCTURAL_RUNTIME_PYTHON:-/usr/bin/python3}"
+if [[ -z "${STRUCTURAL_RUNTIME_PYTHON:-}" && ( -e /opt/structural-tools || -L /opt/structural-tools ) ]]; then
+  /usr/bin/python3 -I - <<'PY'
+import os, stat
+from pathlib import Path
+path = Path('/opt/structural-tools/bin/python3.11')
+for component in (*reversed(path.parents), path):
+    info = component.lstat()
+    if stat.S_ISLNK(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+        raise SystemExit('untrusted structural Python tool path')
+if not path.is_file() or not os.access(path, os.X_OK):
+    raise SystemExit('structural Python tool is not executable')
+PY
+  RUNTIME_PYTHON=/opt/structural-tools/bin/python3.11
+fi
 RUNTIME_REQUIREMENTS="${STRUCTURAL_RUNTIME_REQUIREMENTS:-$SOURCE/web/backend/requirements.txt}"
 DEPLOY_JOURNAL="${STRUCTURAL_DEPLOY_JOURNAL:-$RUNTIME_ROOT/deploy-journal.json}"
 PUBLIC_RUNTIME_ATTESTATION="$TARGET/web/frontend/assets/runtime-attestation.json"

@@ -23,6 +23,35 @@ def encoded(value):
     return json.dumps(value).encode()
 
 
+def test_current_monitor_accepts_explicit_older_release_requirements():
+    older_digest = "d" * 64
+
+    def transport(method, url, body, timeout):
+        result = successful_transport(method, url, body, timeout)
+        if url.endswith(("/api/version", "/assets/runtime-attestation.json")):
+            data = json.loads(result.body)
+            data["requirements_sha256"] = older_digest
+            data["runtime_id"] = f"cpython-311-{older_digest}-{'f' * 64}"
+            return smoke.Response(200, encoded(data))
+        return result
+
+    smoke.Monitor(
+        transport, expected_git_sha="a" * 40,
+        expected_requirements_sha256=older_digest,
+    ).check_beta_system()
+    with pytest.raises(smoke.SmokeFailure, match="requirements SHA-256"):
+        smoke.Monitor(transport, expected_git_sha="a" * 40).check_beta_system()
+
+
+@pytest.mark.parametrize("invalid", ["", "a" * 63, "a" * 65, "A" * 64, "g" * 64, " " + "a" * 64])
+def test_explicit_requirements_digest_rejects_invalid_values(invalid):
+    with pytest.raises(ValueError, match="requirements SHA-256"):
+        smoke.Monitor(expected_requirements_sha256=invalid)
+    with pytest.raises(SystemExit) as error:
+        smoke.main(["--expected-git-sha", "a" * 40, "--expected-requirements-sha256", invalid])
+    assert error.value.code == 2
+
+
 def successful_transport(method, url, body, timeout):
     assert 1 <= timeout <= 60
     if url == f"{smoke.STRUCTURAL}/":

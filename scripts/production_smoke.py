@@ -98,6 +98,7 @@ class Monitor:
         sleeper: Callable[[float], None] = time.sleep,
         get_retry_delays: tuple[float, ...] | None = None,
         expected_git_sha: str | None = None,
+        expected_requirements_sha256: str | None = None,
     ):
         self.transport = transport
         self.timeout = timeout
@@ -114,6 +115,15 @@ class Monitor:
         self.checked = 0
         self.attempted_requests = 0
         self.expected_git_sha = expected_git_sha
+        if expected_requirements_sha256 is not None and (
+            len(expected_requirements_sha256) != 64
+            or any(char not in "0123456789abcdef" for char in expected_requirements_sha256)
+        ):
+            raise ValueError("expected requirements SHA-256 must be 64 lowercase hexadecimal characters")
+        self.expected_requirements_sha256 = (
+            EXPECTED_RUNTIME_REQUIREMENTS_SHA256
+            if expected_requirements_sha256 is None else expected_requirements_sha256
+        )
 
     def request(self, label: str, method: str, url: str, *, payload: dict | None = None,
                 expected_status: int = 200) -> Response:
@@ -189,11 +199,11 @@ class Monitor:
                      and all(character in "0123456789abcdef" for character in freeze_sha),
                      "beta immutable runtime", "installed freeze SHA-256 is invalid")
         expected_runtime_id = (
-            f"cpython-311-{EXPECTED_RUNTIME_REQUIREMENTS_SHA256}-{freeze_sha}"
+            f"cpython-311-{self.expected_requirements_sha256}-{freeze_sha}"
         )
         self.require(runtime.get("schema_version") == 1, "beta immutable runtime",
                      "schema_version must equal 1")
-        self.require(runtime.get("requirements_sha256") == EXPECTED_RUNTIME_REQUIREMENTS_SHA256,
+        self.require(runtime.get("requirements_sha256") == self.expected_requirements_sha256,
                      "beta immutable runtime", "requirements SHA-256 does not match this release")
         self.require(runtime.get("runtime_id") == expected_runtime_id, "beta immutable runtime",
                      "runtime_id does not match Python ABI + requirements SHA-256")
@@ -367,6 +377,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT,
                         help="per-request timeout in seconds (default: 15)")
     parser.add_argument(
+        "--expected-requirements-sha256",
+        help="SHA-256 of backend requirements bytes in the expected deployment (default: monitor checkout)",
+    )
+    parser.add_argument(
         "--expected-git-sha",
         required=True,
         help="full checked-out Git SHA that production must be running",
@@ -380,7 +394,15 @@ def main(argv: list[str] | None = None) -> int:
             character not in "0123456789abcdef" for character in expected_git_sha
         ):
             parser.error("--expected-git-sha must be a full hexadecimal commit SHA")
-        Monitor(timeout=args.timeout, expected_git_sha=expected_git_sha).run()
+        if args.expected_requirements_sha256 is not None and (
+            len(args.expected_requirements_sha256) != 64
+            or any(char not in "0123456789abcdef" for char in args.expected_requirements_sha256)
+        ):
+            parser.error("--expected-requirements-sha256 must be 64 lowercase hexadecimal characters")
+        Monitor(
+            timeout=args.timeout, expected_git_sha=expected_git_sha,
+            expected_requirements_sha256=args.expected_requirements_sha256,
+        ).run()
     except SmokeFailure as exc:
         print(f"FAIL production smoke: {exc}", file=sys.stderr)
         return 1
